@@ -1,115 +1,110 @@
-import {createAsyncResourceBundle, createSelector} from 'redux-bundler'
-// const API = 'http://brie6:8081/search_api';
-// const API = 'http://localhost:5000/search_api';
-// const API = '/search_api';
-const API = 'http://www.sorghumbase.org/search_api';
+import { createAsyncResourceBundle, createSelector, composeBundles } from 'redux-bundler'
+import _ from 'lodash'
+const facets = [
+  "{!facet.limit='200' facet.mincount='1' key='taxon_id'}taxon_id",
+  "{!facet.limit='100' facet.mincount='1' key='genetree'}gene_tree",
+  "{!facet.limit='100' facet.mincount='1' key='pathways'}pathways__ancestors",
+  "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots"
+];
 
-const sorghumPosts = createAsyncResourceBundle({
-  name: 'sorghumPosts',
-  actionBaseType: 'SORGHUM_POSTS',
+const grameneGenes = createAsyncResourceBundle({
+  name: 'grameneGenes',
+  actionBaseType: 'GRAMENE_GENES',
   getPromise: ({store}) =>
-    fetch(`${API}/posts?${store.selectQueryString()}`)
+    fetch(`http://data.gramene.org/search?${store.selectQueryString()}&facet.field=${facets}`)
       .then(res => res.json())
+      .then(solr => {console.log(solr); solr.numFound = solr.response.numFound; return solr})
 });
 
-sorghumPosts.reactSorghumPosts = createSelector(
-  'selectSorghumPostsShouldUpdate',
+grameneGenes.reactGrameneGenes = createSelector(
+  'selectGrameneGenesShouldUpdate',
   'selectQueryString',
   (shouldUpdate, queryString) => {
     if (shouldUpdate && queryString) {
-      return {actionCreator: 'doFetchSorghumPosts'}
+      return { actionCreator: 'doFetchGrameneGenes' }
     }
   }
 );
 
-const sorghumLinks = createAsyncResourceBundle({
-  name: 'sorghumLinks',
-  actionBaseType: 'SORGHUM_LINKS',
-  getPromise: ({store}) =>
-    fetch(`${API}/resource-link?${store.selectQueryString()}`)
-      .then(res => res.json())
-});
-
-sorghumLinks.reactSorghumLinks = createSelector(
-  'selectSorghumLinksShouldUpdate',
-  'selectQueryString',
-  (shouldUpdate, queryString) => {
-    if (shouldUpdate && queryString) {
-      return {actionCreator: 'doFetchSorghumLinks'}
+grameneGenes.reactDomainFacets = createSelector(
+  'selectGrameneDomainsShouldUpdate',
+  'selectGrameneGenes',
+  (shouldUpdate, grameneGenes) => {
+    if (shouldUpdate && grameneGenes) {
+      return { actionCreator: 'doFetchGrameneDomains' }
     }
   }
 );
 
-const sorghumPeople = createAsyncResourceBundle({
-  name: 'sorghumPeople',
-  actionBaseType: 'SORGHUM_PEOPLE',
-  getPromise: ({store}) =>
-    fetch(`${API}/users?${store.selectQueryString()}`)
-      .then(res => res.json())
-});
-
-sorghumLinks.reactSorghumPeople = createSelector(
-  'selectSorghumPeopleShouldUpdate',
-  'selectQueryString',
-  (shouldUpdate, queryString) => {
-    if (shouldUpdate && queryString) {
-      return {actionCreator: 'doFetchSorghumPeople'}
+grameneGenes.reactPathwayFacets = createSelector(
+  'selectGramenePathwaysShouldUpdate',
+  'selectGrameneGenes',
+  (shouldUpdate, grameneGenes) => {
+    if (shouldUpdate && grameneGenes) {
+      return { actionCreator: 'doFetchGramenePathways' }
     }
   }
 );
 
-const sorghumJobs = createAsyncResourceBundle({
-  name: 'sorghumJobs',
-  actionBaseType: 'SORGHUM_JOBS',
-  getPromise: ({store}) =>
-    fetch(`${API}/job?${store.selectQueryString()}`)
-      .then(res => res.json())
-});
-
-sorghumJobs.reactSorghumJobs = createSelector(
-  'selectSorghumJobsShouldUpdate',
-  'selectQueryString',
-  (shouldUpdate, queryString) => {
-    if (shouldUpdate && queryString) {
-      return {actionCreator: 'doFetchSorghumJobs'}
+grameneGenes.reactTaxonomyFacets = createSelector(
+  'selectGrameneTaxonomyShouldUpdate',
+  'selectGrameneGenes',
+  (shouldUpdate, grameneGenes) => {
+    if (shouldUpdate && grameneGenes) {
+      return { actionCreator: 'doFetchGrameneTaxonomy' }
     }
   }
 );
 
-const sorghumEvents = createAsyncResourceBundle({
-  name: 'sorghumEvents',
-  actionBaseType: 'SORGHUM_EVENTS',
+function selectFacetIDs(store, field) {
+  const path = `grameneGenes.data.facet_counts.facet_fields.${field}`;
+  if (_.has(store,path)) {
+    const flat_facets = _.get(store,path);
+    let idList = [];
+    if (isNaN(+flat_facets[0])) {
+      for (let i = 0; i < flat_facets.length; i += 2) {
+        idList.push(flat_facets[i])
+      }
+    }
+    else {
+      for (let i = 0; i < flat_facets.length; i += 2) {
+        idList.push(+flat_facets[i])
+      }
+      if (idList.length === 1) idList.push(0);
+    }
+    return idList;
+  }
+}
+
+grameneGenes.selectDomainFacets = store => selectFacetIDs(store, 'domains');
+grameneGenes.selectPathwayFacets = store => selectFacetIDs(store, 'pathways');
+grameneGenes.selectTaxonomyFacets = store => selectFacetIDs(store, 'taxon_id');
+
+const grameneDomains = createAsyncResourceBundle({
+  name: 'grameneDomains',
+  actionBaseType: 'GRAMENE_DOMAINS',
   getPromise: ({store}) =>
-    fetch(`${API}/event?${store.selectQueryString()}`)
+    fetch(`http://data.gramene.org/domains?rows=-1&idList=${store.selectDomainFacets().join(',')}`)
       .then(res => res.json())
+      .then(docs => {return {domains: docs, numFound: docs.length}})
 });
 
-sorghumEvents.reactSorghumEvents = createSelector(
-  'selectSorghumEventsShouldUpdate',
-  'selectQueryString',
-  (shouldUpdate, queryString) => {
-    if (shouldUpdate && queryString) {
-      return {actionCreator: 'doFetchSorghumEvents'}
-    }
-  }
-);
-
-const sorghumPapers = createAsyncResourceBundle({
-  name: 'sorghumPapers',
-  actionBaseType: 'SORGHUM_PAPERS',
+const gramenePathways = createAsyncResourceBundle({
+  name: 'gramenePathways',
+  actionBaseType: 'GRAMENE_PATHWAYS',
   getPromise: ({store}) =>
-    fetch(`${API}/scientific_paper?${store.selectQueryString()}`)
+    fetch(`http://data.gramene.org/pathways?rows=-1&idList=${store.selectPathwayFacets().join(',')}`)
       .then(res => res.json())
+      .then(docs => {return {pathways: docs, numFound: docs.length}})
 });
 
-sorghumPapers.reactSorghumPapers = createSelector(
-  'selectSorghumPapersShouldUpdate',
-  'selectQueryString',
-  (shouldUpdate, queryString) => {
-    if (shouldUpdate && queryString) {
-      return {actionCreator: 'doFetchSorghumPapers'}
-    }
-  }
-);
+const grameneTaxonomy = createAsyncResourceBundle({
+  name: 'grameneTaxonomy',
+  actionBaseType: 'GRAMENE_TAXONOMY',
+  getPromise: ({store}) =>
+    fetch(`http://data.gramene.org/taxonomy?rows=-1&idList=${store.selectTaxonomyFacets().join(',')}`)
+      .then(res => res.json())
+      .then(docs => {return {taxonomy: docs, numFound: docs.length}})
+});
 
-export default [sorghumPosts, sorghumLinks, sorghumPeople, sorghumJobs, sorghumEvents, sorghumPapers]
+export default [grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy]

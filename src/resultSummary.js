@@ -13,56 +13,38 @@ const getStatus = (cat, results, isChecked, toggle) => {
   )
 };
 
-const total = (...args) => {
-  let sum = 0;
-  let done = true;
-  args.forEach(type => {
-    if (type) sum += type.numFound
-    else done = false
-  });
-  if (sum > 0 || done) return sum;
-  return spinner;
-};
-
-const ResultSummary = ({
-                         sorghumPosts, sorghumEvents, sorghumJobs,
-                         sorghumPeople, sorghumLinks, sorghumPapers,
-                         searchUI, searchUpdated, doToggleCategory
-                       }) => {
-  if (searchUI.sorghumbase) return (
+const ResultSummary = ({grameneGenes, gramenePathways, grameneDomains, grameneTaxonomy, searchUI, searchUpdated, doToggleCategory}) => {
+  const status = grameneGenes ?
+    grameneGenes.numFound:
+<img src="/static/images/dna_spinner.svg"/>;
+  if (searchUI.Gramene) return (
     <li className="active category-expanded">
-      <a onClick={e => doToggleCategory('sorghumbase')}>
-        Sorghumbase<span
-        style="float:right;">{total(sorghumPosts, sorghumEvents, sorghumJobs, sorghumPeople, sorghumLinks, sorghumPapers)}</span>
-      </a>
-      <ul className="list-unstyled">
-        {getStatus('Posts', sorghumPosts, searchUI.Posts, doToggleCategory)}
-        {getStatus('Events', sorghumEvents, searchUI.Events, doToggleCategory)}
-        {getStatus('Jobs', sorghumJobs, searchUI.Jobs, doToggleCategory)}
-        {getStatus('People', sorghumPeople, searchUI.People, doToggleCategory)}
-        {getStatus('Links', sorghumLinks, searchUI.Links, doToggleCategory)}
-        {getStatus('Papers', sorghumPapers, searchUI.Papers, doToggleCategory)}
-      </ul>
-    </li>
-  );
-  else return (
+    <a onClick={e => doToggleCategory('Gramene')}>
+  Gramene Search<span style="float:right;">{status}</span>
+    </a>
+    <ul className="list-unstyled">
+    {getStatus('Genes', grameneGenes, searchUI.Genes, doToggleCategory)}
+  {getStatus('Domains', grameneDomains, searchUI.Domains, doToggleCategory)}
+  {getStatus('Pathways', gramenePathways, searchUI.Pathways, doToggleCategory)}
+  {getStatus('Species', grameneTaxonomy, searchUI.Species, doToggleCategory)}
+</ul>
+  </li>
+);
+else return (
     <li className="active category-collapsed">
-      <a onClick={e => doToggleCategory('sorghumbase')}>
-        Sorghumbase<span
-        style="float:right;">{total(sorghumPosts, sorghumEvents, sorghumJobs, sorghumPeople, sorghumLinks, sorghumPapers)}</span>
-      </a>
+    <a onClick={e => doToggleCategory('Gramene')}>
+  Gramene Search<span
+  style="float:right;">{status}</span>
+    </a>
     </li>
-  );
+);
 };
-
 
 export default connect(
-  'selectSorghumPosts',
-  'selectSorghumEvents',
-  'selectSorghumJobs',
-  'selectSorghumPeople',
-  'selectSorghumLinks',
-  'selectSorghumPapers',
+  'selectGrameneGenes',
+  'selectGramenePathways',
+  'selectGrameneDomains',
+  'selectGrameneTaxonomy',
   'selectSearchUI',
   'selectSearchUpdated',
   'doToggleCategory',
