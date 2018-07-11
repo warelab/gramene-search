@@ -107,6 +107,4 @@ const grameneTaxonomy = createAsyncResourceBundle({
       .then(docs => {return {taxonomy: docs, numFound: docs.length}})
 });
 
-const bundles = [grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy];
-
-export { bundles };
+export default [grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy];

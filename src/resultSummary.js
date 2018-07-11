@@ -13,7 +13,7 @@ const getStatus = (cat, results, isChecked, toggle) => {
   )
 };
 
-const ResultSummaryCmp = ({grameneGenes, gramenePathways, grameneDomains, grameneTaxonomy, searchUI, searchUpdated, doToggleCategory}) => {
+const ResultSummary = ({grameneGenes, gramenePathways, grameneDomains, grameneTaxonomy, searchUI, searchUpdated, doToggleCategory}) => {
   const status = grameneGenes ?
     grameneGenes.numFound:
 <img src="/static/images/dna_spinner.svg"/>;
@@ -40,7 +40,7 @@ else return (
 );
 };
 
-const ResultSummary = connect(
+export default connect(
   'selectGrameneGenes',
   'selectGramenePathways',
   'selectGrameneDomains',
@@ -48,7 +48,5 @@ const ResultSummary = connect(
   'selectSearchUI',
   'selectSearchUpdated',
   'doToggleCategory',
-  ResultSummaryCmp
+  ResultSummary
 );
-
-export { ResultSummary };
