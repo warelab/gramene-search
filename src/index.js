@@ -1,3 +1,3 @@
 export * from './bundles';
-export { default } from './resultList';
-export { default } from './resultSummary';
+export * from './resultList';
+export * from './resultSummary';

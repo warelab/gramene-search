@@ -74,7 +74,7 @@ const Species = results => {
   }
 };
 
-const ResultsList = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy, searchUI, searchUpdated}) => (
+const ResultsListCmp = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy, searchUI, searchUpdated}) => (
   <div id="gramene" class="row">
   <div class="col">
   <div>
@@ -87,12 +87,14 @@ const ResultsList = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxo
 </div>
 )
 
-export default connect(
+const ResultsList = connect(
   'selectGrameneGenes',
   'selectGrameneDomains',
   'selectGramenePathways',
   'selectGrameneTaxonomy',
   'selectSearchUI',
   'selectSearchUpdated',
-  ResultsList
-)
+  ResultsListCmp
+);
+
+export { ResultsList };
