@@ -1,12 +1,8 @@
 {
-  "name": "sorghum-search",
+  "name": "gramene-search",
   "version": "1.0.0",
-  "description": "search wrapper for sorghumbase",
+  "description": "search wrapper for gramene",
   "main": "index.js",
-  "scripts": {
-    "start": "parcel ./src/index.html",
-    "build": "parcel build -d ../sorghum-webapp/sorghum_webapp/sorghum_webapp/static/js/ -o search.js src/index.js"
-  },
   "author": "Andrew Olson",
   "license": "MIT",
   "dependencies": {
@@ -17,7 +13,6 @@
     "npm": "^6.1.0",
     "parcel-bundler": "1.6.2",
     "preact": "8.2.7",
-    "querystringify": "^2.0.0",
     "redux-bundler": "21.0.0",
     "redux-bundler-preact": "1.0.0"
   },
