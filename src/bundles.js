@@ -1,4 +1,4 @@
-import { createAsyncResourceBundle, createSelector, composeBundles } from 'redux-bundler'
+import { createAsyncResourceBundle, createSelector } from 'redux-bundler'
 import _ from 'lodash'
 const facets = [
   "{!facet.limit='200' facet.mincount='1' key='taxon_id'}taxon_id",

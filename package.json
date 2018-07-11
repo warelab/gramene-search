@@ -3,27 +3,29 @@
   "version": "1.0.6",
   "description": "search wrapper for gramene",
   "main": "dist/index.js",
+  "module": "dist/index.m.js",
+  "source": "src/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "parcel build src/index.js"
-  },
-  "bundlerOptions": {
-    "babel": true
+    "build": "microbundle --sourcemap=false",
+    "prepublish": "npm run build"
   },
   "author": "Andrew Olson",
   "license": "MIT",
   "dependencies": {
     "babel-preset-env": "1.6.1",
-    "internal-nav-helper": "1.0.2",
-    "money-clip": "2.0.0",
-    "npm": "^6.1.0",
+    "babel-preset-preact": "^1.1.0",
     "preact": "8.2.7",
     "redux-bundler": "21.0.0",
-    "redux-bundler-preact": "1.0.0",
-    "babel-preset-preact": "^1.1.0",
-    "parcel-bundler": "^1.6.0"
+    "redux-bundler-preact": "1.0.0"
   },
   "prettier": {
     "singleQuote": true,
     "semi": false
+  },
+  "devDependencies": {
+    "microbundle": "^0.5.1"
   }
 }
