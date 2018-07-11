@@ -1,3 +1,3 @@
-export * from './bundles';
-export * from './resultList';
-export * from './resultSummary';
+export { bundles } from './bundles';
+export { ResultList } from './resultList';
+export { ResultSummary } from './resultSummary';
