@@ -2,7 +2,12 @@
   "name": "gramene-search",
   "version": "1.0.0",
   "description": "search wrapper for gramene",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build index.js",
+    "prepublish": "npm run build"
+  },
   "author": "Andrew Olson",
   "license": "MIT",
   "dependencies": {
