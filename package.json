@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "microbundle --sourcemap=false",
+    "build": "microbundle --compress=false --sourcemap=false",
     "prepublish": "npm run build"
   },
   "author": "Andrew Olson",
