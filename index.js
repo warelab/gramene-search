@@ -1,5 +1,4 @@
-module.exports = {
-  bundles: require('./src/bundles'),
-  resultList: require('./src/resultList'),
-  resultSummary: require('./src/resultSummary')
-};
+import bundles from './src/bundles'
+import resultList from './src/resultList'
+import resultSummary from './src/resultSummary'
+module.exports = {bundles, resultList, resultSummary}
