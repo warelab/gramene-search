@@ -4,9 +4,8 @@
   "description": "search wrapper for gramene",
   "main": "dist/index.js",
   "scripts": {
-    "start": "parcel index.html",
-    "build": "parcel build index.js",
-    "install": "npm run build"
+    "build": "parcel build src/index.js",
+    "prepublishOnly": "npm run build"
   },
   "author": "Andrew Olson",
   "license": "MIT",
