@@ -1,5 +1,3 @@
-import bundles from './bundles'
-import resultList from './resultList'
-import resultSummary from './resultSummary'
-
-module.exports = {bundles, resultList, resultSummary};
+export * from './bundles';
+export { default } from './resultList';
+export { default } from './resultSummary';
