@@ -3,7 +3,6 @@
   "version": "1.0.15",
   "description": "search wrapper for gramene",
   "main": "dist/index.js",
-  "module": "dist/index.m.js",
   "source": "src/index.js",
   "files": [
     "dist"
