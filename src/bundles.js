@@ -6,12 +6,12 @@ const facets = [
   "{!facet.limit='100' facet.mincount='1' key='pathways'}pathways__ancestors",
   "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots"
 ];
-
+const genomesOfInterest = '(taxon_id:2769) OR (taxon_id:3055) OR (taxon_id:3218) OR (taxon_id:3702) OR (taxon_id:3847) OR (taxon_id:4555) OR (taxon_id:4558) OR (taxon_id:4577) OR (taxon_id:13333) OR (taxon_id:15368) OR (taxon_id:29760) OR (taxon_id:39947) OR (taxon_id:55577) OR (taxon_id:88036) OR (taxon_id:214687)';
 const grameneGenes = createAsyncResourceBundle({
   name: 'grameneGenes',
   actionBaseType: 'GRAMENE_GENES',
   getPromise: ({store}) =>
-    fetch(`http://data.gramene.org/search?${store.selectQueryString()}&facet.field=${facets}`)
+    fetch(`http://data.gramene.org/search?${store.selectQueryString()}&facet.field=${facets}&fq=${genomesOfInterest}&rows=${store.selectRows()['Genes']}`)
       .then(res => res.json())
       .then(solr => {console.log(solr); solr.numFound = solr.response.numFound; return solr})
 });

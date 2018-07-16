@@ -8,7 +8,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "microbundle --sourcemap=false",
+    "build": "microbundle build --sourcemap=false -f cjs",
+    "watch": "microbundle watch --compress=false -f cjs",
     "prepublish": "npm run build"
   },
   "author": "Andrew Olson",
