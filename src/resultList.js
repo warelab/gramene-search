@@ -5,12 +5,12 @@ const Gene = ({gene}) => {
   return <div className="row">{gene.id}</div>
 };
 
-const Genes = (results, doChangeQuantity) => {
+const Genes = (results, rows, doChangeQuantity) => {
   if (results && results.numFound > 0) {
-    const moreButton = (results.numFound > results.response.docs.length)
+    const moreButton = (results.numFound > rows)
       ? <button onClick={e => doChangeQuantity('Genes',20)}>more</button>
       : '';
-    const fewerButton = (results.response.docs.length > 20)
+    const fewerButton = (rows > 20)
       ? <button onClick={e => doChangeQuantity('Genes',-20)}>fewer</button>
       : '';
     return (
@@ -79,18 +79,22 @@ const Species = results => {
   }
 };
 
-const ResultList = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy, searchUI, searchUpdated, doChangeQuantity}) => (
-  <div id="gramene" class="row">
-  <div class="col">
-  <div>
-  {searchUI.Gramene && searchUI.Genes && Genes(grameneGenes, doChangeQuantity)}
-{searchUI.Gramene && searchUI.Domains && Domains(grameneDomains)}
-{searchUI.Gramene && searchUI.Pathways && Pathways(gramenePathways)}
-{searchUI.Gramene && searchUI.Species && Species(grameneTaxonomy)}
-</div>
-</div>
-</div>
-)
+const ResultList = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy, searchUI, searchUpdated, doChangeQuantity}) => {
+  if (searchUI.Gramene) {
+    return (
+      <div id="gramene" class="row">
+        <div class="col">
+          <div>
+            {searchUI.Genes && Genes(grameneGenes, searchUI.rows.Genes, doChangeQuantity)}
+            {searchUI.Domains && Domains(grameneDomains)}
+            {searchUI.Pathways && Pathways(gramenePathways)}
+            {searchUI.Species && Species(grameneTaxonomy)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+}
 
 export default connect(
   'selectGrameneGenes',
