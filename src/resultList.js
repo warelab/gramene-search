@@ -13,12 +13,13 @@ const Genes = (results, rows, doChangeQuantity) => {
     const fewerButton = (rows > 20)
       ? <button onClick={e => doChangeQuantity('Genes',-20)}>fewer</button>
       : '';
+    const docsToShow = results.response.docs.slice(0,rows);
     return (
-      <div id="Genes" className="container pt90">
-        <div className="fancy-title">
+      <div id="Genes" className="container mb40 anchor">
+        <div className="fancy-title mb40">
           <h4>Genes</h4>
         </div>
-        {results.response.docs.map(doc => <Gene gene={doc}/>)}
+        {docsToShow.map(doc => <Gene gene={doc}/>)}
         {fewerButton}{moreButton}
       </div>
     );
@@ -31,15 +32,13 @@ const Pathway = ({pathway}) => {
 const Pathways = results => {
   if (results && results.numFound > 0) {
     return (
-      <div id="Pathways" className="container pt90">
-      <div className="fancy-title">
-      <h4>Pathways</h4>
+      <div id="Pathways" className="container mb40 anchor">
+        <div className="fancy-title">
+          <h4>Pathways</h4>
+        </div>
+        {results.pathways.map(doc => (<Pathway pathway={doc}/>))}
       </div>
-    {results.pathways.map(doc => (
-      <Pathway pathway={doc}/>
-    ))}
-  </div>
-  );
+    );
   }
 };
 
@@ -49,15 +48,13 @@ const Domain = ({domain}) => {
 const Domains = results => {
   if (results && results.numFound > 0) {
     return (
-      <div id="Domains" className="container pt90">
-      <div className="fancy-title">
-      <h4>Domains</h4>
+      <div id="Domains" className="container mb40 anchor">
+        <div className="fancy-title mb40">
+          <h4>Domains</h4>
+        </div>
+        {results.domains.map(doc => (<Domain domain={doc}/>))}
       </div>
-    {results.domains.map(doc => (
-      <Domain domain={doc}/>
-    ))}
-  </div>
-  );
+    );
   }
 };
 
@@ -67,15 +64,13 @@ const Taxon = ({taxon}) => {
 const Species = results => {
   if (results && results.numFound > 0) {
     return (
-      <div id="Species" className="container pt90">
-      <div className="fancy-title">
-      <h4>Species</h4>
+      <div id="Species" className="container mb40 anchor">
+        <div className="fancy-title mb40">
+          <h4>Species</h4>
+        </div>
+        {results.taxonomy.map(doc => (<Taxon taxon={doc}/>))}
       </div>
-    {results.taxonomy.map(doc => (
-      <Taxon taxon={doc}/>
-    ))}
-  </div>
-  );
+    );
   }
 };
 
@@ -83,14 +78,13 @@ const ResultList = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxon
   if (searchUI.Gramene) {
     return (
       <div id="gramene" class="row">
-        <div class="col">
-          <div>
-            {searchUI.Genes && Genes(grameneGenes, searchUI.rows.Genes, doChangeQuantity)}
-            {searchUI.Domains && Domains(grameneDomains)}
-            {searchUI.Pathways && Pathways(gramenePathways)}
-            {searchUI.Species && Species(grameneTaxonomy)}
-          </div>
+        <div className="fancy-title pt50">
+          <h3>Gramene search results</h3>
         </div>
+        {searchUI.Genes && Genes(grameneGenes, searchUI.rows.Genes, doChangeQuantity)}
+        {searchUI.Domains && Domains(grameneDomains)}
+        {searchUI.Pathways && Pathways(gramenePathways)}
+        {searchUI.Species && Species(grameneTaxonomy)}
       </div>
     )
   }
