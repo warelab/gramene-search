@@ -7,11 +7,12 @@ const facets = [
   "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots"
 ];
 const genomesOfInterest = '(taxon_id:2769) OR (taxon_id:3055) OR (taxon_id:3218) OR (taxon_id:3702) OR (taxon_id:3847) OR (taxon_id:4555) OR (taxon_id:4558) OR (taxon_id:4577) OR (taxon_id:13333) OR (taxon_id:15368) OR (taxon_id:29760) OR (taxon_id:39947) OR (taxon_id:55577) OR (taxon_id:88036) OR (taxon_id:214687)';
+const grameneURL = 'https://data.gramene.org'
 const grameneGenes = createAsyncResourceBundle({
   name: 'grameneGenes',
   actionBaseType: 'GRAMENE_GENES',
   getPromise: ({store}) =>
-    fetch(`http://data.gramene.org/search?${store.selectQueryString()}&facet.field=${facets}&fq=${genomesOfInterest}&rows=${store.selectRows()['Genes']}`)
+    fetch(`${grameneURL}/search?${store.selectQueryString()}&facet.field=${facets}&fq=${genomesOfInterest}&rows=${store.selectRows()['Genes']}`)
       .then(res => res.json())
       .then(solr => {console.log(solr); solr.numFound = solr.response.numFound; return solr})
 });
@@ -84,7 +85,7 @@ const grameneDomains = createAsyncResourceBundle({
   name: 'grameneDomains',
   actionBaseType: 'GRAMENE_DOMAINS',
   getPromise: ({store}) =>
-    fetch(`http://data.gramene.org/domains?rows=-1&idList=${store.selectDomainFacets().join(',')}`)
+    fetch(`${grameneURL}/domains?rows=-1&idList=${store.selectDomainFacets().join(',')}`)
       .then(res => res.json())
       .then(docs => {return {domains: docs, numFound: docs.length}})
 });
@@ -93,7 +94,7 @@ const gramenePathways = createAsyncResourceBundle({
   name: 'gramenePathways',
   actionBaseType: 'GRAMENE_PATHWAYS',
   getPromise: ({store}) =>
-    fetch(`http://data.gramene.org/pathways?rows=-1&idList=${store.selectPathwayFacets().join(',')}`)
+    fetch(`${grameneURL}/pathways?rows=-1&idList=${store.selectPathwayFacets().join(',')}`)
       .then(res => res.json())
       .then(docs => {return {pathways: docs, numFound: docs.length}})
 });
@@ -102,7 +103,7 @@ const grameneTaxonomy = createAsyncResourceBundle({
   name: 'grameneTaxonomy',
   actionBaseType: 'GRAMENE_TAXONOMY',
   getPromise: ({store}) =>
-    fetch(`http://data.gramene.org/taxonomy?rows=-1&idList=${store.selectTaxonomyFacets().join(',')}`)
+    fetch(`${grameneURL}/taxonomy?rows=-1&idList=${store.selectTaxonomyFacets().join(',')}`)
       .then(res => res.json())
       .then(docs => {return {taxonomy: docs, numFound: docs.length}})
 });
