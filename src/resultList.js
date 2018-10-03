@@ -19,7 +19,7 @@ const Genes = (results, rows, doChangeQuantity) => {
         <div className="fancy-title mb40">
           <h4>Genes</h4>
         </div>
-        {docsToShow.map(doc => <Gene gene={doc}/>)}
+        {docsToShow.map((doc,idx) => <Gene key={idx} gene={doc}/>)}
         {fewerButton}{moreButton}
       </div>
     );
@@ -36,7 +36,7 @@ const Pathways = results => {
         <div className="fancy-title">
           <h4>Pathways</h4>
         </div>
-        {results.pathways.map(doc => (<Pathway pathway={doc}/>))}
+        {results.pathways.map((doc,idx) => (<Pathway key={idx} pathway={doc}/>))}
       </div>
     );
   }
@@ -52,7 +52,7 @@ const Domains = results => {
         <div className="fancy-title mb40">
           <h4>Domains</h4>
         </div>
-        {results.domains.map(doc => (<Domain domain={doc}/>))}
+        {results.domains.map((doc,idx) => (<Domain key={idx} domain={doc}/>))}
       </div>
     );
   }
@@ -68,7 +68,7 @@ const Species = results => {
         <div className="fancy-title mb40">
           <h4>Species</h4>
         </div>
-        {results.taxonomy.map(doc => (<Taxon taxon={doc}/>))}
+        {results.taxonomy.map((doc,idx) => (<Taxon key={idx} taxon={doc}/>))}
       </div>
     );
   }
@@ -77,7 +77,7 @@ const Species = results => {
 const ResultList = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy, searchUI, searchUpdated, doChangeQuantity}) => {
   if (searchUI.Gramene) {
     return (
-      <div id="gramene" class="row">
+      <div id="gramene" className="row">
         <div className="fancy-title pt50">
           <h3>Gramene search results</h3>
         </div>
