@@ -88,7 +88,10 @@ const ResultList = ({grameneGenes, grameneDomains, gramenePathways, grameneTaxon
       </div>
     )
   }
-}
+  else {
+    return null;
+  }
+};
 
 export default connect(
   'selectGrameneGenes',
