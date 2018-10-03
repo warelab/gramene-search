@@ -1,5 +1,5 @@
-import {connect} from 'redux-bundler-preact'
-import {h} from 'preact'
+import {connect} from 'redux-bundler-react'
+import React from 'react'
 
 const Gene = ({gene}) => {
   return <div className="row">{gene.id}</div>

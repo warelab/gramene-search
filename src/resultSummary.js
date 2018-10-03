@@ -1,5 +1,5 @@
-import {connect} from 'redux-bundler-preact'
-import {h} from 'preact'
+import {connect} from 'redux-bundler-react'
+import React from 'react'
 const spinner = <img src="/static/images/dna_spinner.svg"/>;
 
 const getStatus = (cat, results, isChecked, toggle) => {

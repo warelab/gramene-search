@@ -8,24 +8,27 @@
     "dist"
   ],
   "scripts": {
-    "build": "microbundle build --sourcemap=false -f cjs",
-    "watch": "microbundle watch --compress=false -f cjs",
+    "build": "parcel build ./src/index.js",
+    "watch": "parcel watch ./src/index.js",
     "prepublish": "npm run build"
   },
   "author": "Andrew Olson",
   "license": "MIT",
   "dependencies": {
-    "babel-preset-env": "1.6.1",
-    "babel-preset-preact": "^1.1.0",
-    "preact": "8.2.7",
+    "react": "*",
     "redux-bundler": "21.0.0",
-    "redux-bundler-preact": "1.0.0"
+    "redux-bundler-react": "1.0.1"
   },
   "prettier": {
     "singleQuote": true,
     "semi": false
   },
   "devDependencies": {
-    "microbundle": "^0.5.1"
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-preact": "^1.1.0",
+    "babel-preset-react": "^6.24.1",
+    "node-sass": "^4.9.3",
+    "parcel-bundler": "^1.10.1"
   }
 }
