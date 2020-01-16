@@ -8,6 +8,29 @@ const facets = [
 ];
 const genomesOfInterest = '(taxon_id:2769) OR (taxon_id:3055) OR (taxon_id:3218) OR (taxon_id:3702) OR (taxon_id:3847) OR (taxon_id:4555) OR (taxon_id:4558) OR (taxon_id:4577) OR (taxon_id:13333) OR (taxon_id:15368) OR (taxon_id:29760) OR (taxon_id:39947) OR (taxon_id:55577) OR (taxon_id:88036) OR (taxon_id:214687)';
 const grameneURL = 'https://data.gramene.org'
+
+const grameneSuggestions = createAsyncResourceBundle( {
+  name: 'grameneSuggestions',
+  actionBaseType: 'GRAMENE_SUGGESTIONS',
+  persist: false,
+  getPromise: ({store}) => {
+    const t = store.selectSuggestionsQuery();
+    return fetch(`${grameneURL}/suggest?q={!boost b=relevance}name:${t}^3 id:${t}^5 synonym:${t}^2 text:${t}*^1`)
+      .then(res => res.json())
+      .then(suggestions => {return suggestions})
+  }
+});
+
+grameneSuggestions.reactGrameneSuggestions = createSelector(
+  'selectGrameneSuggestionsShouldUpdate',
+  'selectSuggestionsQuery',
+  (shouldUpdate, queryString) => {
+    if (shouldUpdate && queryString) {
+      return { actionCreator: 'doFetchGrameneSuggestions' }
+    }
+  }
+);
+
 const grameneGenes = createAsyncResourceBundle({
   name: 'grameneGenes',
   actionBaseType: 'GRAMENE_GENES',
@@ -15,7 +38,7 @@ const grameneGenes = createAsyncResourceBundle({
   getPromise: ({store}) =>
     fetch(`${grameneURL}/search?${store.selectQueryString()}&facet.field=${facets}&fq=${genomesOfInterest}&rows=${store.selectRows()['Genes'] * 3}`)
       .then(res => res.json())
-      .then(solr => {console.log(solr); solr.numFound = solr.response.numFound; return solr})
+      .then(solr => {solr.numFound = solr.response.numFound; return solr})
 });
 
 grameneGenes.reactGrameneGenes = createSelector(
@@ -112,4 +135,15 @@ const grameneTaxonomy = createAsyncResourceBundle({
       .then(docs => {return {taxonomy: docs, numFound: docs.length}})
 });
 
-export default [grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy];
+const grameneFilters = {
+  name: 'grameneFilters',
+  getReducer: () => {
+    const initialState = {};
+    return (state = initialState, {type, payload}) => {
+      return state
+    }
+  },
+  selectGrameneFilters: state => state.grameneFilters
+};
+
+export default [grameneSuggestions, grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy, grameneFilters];
