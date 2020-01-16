@@ -11,25 +11,19 @@ const Filters = connect(
 );
 
 const ResultsCmp = props => (
-  <h1>results</h1>
+  <h1>results go here</h1>
 );
 
 const Results = connect(
   ResultsCmp
 );
 
-export default (store) => (
-  <Provider store={store}>
-    <div className="row">
-      <div className="col-md-2">
-        <Filters/>
-      </div>
-      <div className="col-md-8">
-        <Results/>
-      </div>
-      <div className="col-md-2">
-        <h1>views</h1>
-      </div>
-    </div>
-  </Provider>
-)
+const ViewsCmp = props => (
+  <h1>view options</h1>
+);
+
+const Views = connect(
+  ViewsCmp
+);
+
+export {Filters, Results, Views};
