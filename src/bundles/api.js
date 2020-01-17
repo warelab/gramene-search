@@ -135,15 +135,5 @@ const grameneTaxonomy = createAsyncResourceBundle({
       .then(docs => {return {taxonomy: docs, numFound: docs.length}})
 });
 
-const grameneFilters = {
-  name: 'grameneFilters',
-  getReducer: () => {
-    const initialState = {};
-    return (state = initialState, {type, payload}) => {
-      return state
-    }
-  },
-  selectGrameneFilters: state => state.grameneFilters
-};
 
-export default [grameneSuggestions, grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy, grameneFilters];
+export default [grameneSuggestions, grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy];

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Provider, connect } from 'redux-bundler-react'
+import { connect } from 'redux-bundler-react'
 
 const FiltersCmp = props => (
   <h1>filters</h1>
