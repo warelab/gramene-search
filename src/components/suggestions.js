@@ -1,7 +1,7 @@
 import {connect} from 'redux-bundler-react'
 import React from 'react'
 
-const Suggestions = ({grameneSuggestions, searchUI, doToggleCategory}) => {
+const Suggestions = ({grameneSuggestions, searchUI, doAddGrameneFilter}) => {
   const matches = grameneSuggestions
     ? grameneSuggestions.grouped.category.matches
     : <img src="/static/images/dna_spinner.svg"/>;
@@ -12,7 +12,7 @@ const Suggestions = ({grameneSuggestions, searchUI, doToggleCategory}) => {
         return <div key={idx}>
           <p>{g.groupValue}</p>
           {g.doclist.docs.map((sugg,jdx) =>
-            <span key={jdx}>{sugg.display_name}</span>
+            <button key={jdx} onClick={() => doAddGrameneFilter(sugg)}>{sugg.display_name}</button>
           )}
         </div>
       })}
@@ -24,6 +24,6 @@ export default connect(
   'selectGrameneSuggestions',
   'selectSearchUI',
   'selectSearchUpdated',
-  'doToggleCategory',
+  'doAddGrameneFilter',
   Suggestions
 );

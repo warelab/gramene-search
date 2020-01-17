@@ -31,19 +31,33 @@ grameneSuggestions.reactGrameneSuggestions = createSelector(
   }
 );
 
+grameneSuggestions.selectGrameneSuggestionsStatus = createSelector(
+  'selectGrameneSuggestionsShouldUpdate',
+  'selectGrameneSuggestionsIsLoading',
+  'selectGrameneSuggestionsRaw',
+  'selectSuggestionsQuery',
+  (shouldUpdate, isLoading, suggestionsRaw, queryString) => {
+    if (!queryString) return '';
+    if (shouldUpdate) return 'update needed';
+    if (isLoading) return 'loading';
+    if (suggestionsRaw) return suggestionsRaw.data.grouped.category.matches;
+    return 'error';
+  }
+);
+
 const grameneGenes = createAsyncResourceBundle({
   name: 'grameneGenes',
   actionBaseType: 'GRAMENE_GENES',
   persist: false,
   getPromise: ({store}) =>
-    fetch(`${grameneURL}/search?${store.selectQueryString()}&facet.field=${facets}&fq=${genomesOfInterest}&rows=${store.selectRows()['Genes'] * 3}`)
+    fetch(`${grameneURL}/search?${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&fq=${genomesOfInterest}&rows=${store.selectRows()['Genes'] * 3}`)
       .then(res => res.json())
       .then(solr => {solr.numFound = solr.response.numFound; return solr})
 });
 
 grameneGenes.reactGrameneGenes = createSelector(
   'selectGrameneGenesShouldUpdate',
-  'selectQueryString',
+  'selectGrameneFiltersQueryString',
   (shouldUpdate, queryString) => {
     if (shouldUpdate && queryString) {
       return { actionCreator: 'doFetchGrameneGenes' }

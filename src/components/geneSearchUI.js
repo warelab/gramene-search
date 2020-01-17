@@ -1,6 +1,15 @@
 import React from 'react'
 import { connect } from 'redux-bundler-react'
 
+const StatusCmp = props => (
+  <h1>status</h1>
+);
+
+const Status = connect(
+  'selectGrameneFilters',
+  StatusCmp
+);
+
 const FiltersCmp = props => (
   <h1>filters</h1>
 );
@@ -26,4 +35,4 @@ const Views = connect(
   ViewsCmp
 );
 
-export {Filters, Results, Views};
+export {Status, Filters, Results, Views};
