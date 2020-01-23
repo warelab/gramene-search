@@ -11,7 +11,7 @@ const Status = connect(
 );
 
 const FiltersCmp = props => (
-  <h1>filters</h1>
+  <code>{JSON.stringify(props.grameneFilters,null, 4)}</code>
 );
 
 const Filters = connect(

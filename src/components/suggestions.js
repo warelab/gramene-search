@@ -1,18 +1,24 @@
 import {connect} from 'redux-bundler-react'
 import React from 'react'
 
-const Suggestions = ({grameneSuggestions, searchUI, doAddGrameneFilter}) => {
-  const matches = grameneSuggestions
-    ? grameneSuggestions.grouped.category.matches
-    : <img src="/static/images/dna_spinner.svg"/>;
-  const status = searchUI.Gramene ? 9 : 3;
+const Suggestions = ({grameneSuggestions, doAcceptGrameneSuggestion}) => {
   return (
     <div>
-      {grameneSuggestions && grameneSuggestions.grouped.category.groups.map((g,idx) => {
+      {grameneSuggestions
+        && grameneSuggestions.grouped
+        && grameneSuggestions.grouped.category
+        && grameneSuggestions.grouped.category.groups
+        && grameneSuggestions.grouped.category.groups.map((g,idx) => {
         return <div key={idx}>
-          <p>{g.groupValue}</p>
+          <h4 className="mt10">{g.groupValue}</h4>
           {g.doclist.docs.map((sugg,jdx) =>
-            <button key={jdx} onClick={() => doAddGrameneFilter(sugg)}>{sugg.display_name}</button>
+            <button className='btn btn-outline-primary mb5 btn-rounded suggestion-button'
+                    id={`${idx}-${jdx}`}
+                    key={jdx}
+                    onClick={() => doAcceptGrameneSuggestion(sugg)}>
+              {sugg.display_name}
+              <span className="badge">{sugg.num_genes}</span>
+            </button>
           )}
         </div>
       })}
@@ -22,8 +28,6 @@ const Suggestions = ({grameneSuggestions, searchUI, doAddGrameneFilter}) => {
 
 export default connect(
   'selectGrameneSuggestions',
-  'selectSearchUI',
-  'selectSearchUpdated',
-  'doAddGrameneFilter',
+  'doAcceptGrameneSuggestion',
   Suggestions
 );

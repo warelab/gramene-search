@@ -40,10 +40,32 @@ grameneSuggestions.selectGrameneSuggestionsStatus = createSelector(
     if (!queryString) return '';
     if (shouldUpdate) return 'update needed';
     if (isLoading) return 'loading';
-    if (suggestionsRaw) return suggestionsRaw.data.grouped.category.matches;
+    if (suggestionsRaw) return suggestionsRaw.data.grouped.category.matches + ' terms';
     return 'error';
   }
 );
+
+grameneSuggestions.selectGrameneSuggestionsReady = createSelector(
+  'selectGrameneSuggestionsStatus',
+  (status) => {
+    const regex = RegExp('terms$');
+    return regex.test(status);
+  }
+);
+
+grameneSuggestions.doFocusFirstGrameneSuggestion = arg => ({dispatch, getState}) => {
+  console.log('inside doFocusFirstGrameneSuggestion');
+};
+
+const grameneSearch = createAsyncResourceBundle({
+  name: 'grameneSearch',
+  actionBaseType: 'GRAMENE_SEARCH',
+  persist: false,
+  getPromise: ({store}) =>
+    fetch(`${grameneURL}/search?${store.selectGrameneFiltersQueryString()}`)
+      .then(res => res.json())
+});
+
 
 const grameneGenes = createAsyncResourceBundle({
   name: 'grameneGenes',
@@ -59,7 +81,7 @@ grameneGenes.reactGrameneGenes = createSelector(
   'selectGrameneGenesShouldUpdate',
   'selectGrameneFiltersQueryString',
   (shouldUpdate, queryString) => {
-    if (shouldUpdate && queryString) {
+    if (shouldUpdate && queryString && false) {
       return { actionCreator: 'doFetchGrameneGenes' }
     }
   }
@@ -150,4 +172,4 @@ const grameneTaxonomy = createAsyncResourceBundle({
 });
 
 
-export default [grameneSuggestions, grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy];
+export default [grameneSuggestions, grameneSearch, grameneGenes, grameneDomains, gramenePathways, grameneTaxonomy];
