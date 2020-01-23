@@ -61,11 +61,7 @@ const grameneFilters = {
     return 'q=*:*';
   }
 };
-grameneFilters.doInitializeFilters = filters => ({dispatch, getState}) => {
-  dispatch({
-    type: 'GRAMENE_FILTERS_REPLACED', payload: filters
-  })
-};
+
 grameneFilters.reactGrameneFilters = createSelector(
   'selectQueryObject',
   'selectGrameneFilters',
@@ -73,7 +69,7 @@ grameneFilters.reactGrameneFilters = createSelector(
     if (queryObject.filters) {
       if (filters.status === 'empty') {
         const newFilters = JSON.parse(queryObject.filters);
-        return {actionCreator: 'doInitializeFilters', args: newFilters};
+        return {type: 'GRAMENE_FILTERS_REPLACED', payload: newFilters};
       }
     }
   }
