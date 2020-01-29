@@ -61,10 +61,30 @@ const grameneSearch = createAsyncResourceBundle({
   name: 'grameneSearch',
   actionBaseType: 'GRAMENE_SEARCH',
   persist: false,
-  getPromise: ({store}) =>
-    fetch(`${grameneURL}/search?${store.selectGrameneFiltersQueryString()}`)
-      .then(res => res.json())
+  getPromise: ({store}) => {
+    store.dispatch({
+      type: 'GRAMENE_FILTERS_STATUS_CHANGED',
+      payload: 'waiting'
+    });
+    return fetch(`${grameneURL}/search?q=${store.selectGrameneFiltersQueryString()}`)
+      .then(res => {
+        store.dispatch({
+          type: 'GRAMENE_FILTERS_STATUS_CHANGED',
+          payload: 'ready'
+        });
+        return res.json()
+      })
+  }
 });
+grameneSearch.reactGrameneSearch = createSelector(
+  'selectGrameneSearchShouldUpdate',
+  'selectGrameneFiltersStatus',
+  (shouldUpdate, status) => {
+    if (shouldUpdate && status === 'search') {
+      return { actionCreator: 'doFetchGrameneSearch' }
+    }
+  }
+);
 
 
 const grameneGenes = createAsyncResourceBundle({
