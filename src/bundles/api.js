@@ -7,7 +7,7 @@ const facets = [
   "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots"
 ];
 const genomesOfInterest = '(taxon_id:2769) OR (taxon_id:3055) OR (taxon_id:3218) OR (taxon_id:3702) OR (taxon_id:3847) OR (taxon_id:4555) OR (taxon_id:4558) OR (taxon_id:4577) OR (taxon_id:13333) OR (taxon_id:15368) OR (taxon_id:29760) OR (taxon_id:39947) OR (taxon_id:55577) OR (taxon_id:88036) OR (taxon_id:214687)';
-const grameneURL = 'https://data.gramene.org'
+const grameneURL = 'https://data.gramene.org';
 
 const grameneSuggestions = createAsyncResourceBundle( {
   name: 'grameneSuggestions',
@@ -15,7 +15,7 @@ const grameneSuggestions = createAsyncResourceBundle( {
   persist: false,
   getPromise: ({store}) => {
     const t = store.selectSuggestionsQuery();
-    return fetch(`${grameneURL}/suggest?q={!boost b=relevance}name:${t}^3 id:${t}^5 synonym:${t}^2 text:${t}*^1`)
+    return fetch(`${store.selectGrameneAPI()}/suggest?q={!boost b=relevance}name:${t}^3 id:${t}^5 synonym:${t}^2 text:${t}*^1`)
       .then(res => res.json())
       .then(suggestions => {return suggestions})
   }
@@ -62,16 +62,8 @@ const grameneSearch = createAsyncResourceBundle({
   actionBaseType: 'GRAMENE_SEARCH',
   persist: false,
   getPromise: ({store}) => {
-    store.dispatch({
-      type: 'GRAMENE_FILTERS_STATUS_CHANGED',
-      payload: 'waiting'
-    });
-    return fetch(`${grameneURL}/search?q=${store.selectGrameneFiltersQueryString()}`)
+    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}`)
       .then(res => {
-        store.dispatch({
-          type: 'GRAMENE_FILTERS_STATUS_CHANGED',
-          payload: 'ready'
-        });
         return res.json()
       })
   }
@@ -85,7 +77,6 @@ grameneSearch.reactGrameneSearch = createSelector(
     }
   }
 );
-
 
 const grameneGenes = createAsyncResourceBundle({
   name: 'grameneGenes',
