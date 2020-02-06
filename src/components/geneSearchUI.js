@@ -59,9 +59,11 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
 
   if (node.showMenu) {
     let menuItems = [
-      <li onClick={()=>actions.changeOperation(node)}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>,
       <li onClick={()=>actions.negate(node)}>negate</li>
     ];
+    if (node.hasOwnProperty('operation')) {
+      menuItems.push(<li onClick={()=>actions.changeOperation(node)}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>);
+    }
     if (node.leftIdx > 0) {
       menuItems.push(<li onClick={()=>actions.deleteNode(node)}>delete</li>);
       menuItems.push(<li onClick={()=>actions.markTargets(node,'move')}>move{node.isSource && ' select destination'}</li>);

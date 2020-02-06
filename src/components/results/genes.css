@@ -1,8 +1,14 @@
+.gene-title {
+    padding-top:0.5em;
+}
 .gene-id {
     white-space: nowrap;
 }
 .gene-name {
     color: #557B74;
+}
+.gene-description {
+    margin-bottom: 0;
 }
 .gene-species {
     white-space: nowrap;
@@ -11,5 +17,5 @@
 }
 .gene-synonyms {
     white-space: nowrap;
-    font-size: x-small;
+    font-size: small;
 }

@@ -229,6 +229,7 @@ const grameneFilters = {
     dispatch({
       type: 'BATCH_ACTIONS', actions: [
         {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_TAXONOMY_CLEARED'},
         {type: 'GRAMENE_FILTER_DELETED', payload: filter}
       ]
     })
