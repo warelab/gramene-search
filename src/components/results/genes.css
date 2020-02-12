@@ -19,3 +19,25 @@
     white-space: nowrap;
     font-size: small;
 }
+.gene-detail-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+    margin-top: 1em;
+}
+.gene-detail-tab-closed {
+    color: darkgreen;
+    font-size: larger;
+    cursor: pointer;
+}
+.gene-detail-tab-disabled {
+    color: darkgray;
+    cursor: not-allowed;
+}
+.gene-detail-tab-expanded {
+    color: white;
+    background-color: #557B74;
+    font-size: larger;
+    cursor: pointer;
+}

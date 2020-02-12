@@ -6,6 +6,7 @@ import HelpDemo from './results/HelpDemo'
 
 import './styles.css';
 const inventory = {
+  help: HelpDemo,
   list: GeneList,
   taxonomy: TaxDist
 };
