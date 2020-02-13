@@ -1,8 +1,39 @@
+.visible-detail {
+    border: 1px solid #557B74;
+    padding: 6px 12px;
+}
+.detail {
+    margin-right: auto;
+    margin-left: auto;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.table {
+    width: 100%;
+    max-width: 100%;
+}
+.xrefs {
+    border-collapse: collapse;
+    border-spacing: 0;
+    border-color: grey;
+    table-layout: fixed;
+}
+.xref-name-col {
+    width: 20%;
+}
+.xref-value-col {
+    width: 80%;
+}
+.xref-id-list {
+    padding-left: 0;
+    list-style: none;
+}
 .result-gene {
     padding: 0.2em;
+    border: 5px solid white;
 }
 .result-gene:hover {
-    background-color: antiquewhite;
+    border-color: antiquewhite;
 }
 .gene-title {
     padding-top:0.5em;
@@ -28,19 +59,17 @@
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;
-    /*margin-right: -15px;*/
-    /*margin-left: -15px;*/
-    /*margin-top: 1em;*/
 }
 .gene-detail-tab-closed {
     color: darkgreen;
     font-size: larger;
     cursor: pointer;
-    background-color: lightgray;
+    /*background-color: lightgray;*/
 }
 .gene-detail-tab-disabled {
-    color: white;
-    background-color: lightgray;
+    /*color: white;*/
+    /*background-color: lightgray;*/
+    color: lightgray;
     cursor: not-allowed;
 }
 .gene-detail-tab-expanded {

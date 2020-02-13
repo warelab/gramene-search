@@ -14,7 +14,7 @@ const grameneViews = {
         {
           id: 'taxonomy',
           name: 'Taxonomic distribution',
-          show: 'on'
+          show: 'off'
         },
         {
           id: 'list',

@@ -106,12 +106,12 @@ class Gene extends React.Component {
         <div className="gene-detail-tabs">
           {this.state.details.map((d,idx) => (
             <div key={idx}
-                 className={`col-md-2 text-center gene-detail-tab-${this.getDetailStatus(d)}`}
+                 className={`col-md-1 text-center gene-detail-tab-${this.getDetailStatus(d)}`}
                  onClick={()=>this.setExpanded(d)}
             >{d.label}</div>
           ))}
         </div>
-        {this.state.expandedDetail && <div>{React.createElement(inventory[this.state.expandedDetail], this.props)}</div>}
+        {this.state.expandedDetail && <div className="visible-detail">{React.createElement(inventory[this.state.expandedDetail], this.props)}</div>}
       </div>
     )
   }
