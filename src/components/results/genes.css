@@ -1,3 +1,9 @@
+.result-gene {
+    padding: 0.2em;
+}
+.result-gene:hover {
+    background-color: antiquewhite;
+}
 .gene-title {
     padding-top:0.5em;
 }
@@ -22,17 +28,19 @@
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;
-    margin-right: -15px;
-    margin-left: -15px;
-    margin-top: 1em;
+    /*margin-right: -15px;*/
+    /*margin-left: -15px;*/
+    /*margin-top: 1em;*/
 }
 .gene-detail-tab-closed {
     color: darkgreen;
     font-size: larger;
     cursor: pointer;
+    background-color: lightgray;
 }
 .gene-detail-tab-disabled {
-    color: darkgray;
+    color: white;
+    background-color: lightgray;
     cursor: not-allowed;
 }
 .gene-detail-tab-expanded {

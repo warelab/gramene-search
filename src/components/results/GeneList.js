@@ -47,6 +47,11 @@ class Gene extends React.Component {
           id: 'xrefs',
           label: 'Xrefs',
           available: false
+        },
+        {
+          id: 'pubs',
+          label: 'Publications',
+          available: false
         }
       ],
       expandedDetail: null
@@ -79,7 +84,7 @@ class Gene extends React.Component {
     const searchResult = this.props.searchResult;
     const taxName = this.props.taxName;
     return (
-      <div onMouseOver={()=>this.ensureGene(searchResult.id)}>
+      <div className="result-gene" onMouseOver={()=>this.ensureGene(searchResult.id)}>
         <div className="result-gene-summary">
           <h3 className="gene-title">
             <span className="gene-name">{searchResult.name} </span>
