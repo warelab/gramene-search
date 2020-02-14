@@ -54,7 +54,9 @@ const grameneFilters = {
       children: [],
       showMarked: false,
       showMenu: false,
-      moveCopyMode: ''
+      moveCopyMode: '',
+      searchOffset: 0,
+      rows: 20
     };
     return (state = initialState, {type, payload}) => {
       let newState;
@@ -64,7 +66,8 @@ const grameneFilters = {
           newState = Object.assign({}, state, {
             status: 'search',
             showMarked: true,
-            rightIdx: idx + 2
+            rightIdx: idx + 2,
+            searchOffset: 0
           });
           let child = _.pick(payload, ['fq_field', 'fq_value', 'name', 'category']);
           child.leftIdx = idx;
@@ -78,7 +81,8 @@ const grameneFilters = {
         case 'GRAMENE_FILTER_NEGATED': {
           newState = Object.assign({}, state, {
             status: 'search',
-            showMarked: true
+            showMarked: true,
+            searchOffset: 0
           });
           let node = findNodeWithLeftIdx(newState, payload.leftIdx);
           if (node) {
@@ -91,7 +95,8 @@ const grameneFilters = {
         case 'GRAMENE_FILTER_DELETED': {
           newState = Object.assign({}, state, {
             status: 'search',
-            showMarked: true
+            showMarked: true,
+            searchOffset: 0
           });
           let node = findNodeWithLeftIdx(newState, payload.leftIdx);
           if (node) {
@@ -107,7 +112,8 @@ const grameneFilters = {
           if (payload.hasOwnProperty('operation')) {
             newState = Object.assign({}, state, {
               status: 'search',
-              showMarked: true
+              showMarked: true,
+              searchOffset: 0
             });
             let node = findNodeWithLeftIdx(newState, payload.leftIdx);
             node.operation = node.operation === 'AND' ? 'OR' : 'AND';
@@ -120,7 +126,8 @@ const grameneFilters = {
           newState = Object.assign({}, state, {
             status: 'search',
             showMarked: true,
-            moveCopyMode: ''
+            moveCopyMode: '',
+            searchOffset: 0
           });
           let source = findNodeWithLeftIdx(newState, payload.source.leftIdx);
           let target = findNodeWithLeftIdx(newState, payload.target.leftIdx);
@@ -150,7 +157,8 @@ const grameneFilters = {
           newState = Object.assign({}, state, {
             status: 'search',
             showMarked: true,
-            moveCopyMode: ''
+            moveCopyMode: '',
+            searchOffset: 0
           });
           let source = findNodeWithLeftIdx(newState, payload.source.leftIdx);
           let target = findNodeWithLeftIdx(newState, payload.target.leftIdx);
@@ -189,6 +197,7 @@ const grameneFilters = {
           return newState;
         case 'GRAMENE_FILTERS_REPLACED':
           payload.status = 'search';
+          payload.searchOffset = 0;
           return payload;
         case 'GRAMENE_FILTERS_STATUS_CHANGED':
           if (!(state.status === 'ready' && payload === 'waiting')) {
@@ -200,6 +209,8 @@ const grameneFilters = {
         case 'GRAMENE_FILTER_MENU_TOGGLED':
           payload.showMenu = !payload.showMenu;
           return Object.assign({}, state);
+        case 'GRAMENE_SEARCH_PAGE_REQUESTED':
+          return Object.assign({}, state, {status: 'search', searchOffset: payload * state.rows});
         case 'GRAMENE_SEARCH_FETCH_STARTED':
           return Object.assign({}, state, {status: 'loading'});
         case 'GRAMENE_SEARCH_FETCH_FINISHED':
@@ -279,6 +290,14 @@ const grameneFilters = {
   doToggleGrameneFilterMenu: node => ({dispatch}) => {
     dispatch({type: 'GRAMENE_FILTER_MENU_TOGGLED', payload: node})
   },
+  doRequestResultsPage: page => ({dispatch}) => {
+    dispatch(
+      {type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_SEARCH_PAGE_REQUESTED', payload: page}
+      ]
+    })
+  },
   selectGrameneFilters: state => state.grameneFilters,
   selectGrameneFiltersStatus: state => state.grameneFilters.status,
   selectGrameneFiltersQueryString: state => {
@@ -298,7 +317,9 @@ const grameneFilters = {
       }
     }
     return `*:* AND (${getQuery(state.grameneFilters)})`;
-  }
+  },
+  selectGrameneSearchOffset: state => state.grameneFilters.searchOffset,
+  selectGrameneSearchRows: state => state.grameneFilters.rows
 };
 
 grameneFilters.reactGrameneFilters = createSelector(

@@ -119,7 +119,19 @@ class Gene extends React.Component {
 
 const GeneList = props => {
   if (props.grameneSearch && props.grameneSearch.response && props.grameneTaxonomy) {
+    let prev,page,next;
+    if (props.grameneSearch.response.numFound > props.grameneSearchRows) {
+      const pageNum = props.grameneSearchOffset/props.grameneSearchRows;
+      page = <b>{pageNum + 1}</b>;
+      if (pageNum > 0) {
+        prev = <button onClick={()=>props.doRequestResultsPage(pageNum - 1)}>prev</button>
+      }
+      if (props.grameneSearch.response.numFound > props.grameneSearchOffset + props.grameneSearchRows) {
+        next = <button onClick={()=>props.doRequestResultsPage(pageNum + 1)}>next</button>
+      }
+    }
     return <div>
+      {prev}{page}{next}
       {props.grameneSearch.response.docs.map((g,idx) => (
         <Gene key={idx}
               searchResult={g}
@@ -129,6 +141,7 @@ const GeneList = props => {
               requestGene={props.doRequestGrameneGene}
         />
       ))}
+      {prev}{page}{next}
     </div>
   }
   return null;
@@ -139,5 +152,8 @@ export default connect(
   'selectGrameneSearch',
   'selectGrameneTaxonomy',
   'selectGrameneGenes',
+  'selectGrameneSearchOffset',
+  'selectGrameneSearchRows',
   'doRequestGrameneGene',
+  'doRequestResultsPage',
   GeneList);

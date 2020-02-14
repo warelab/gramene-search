@@ -111,10 +111,10 @@ const grameneSearch = createAsyncResourceBundle({
   actionBaseType: 'GRAMENE_SEARCH',
   persist: false,
   getPromise: ({store}) => {
-    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}`)
-      .then(res => {
-        return res.json()
-      })
+    const offset = store.selectGrameneSearchOffset();
+    const rows = store.selectGrameneSearchRows();
+    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}`)
+      .then(res => res.json())
   }
 });
 grameneSearch.reactGrameneSearch = createSelector(
