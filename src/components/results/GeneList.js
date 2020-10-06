@@ -44,13 +44,13 @@ class Gene extends React.Component {
           available: false
         },
         {
-          id: 'xrefs',
-          label: 'Xrefs',
+          id: 'pubs',
+          label: 'Publications',
           available: false
         },
         {
-          id: 'pubs',
-          label: 'Publications',
+          id: 'xrefs',
+          label: 'Xrefs',
           available: false
         }
       ],
@@ -78,11 +78,18 @@ class Gene extends React.Component {
     if (!(this.props.geneDocs && this.props.geneDocs.hasOwnProperty(id))) {
       this.props.requestGene(id);
     }
+    if (!(this.props.orthologs && this.props.orthologs.hasOwnProperty(id))) {
+      this.props.requestOrthologs(id);
+    }
   }
   render() {
     const ensemblURL = this.props.ensemblURL;
     const searchResult = this.props.searchResult;
     const taxName = this.props.taxName;
+    let orthologs='';
+    if (this.props.orthologs && this.props.orthologs.hasOwnProperty(searchResult.id)) {
+      orthologs = this.props.orthologs[searchResult.id].join(', ');
+    }
     return (
       <div className="result-gene" onMouseOver={()=>this.ensureGene(searchResult.id)}>
         <div className="result-gene-summary">
@@ -100,6 +107,7 @@ class Gene extends React.Component {
                 {taxName}{external}
               </ReactGA.OutboundLink>
             </small>
+            <small className="gene-extras">{orthologs}</small>
           </h3>
           <p className="gene-description">{searchResult.description}</p>
         </div>
@@ -139,6 +147,8 @@ const GeneList = props => {
               taxName={props.grameneTaxonomy[g.taxon_id].name}
               geneDocs={props.grameneGenes}
               requestGene={props.doRequestGrameneGene}
+              requestOrthologs={props.doRequestOrthologs}
+              orthologs={props.grameneOrthologs}
         />
       ))}
       {prev}{page}{next}
@@ -152,8 +162,10 @@ export default connect(
   'selectGrameneSearch',
   'selectGrameneTaxonomy',
   'selectGrameneGenes',
+  'selectGrameneOrthologs',
   'selectGrameneSearchOffset',
   'selectGrameneSearchRows',
   'doRequestGrameneGene',
+  'doRequestOrthologs',
   'doRequestResultsPage',
   GeneList);

@@ -128,6 +128,47 @@ grameneSearch.reactGrameneSearch = createSelector(
 );
 
 
+// this query will give the sorghum orthologs of AT1G01260
+// want to provide these on non-sorghum genes if available
+// http://data.gramene.org/search?q=homology__all_orthologs:AT1G01260&fq=taxon_id:4558&fl=id
+const grameneOrthologs = {
+  name: 'grameneOrthologs',
+  getReducer: () => {
+    const initialState = {};
+    return (state = initialState, {type, payload}) => {
+      let newState;
+      switch (type) {
+        case 'GRAMENE_ORTHOLOGS_REQUESTED':
+          if (!state.hasOwnProperty(payload)) {
+            newState = Object.assign({}, state);
+            newState[payload] = [];
+            return newState;
+          }
+          break;
+        case 'GRAMENE_ORTHOLOGS_RECEIVED':
+          return Object.assign({}, state, payload);
+      }
+      return state;
+    }
+  },
+  doRequestOrthologs: geneId => ({dispatch, store}) => {
+    const orthologs = store.selectGrameneOrthologs();
+    if (!orthologs.hasOwnProperty(geneId)) {
+      dispatch({type: 'GRAMENE_ORTHOLOGS_REQUESTED', payload: geneId});
+      const API = store.selectGrameneAPI();
+      const taxonId = store.selectTargetTaxonId();
+      fetch(`${API}/search?q=homology__all_orthologs:${geneId}&fq=taxon_id:${taxonId}&fl=id`)
+        .then(res => res.json())
+        .then(res => {
+          let newOrthologs = {};
+          newOrthologs[geneId] = res.response.docs.map(d => d.id);
+          dispatch({type: 'GRAMENE_ORTHOLOGS_RECEIVED', payload: newOrthologs})
+        })
+    }
+  },
+  selectGrameneOrthologs: state => state.grameneOrthologs
+};
+
 
 // function selectFacetIDs(store, field) {
 //   const path = `grameneGenes.data.facet_counts.facet_fields.${field}`;
@@ -184,4 +225,4 @@ grameneSearch.reactGrameneSearch = createSelector(
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneOrthologs];

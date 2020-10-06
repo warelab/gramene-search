@@ -56,6 +56,10 @@
     white-space: nowrap;
     font-size: small;
 }
+.gene-extras {
+    float: right;
+    border: dashed 1px blue;
+}
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;
