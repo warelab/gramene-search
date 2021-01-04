@@ -1,32 +1,39 @@
 import React from 'react'
 import {connect} from "redux-bundler-react";
-import TBrowse from 'tbrowse'
+import TreeVis from "gramene-genetree-vis";
+import {Detail, Title, Description, Content} from "./generic";
 
-const exampleProps = {
-  setId: "sorghum1",
-  treeId: "SORGHUM1GT_125555",
-  genesOfInterest: ['AT1G32900'],
-  zones: [{
-    type: 'tree',
-    width: 300
-  },{
-    type: 'taxonomy'
-  },{
-    type: 'neighborhood',
-    width: 800
-  },{
-    type: 'label',
-    taxName: false,
-    geneName: true,
-    width: 170
-  }]
-};
-const Detail = props => (
-  <div>
-    <h1>Homology</h1>
-    <TBrowse {...exampleProps}/>
-  </div>
+// const Detail = props => (
+//   <div>
+//     <TreeVis genetree={props.genetree}
+//              initialGeneOfInterest={props.gene}
+//              genomesOfInterest={}
+//              taxonomy={props.grameneTaxonomy}
+//              allowGeneSelection={true}
+//              pivotTree={true}
+//              enablePhyloview={true}
+//              enableCuration={false}
+//              numberOfNeighbors={10}
+//              ensemblUrl={props.ensemblURL}
+//     />
+//   </div>
+// );
+//
+//
+// export default connect(
+//   'selectEnsemblURL',
+//   'selectGrameneTaxonomy',
+//   Detail
+// );
+const Homology = ({searchResult, geneDocs}) => (
+  <Detail>
+    <Title key="title">Compara Gene Tree</Title>
+    <Description key="description">
+      <p>This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.</p>
+    </Description>
+    <Content key="content">Homology</Content>
+  </Detail>
 );
 
-export default connect(Detail);
+export default Homology;
 

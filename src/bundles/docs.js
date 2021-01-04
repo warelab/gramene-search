@@ -3,6 +3,7 @@ const grameneDocs = {
   getReducer: () => {
     const initialState = {
       genes: {},
+      trees: {},
       domains: {}
     };
     return (state = initialState, {type, payload}) => {
@@ -16,6 +17,17 @@ const grameneDocs = {
           }
           break;
         case 'GRAMENE_GENE_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.genes[payload._id] = payload;
+          return newState;
+        case 'GRAMENE_TREE_REQUESTED':
+          if (!state.trees.hasOwnProperty(payload)) {
+            newState = Object.assign({}, state);
+            newState.trees[payload] = {};
+            return newState;
+          }
+          break;
+        case 'GRAMENE_TREE_RECEIVED':
           newState = Object.assign({}, state);
           newState.genes[payload._id] = payload;
           return newState;
@@ -34,7 +46,19 @@ const grameneDocs = {
         })
     }
   },
-  selectGrameneGenes: state => state.grameneDocs.genes
+  doRequestGrameneTree: id => ({dispatch, store}) => {
+    const trees = store.selectGrameneTrees();
+    if (!trees.hasOwnProperty(id)) {
+      dispatch({type: 'GRAMENE_TREE_REQUESTED', payload: id});
+      fetch(`${store.selectGrameneAPI()}/genetrees?idList=${id}`)
+        .then(res => res.json())
+        .then(res => {
+          dispatch({type: 'GRAMENE_TREE_RECEIVED', payload: res[0]})
+        })
+    }
+  },
+  selectGrameneGenes: state => state.grameneDocs.genes,
+  selectGrameneTrees: state => state.grameneDocs.trees
 };
 
 export default grameneDocs;
