@@ -25,17 +25,27 @@ import {Detail, Title, Description, Content} from "./generic";
 //   'selectGrameneTaxonomy',
 //   Detail
 // );
-const Homology = (props) => (
-  <Detail>
-    <Title key="title">Compara Gene Tree</Title>
-    <Description key="description">
-      <p>This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.</p>
-    </Description>
-    <Content key="content">{JSON.stringify(props,null,2)}</Content>
-  </Detail>
-);
+class Homology extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+  render() {
+    return (
+      <Detail>
+        <Title key="title">Compara Gene Tree</Title>
+        <Description key="description">
+          <p>This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.</p>
+        </Description>
+        <Content key="content">{props.grameneTrees}</Content>
+      </Detail>
+    )
+  }
+}
 
 export default connect(
-  'selectGrameneTaxonomy',Homology
+  'selectGrameneTaxonomy',
+  'selectGrameneTrees',
+  'doRequestGrameneTree',
+  Homology
 );
 
