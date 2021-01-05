@@ -4,28 +4,6 @@ import TreeVis from "gramene-genetree-vis";
 import treesClient from "gramene-trees-client";
 import {Detail, Title, Description, Content} from "./generic";
 
-// const Detail = props => (
-//   <div>
-//     <TreeVis genetree={props.genetree}
-//              initialGeneOfInterest={props.gene}
-//              genomesOfInterest={}
-//              taxonomy={props.grameneTaxonomy}
-//              allowGeneSelection={true}
-//              pivotTree={true}
-//              enablePhyloview={true}
-//              enableCuration={false}
-//              numberOfNeighbors={10}
-//              ensemblUrl={props.ensemblURL}
-//     />
-//   </div>
-// );
-//
-//
-// export default connect(
-//   'selectEnsemblURL',
-//   'selectGrameneTaxonomy',
-//   Detail
-// );
 class Homology extends React.Component {
   constructor(props) {
     super(props);
