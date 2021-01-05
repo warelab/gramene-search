@@ -18,7 +18,7 @@ const grameneDocs = {
           break;
         case 'GRAMENE_GENE_RECEIVED':
           newState = Object.assign({}, state);
-          newState.genes[payload._id] = payload;
+          newState.genes = Object.assign({}, state.genes, payload);
           return newState;
         case 'GRAMENE_TREE_REQUESTED':
           if (!state.trees.hasOwnProperty(payload)) {
@@ -29,7 +29,7 @@ const grameneDocs = {
           break;
         case 'GRAMENE_TREE_RECEIVED':
           newState = Object.assign({}, state);
-          newState.genes[payload._id] = payload;
+          newState.trees = Object.assign({}, state.trees, payload);
           return newState;
       }
       return state;
@@ -42,7 +42,11 @@ const grameneDocs = {
       fetch(`${store.selectGrameneAPI()}/genes?idList=${id}`)
         .then(res => res.json())
         .then(res => {
-          dispatch({type: 'GRAMENE_GENE_RECEIVED', payload: res[0]})
+          let genes = {};
+          res.forEach(g => {
+            genes[g._id] = g;
+          });
+          dispatch({type: 'GRAMENE_GENE_RECEIVED', payload: genes})
         })
     }
   },
@@ -53,7 +57,11 @@ const grameneDocs = {
       fetch(`${store.selectGrameneAPI()}/genetrees?idList=${id}`)
         .then(res => res.json())
         .then(res => {
-          dispatch({type: 'GRAMENE_TREE_RECEIVED', payload: res[0]})
+          let trees = {};
+          res.forEach(t => {
+            trees[t._id] = t;
+          });
+          dispatch({type: 'GRAMENE_TREE_RECEIVED', payload: trees})
         })
     }
   },

@@ -29,7 +29,7 @@ export const Detail = props => {
 
 export const Title = props => <h4>{props.children}</h4>;
 export const Description = props => <p className="description">{props.children}</p>;
-export const Content = props => <p className="content">{props.children}</p>;
+export const Content = props => <div className="content">{props.children}</div>;
 
 const QueryTerm = props => {
   let category, name, badge;
