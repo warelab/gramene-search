@@ -1,8 +1,9 @@
 import React from 'react';
 import keyBy from 'lodash/keyBy';
-// import {bs, Grid, Row, Col, Glyphicon} from 'react-bootstrap';
 import _ from "lodash";
 import ReactGA from "react-ga";
+import { BiLinkExternal } from "react-icons/bi";
+import { Button, ButtonGroup, Badge } from "react-bootstrap";
 
 export const Detail = props => {
   let subComponents = keyBy(props.children, 'key');
@@ -34,42 +35,36 @@ export const Content = props => <div className="content">{props.children}</div>;
 const QueryTerm = props => {
   let category, name, badge;
   name = props.name;
-  if (this.props.category) {
-    category = this.props.category + ' | ';
+  if (props.category) {
+    category = props.category + ' | ';
   }
-  if (_.isNumber(this.props.count)) {
-    badge = <span>{this.props.count}</span>
+  if (_.isNumber(props.count)) {
+    badge = <Badge style={{marginLeft: "0.5rem"}} variant='dark'>{props.count}</Badge>
   }
   return (
-    <div className="query-term-outer">
-      <div className="query-term">
-        {category}
-        <a>{name}</a>
-        {badge}
-      </div>
-    </div>
+    <Button variant='light' onClick={props.handleClick}>
+      {category}{name}{badge}
+    </Button>
   )
 };
 
 function renderExplorations(explorations) {
   return explorations.map(
     (exploration, idx) =>
-      <li key={idx}>
-        <QueryTerm {...exploration} />
-      </li>
+      <QueryTerm key={idx} {...exploration} />
   );
 }
 export const Explore = props => (
   <div className="explore">
-    <h5>Search Gramene</h5>
-    <ul>
+    <h5>Search Filters</h5>
+    <ButtonGroup>
       {renderExplorations(props.explorations)}
-    </ul>
+    </ButtonGroup>
   </div>
 );
 
 function renderLinks(links) {
-  let external = <small title="This link opens a page from an external site"> <Glyphicon glyph="new-window" /></small>;
+  let external = <small title="This link opens a page from an external site"> <BiLinkExternal/></small>;
   return links.map((link, idx) =>
     <li key={idx}>
       <ReactGA.OutboundLink

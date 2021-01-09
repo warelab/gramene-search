@@ -59,22 +59,23 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
   let children = [];
 
   if (node.showMenu) {
+    let key=1;
     let menuItems = [
-      <li onClick={()=>actions.negate(node)}>negate</li>
+      <li key={key++} onClick={()=>actions.negate(node)}>negate</li>
     ];
     if (node.hasOwnProperty('operation')) {
-      menuItems.push(<li onClick={()=>actions.changeOperation(node)}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>);
+      menuItems.push(<li key={key++} onClick={()=>actions.changeOperation(node)}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>);
     }
     if (node.leftIdx > 0) {
-      menuItems.push(<li onClick={()=>actions.deleteNode(node)}>delete</li>);
-      menuItems.push(<li onClick={()=>actions.markTargets(node,'move')}>move{node.isSource && ' select destination'}</li>);
-      menuItems.push(<li onClick={()=>actions.markTargets(node,'copy')}>copy{node.isSource && ' select destination'}</li>)
+      menuItems.push(<li key={key++} onClick={()=>actions.deleteNode(node)}>delete</li>);
+      menuItems.push(<li key={key++} onClick={()=>actions.markTargets(node,'move')}>move{node.isSource && ' select destination'}</li>);
+      menuItems.push(<li key={key++} onClick={()=>actions.markTargets(node,'copy')}>copy{node.isSource && ' select destination'}</li>)
     }
     menu = <div className='gramene-filter-menu'><ul>{menuItems}</ul></div>;
   }
 
   if (node.operation) {
-    children = node.children.map(child => <Filter moveCopyMode={moveCopyMode} node={child} showMarked={showMarked} actions={actions}/>);
+    children = node.children.map((child,idx) => <Filter key={idx} moveCopyMode={moveCopyMode} node={child} showMarked={showMarked} actions={actions}/>);
     content = <span className='gramene-filter-operation'
                     onClick={()=>actions.toggleMenu(node)}>{node.operation}</span>
   }
@@ -135,7 +136,11 @@ const ResultsCmp = props => {
   }
   return (
     <div>
-      {activeViews.map(v => React.createElement(inventory[v.id], props))}
+      {activeViews.map((v,idx) => {
+        let p = Object.assign({}, props);
+        p.key = idx;
+        return React.createElement(inventory[v.id], p)
+      })}
     </div>
   );
 };
@@ -151,7 +156,7 @@ const ViewsCmp = props => (
     <b>Views</b>
     <ul className={'gramene-view'}>
       {props.grameneViews.options.map((view,idx) => (
-        <li className={`gramene-view-${view.show}`}
+        <li key={idx} className={`gramene-view-${view.show}`}
             onClick={(e) => {
               if (view.show !== 'disabled') {
                 props.doToggleGrameneView(idx)
