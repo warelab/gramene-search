@@ -7,6 +7,7 @@ import Homology from './details/Homology'
 import Location from './details/Location'
 import Pathways from "./details/Pathways"
 import Xrefs from "./details/Xrefs"
+import {GrFormPreviousLink, GrFormNextLink, GrHpe} from 'react-icons/gr'
 
 let external = <small title="This link opens a page from an external site"> <i className="fa fa-external-link"/></small>;
 
@@ -78,18 +79,18 @@ class Gene extends React.Component {
     if (!(this.props.geneDocs && this.props.geneDocs.hasOwnProperty(id))) {
       this.props.requestGene(id);
     }
-    if (!(this.props.orthologs && this.props.orthologs.hasOwnProperty(id))) {
-      this.props.requestOrthologs(id);
-    }
+    // if (!(this.props.orthologs && this.props.orthologs.hasOwnProperty(id))) {
+    //   this.props.requestOrthologs(id);
+    // }
   }
   render() {
     const ensemblURL = this.props.ensemblURL;
     const searchResult = this.props.searchResult;
     const taxName = this.props.taxName;
-    let orthologs='';
-    if (this.props.orthologs && this.props.orthologs.hasOwnProperty(searchResult.id)) {
-      orthologs = this.props.orthologs[searchResult.id].join(', ');
-    }
+    // let orthologs='';
+    // if (this.props.orthologs && this.props.orthologs.hasOwnProperty(searchResult.id)) {
+    //   orthologs = this.props.orthologs[searchResult.id].join(', ');
+    // }
     return (
       <div className="result-gene" onMouseOver={()=>this.ensureGene(searchResult.id)}>
         <div className="result-gene-summary">
@@ -107,7 +108,7 @@ class Gene extends React.Component {
                 {taxName}{external}
               </ReactGA.OutboundLink>
             </small>
-            <small className="gene-extras">{orthologs}</small>
+            {/*<small className="gene-extras">{orthologs}</small>*/}
           </h3>
           <p className="gene-description">{searchResult.description}</p>
         </div>
@@ -130,12 +131,14 @@ const GeneList = props => {
     let prev,page,next;
     if (props.grameneSearch.response.numFound > props.grameneSearchRows) {
       const pageNum = props.grameneSearchOffset/props.grameneSearchRows;
-      page = <b>{pageNum + 1}</b>;
+      page = <span>page <b>{pageNum + 1}</b> of <b>{Math.ceil(props.grameneSearch.response.numFound/props.grameneSearchRows)}</b></span>;
+      prev = <GrHpe/>;
       if (pageNum > 0) {
-        prev = <button onClick={()=>props.doRequestResultsPage(pageNum - 1)}>prev</button>
+        prev = <GrFormPreviousLink onClick={()=>props.doRequestResultsPage(pageNum - 1)}/>
       }
+      next = <GrHpe/>;
       if (props.grameneSearch.response.numFound > props.grameneSearchOffset + props.grameneSearchRows) {
-        next = <button onClick={()=>props.doRequestResultsPage(pageNum + 1)}>next</button>
+        next = <GrFormNextLink onClick={()=>props.doRequestResultsPage(pageNum + 1)}/>
       }
     }
     return <div>

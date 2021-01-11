@@ -20,8 +20,8 @@
 .gramene-filter-NOT {
     border-left-color: #ff5354;
     border-left-style: inset;
-    border-left-width: 2px;
-    padding-left: 2px;
+    border-left-width: 4px;
+    padding-left: 4px;
 }
 .gramene-filter-operation {
     text-align: center;

@@ -1,4 +1,5 @@
 import React from 'react'
+import _ from 'lodash';
 import {connect} from "redux-bundler-react";
 import TreeVis from "gramene-genetree-vis";
 import treesClient from "gramene-trees-client";
@@ -35,15 +36,74 @@ class Homology extends React.Component {
       name: `Homologs of ${this.gene.name}`
     })
   }
-  explorations() {
-    return [
-      {
-        name: 'Show All Homologs',
-        category: 'Gene Tree',
-        count: this.tree.geneCount,
-        handleClick: this.filterAllHomologs.bind(this)
+  filterOrthologs() {
+    this.props.doAcceptGrameneSuggestion({
+      category: 'Gene Tree',
+      fq_field: 'homology__all_orthologs',
+      fq_value: this.gene._id,
+      name: `Orthologs of ${this.gene.name}`
+    })
+  }
+  filterParalogs() {
+    this.props.doAcceptGrameneSuggestion({
+      category: 'Gene Tree',
+      fq_field: 'homology__within_species_paralog',
+      fq_value: this.gene._id,
+      name: `Paralogs of ${this.gene.name}`
+    })
+  }
+  orthologList() {
+    return this.orthoParaList('ortholog');
+  }
+
+  paralogList() {
+    return this.orthoParaList('within_species_paralog');
+  }
+
+  orthoParaList(type) {
+    var homology, thisGeneId;
+    homology = _.get(this.gene, 'homology.homologous_genes');
+    thisGeneId = this.gene._id;
+
+    if (homology) {
+      var homologs = _(homology)
+        .pickBy(function filterCategories(thing, name) {
+          return name.indexOf(type) === 0;
+        })
+        .values()
+        .flatten()
+        .value();
+
+      if (!_.isEmpty(homologs)) {
+        homologs.push(thisGeneId);
+        return homologs; // only return something if we have something. We're testing for truthiness later.
       }
-    ]
+    }
+  }
+  explorations() {
+    let x = [{
+      name: 'Homologs',
+      category: 'Gene Tree',
+      count: this.tree.geneCount,
+      handleClick: this.filterAllHomologs.bind(this)
+    }];
+    if (this.orthologs) {
+      x.push({
+        name: 'Orthologs',
+        category: 'Gene Tree',
+        count: this.orthologs.length,
+        handleClick: this.filterOrthologs.bind(this)
+      });
+    }
+    if (this.paralogs) {
+      x.push({
+        name: 'Paralogs',
+        category: 'Gene Tree',
+        count: this.paralogs.length,
+        handleClick: this.filterParalogs.bind(this)
+      });
+    }
+    return x;
   }
   links() {
     return [
@@ -61,6 +121,8 @@ class Homology extends React.Component {
     }
     else {
       this.tree = treesClient.genetree.tree([this.props.grameneTrees[treeId]]);
+      this.orthologs = this.orthologList();
+      this.paralogs = this.paralogList();
     }
     return (
       <Detail>
