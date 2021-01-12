@@ -3,7 +3,7 @@ import keyBy from 'lodash/keyBy';
 import _ from "lodash";
 import ReactGA from "react-ga";
 import { BiLinkExternal } from "react-icons/bi";
-import { Button, ButtonGroup, Badge } from "react-bootstrap";
+import { Button, Badge } from "react-bootstrap";
 
 export const Detail = props => {
   let subComponents = keyBy(props.children, 'key');
@@ -57,9 +57,9 @@ function renderExplorations(explorations) {
 export const Explore = props => (
   <div className="explore">
     <h5>Search Filters</h5>
-    <ButtonGroup>
+    <div>
       {renderExplorations(props.explorations)}
-    </ButtonGroup>
+    </div>
   </div>
 );
 
