@@ -1,6 +1,6 @@
 {
   "name": "gramene-search",
-  "version": "1.1.23",
+  "version": "1.1.24",
   "description": "search wrapper for gramene",
   "main": "dist/index.js",
   "source": "src/index.js",
