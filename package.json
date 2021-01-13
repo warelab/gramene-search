@@ -9,8 +9,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "parcel build ./src/index.js --target node",
-    "watch": "parcel watch ./src/index.js --target node",
+    "build": "parcel build ./src/index.js",
+    "watch": "parcel watch ./src/index.js",
     "prepare": "npm run build"
   },
   "author": "Andrew Olson",
