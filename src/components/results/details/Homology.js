@@ -130,7 +130,7 @@ class Homology extends React.Component {
         <Description key="description">
           This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.
         </Description>
-        {this.tree && <Content key="content">{this.renderTreeVis()}</Content>}
+        {this.tree && <Content key="content">{'this.renderTreeVis()'}</Content>}
         {this.tree && <Explore key="explore" explorations={this.explorations()}/>}
         <Links key="links" links={this.links()}/>
       </Detail>
