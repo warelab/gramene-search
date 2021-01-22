@@ -114,7 +114,7 @@ const Xrefs = ({searchResult, geneDocs}) => (
     <Title key="title">Cross-references</Title>
     <Description key="description">References to this gene in other databases:</Description>
     <Content key="content">
-      <table className="xrefs table" condensed hover>
+      <table className="xrefs table">
         <thead>
         <tr>
           <th className="xref-name-col">Database</th>

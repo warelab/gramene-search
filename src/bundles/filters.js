@@ -1,5 +1,6 @@
 import {createSelector} from "redux-bundler";
 import _ from 'lodash';
+const MAX_IDLIST_LENGTH = 10;
 
 function findNodeWithLeftIdx(node, idx) {
   if (node.leftIdx === idx) {
@@ -76,6 +77,47 @@ const grameneFilters = {
           child.showMenu = false;
           newState.children.push(child);
           markSubtree(newState, child, false);
+          return newState;
+        }
+        case 'GRAMENE_FILTER_TREE_ADDED': {
+          newState = Object.assign({}, state, {
+            status: 'search',
+            showMarked: true,
+            rightIdx: payload.rightIdx + 1,
+            searchOffset: 0
+          });
+          newState.children.push(payload);
+          markSubtree(newState, payload, false);
+          return newState;
+        }
+        case 'GRAMENE_FILTER_SET_ADDED': {
+          // create a filter with the payload.operation and children payload.filters
+          let filter = {
+            leftIdx: state.rightIdx,
+            rightIdx: state.rightIdx + (payload.filters.length) * 2 + 1,
+            operation: payload.operation,
+            negate: false,
+            showMenu: false,
+            children: payload.filters
+          };
+          if (payload.warning) {
+            filter.warning = payload.warning
+          }
+          let nextIdx = filter.leftIdx+1;
+          payload.filters.forEach(f => {
+            f.leftIdx = nextIdx++;
+            f.rightIdx = nextIdx++;
+            f.negate = false;
+            f.showMenu = false;
+          });
+          newState = Object.assign({}, state, {
+            status: 'search',
+            showMarked: true,
+            searchOffset: 0,
+            rightIdx: filter.rightIdx + 1
+          });
+          newState.children.push(filter);
+          markSubtree(newState, filter, false);
           return newState;
         }
         case 'GRAMENE_FILTER_NEGATED': {
@@ -280,10 +322,39 @@ const grameneFilters = {
     dispatch({type: 'GRAMENE_FILTER_TARGETS_UNMARKED'})
   },
   doAcceptGrameneSuggestion: suggestion => ({dispatch, getState}) => {
+    if (!suggestion.name) {
+      suggestion.name = suggestion.display_name;
+    }
     dispatch({
       type: 'BATCH_ACTIONS', actions: [
         {type: 'GRAMENE_SEARCH_CLEARED'},
         {type: 'GRAMENE_FILTER_ADDED', payload: suggestion}
+      ]
+    })
+  },
+  doAddGrameneRangeQuery: terms => ({dispatch, getState}) => {
+    const state = getState();
+    const idx = state.grameneFilters.rightIdx;
+    let termIdx = idx + 1;
+    terms.forEach(t => {
+      t.negate = false;
+      t.showMenu = false;
+      t.leftIdx = termIdx;
+      t.rightIdx = termIdx+1;
+      termIdx+=2;
+    });
+    let filter = {
+      leftIdx: idx,
+      rightIdx: termIdx,
+      operation: 'AND',
+      negate: false,
+      showMenu: false,
+      children: terms
+    };
+    dispatch({
+      type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_FILTER_TREE_ADDED', payload: filter}
       ]
     })
   },
@@ -301,7 +372,7 @@ const grameneFilters = {
   selectGrameneFilters: state => state.grameneFilters,
   selectGrameneFiltersStatus: state => state.grameneFilters.status,
   selectGrameneFiltersQueryString: state => {
-    const hasSpaces = new RegExp(/\s/);
+    const hasSpaces = new RegExp(/^[^\[\(].*\s/);
     function getQuery(node) {
       const negate = node.negate ? 'NOT ' : '';
       if (node.hasOwnProperty('children')) {
@@ -320,6 +391,35 @@ const grameneFilters = {
   },
   selectGrameneSearchOffset: state => state.grameneFilters.searchOffset,
   selectGrameneSearchRows: state => state.grameneFilters.rows
+};
+
+const handleIdList = (queryObject) => {
+  let actions = [{type: 'GRAMENE_SEARCH_CLEARED'}];
+  let ids = _.uniq(queryObject.idList.split(','));
+  let warning = null;
+  if (ids.length > MAX_IDLIST_LENGTH) {
+    ids = _.slice(ids, 0, MAX_IDLIST_LENGTH);
+    warning = `The idList query parameter is limited to ${MAX_IDLIST_LENGTH} genes`
+  }
+  let filters = ids.map((id,idx) => {
+    return {
+      category: 'Gene',
+      name: id,
+      fq_field: 'id',
+      fq_value: id
+    }
+  });
+  if (filters.length === 1) {
+    actions.push({type: 'GRAMENE_FILTER_ADDED', payload: filters[0]})
+  }
+  else {
+    let action = {type: 'GRAMENE_FILTER_SET_ADDED', payload: {operation: 'OR', filters:filters}};
+    if (warning) {
+      action.payload.warning = warning
+    }
+    actions.push(action)
+  }
+  return { type: 'BATCH_ACTIONS', actions: actions };
 };
 
 grameneFilters.reactGrameneFilters = createSelector(
@@ -344,6 +444,9 @@ grameneFilters.reactGrameneFilters = createSelector(
             {type: 'GRAMENE_FILTER_ADDED', payload: JSON.parse(queryObject.suggestion)}
           ]
         };
+      }
+      if (queryObject.hasOwnProperty('idList')) {
+        return handleIdList(queryObject);
       }
       return {
         type: 'BATCH_ACTIONS', actions: [

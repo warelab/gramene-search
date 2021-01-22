@@ -1,5 +1,9 @@
 import { createAsyncResourceBundle, createSelector } from 'redux-bundler'
 import _ from 'lodash'
+import binsClient from "gramene-bins-client";
+import treesClient from "gramene-trees-client";
+import {build} from "gramene-taxonomy-with-genomes";
+
 const facets = [
   "{!facet.limit='200' facet.mincount='1' key='taxon_id'}taxon_id",
   "{!facet.limit='100' facet.mincount='1' key='genetree'}gene_tree",
@@ -127,6 +131,53 @@ grameneSearch.reactGrameneSearch = createSelector(
   }
 );
 
+function formatFacetCountsForViz(a) {
+  let res = {
+    count: a.length/2,
+    displayName: "fixed_1000__bin",
+    data: {},
+    sorted: []
+  };
+  let counts = [];
+  for(let i=0;i<a.length;i+=2) {
+    const fc = {
+      id: +a[i],
+      count: +a[i+1]
+    };
+    res.data[a[i]] = fc;
+    counts.push(fc);
+  }
+  res.sorted = counts.sort((a,b) => a.id - b.id);
+  return res;
+}
+
+// bundle to prepare data for the TaxDist component
+const grameneTaxDist = {
+  name: 'grameneTaxDist',
+  getReducer: () => {
+    const initialState = {};
+    return (state = initialState, {type, payload}) => {
+      return state;
+    }
+  },
+  selectGrameneTaxDist: createSelector(
+    'selectGrameneSearch',
+    'selectGrameneTaxonomy',
+    'selectGrameneMaps',
+    (grameneSearch,grameneTaxonomy,grameneMaps) => {
+      if (grameneSearch && grameneTaxonomy && grameneMaps) {
+        const binnedResults = formatFacetCountsForViz(grameneSearch.facet_counts.facet_fields.fixed_1000__bin);
+        let speciesTree = treesClient.taxonomy.tree(Object.values(grameneTaxonomy));
+        let binMapper = binsClient.bins(grameneMaps);
+        let taxDist = build(binMapper, speciesTree);
+        taxDist.setBinType('fixed',1000);
+        taxDist.setResults(binnedResults);
+        return taxDist;
+      }
+      return null;
+    }
+  )
+};
 
 // this query will give the sorghum orthologs of AT1G01260
 // want to provide these on non-sorghum genes if available
@@ -225,4 +276,4 @@ const grameneOrthologs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneOrthologs];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs];

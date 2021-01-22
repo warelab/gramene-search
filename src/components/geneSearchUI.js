@@ -1,10 +1,14 @@
 import React from 'react'
 import { connect } from 'redux-bundler-react'
+import { Alert, OverlayTrigger, Popover, Modal } from 'react-bootstrap'
+import { IoAlertCircle } from 'react-icons/io5'
+import { BsGearFill } from 'react-icons/bs'
 import GeneList from './results/GeneList'
 import TaxDist from './results/TaxDist'
 import HelpDemo from './results/HelpDemo'
 
 import './styles.css';
+
 const inventory = {
   help: HelpDemo,
   list: GeneList,
@@ -16,7 +20,22 @@ const StatusCmp = props => {
   if (props.grameneFiltersStatus === 'ready' && props.grameneSearch) {
     let genes = props.grameneSearch.response.numFound;
     let genomes = props.grameneSearch.facet_counts.facet_fields.taxon_id.length / 2;
-    content = <span>Found:&nbsp;<b>{genes}</b> genes in <b>{genomes}</b> genomes</span>;
+    content = <span>
+      <span>Found:&nbsp;<b>{genes}</b> genes in <b>{genomes}</b> genomes</span>
+      <span style={{float:'right', cursor:'pointer'}} onClick={props.doToggleGrameneGenomes}><BsGearFill/></span>
+      <Modal
+        show={props.grameneGenomes.show}
+        onHide={props.doToggleGrameneGenomes}
+        size='lg'
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Select Genomes of Interest</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>checklist of species</p>
+        </Modal.Body>
+      </Modal>
+    </span>;
   }
   return <div style={{padding:'5px', backgroundColor:'dimgray', color:'cornsilk', fontSize:'small'}}>{content}</div>
 };
@@ -24,6 +43,8 @@ const StatusCmp = props => {
 const Status = connect(
   'selectGrameneSearch',
   'selectGrameneFiltersStatus',
+  'selectGrameneGenomes',
+  'doToggleGrameneGenomes',
   StatusCmp
 );
 
@@ -60,9 +81,7 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
 
   if (node.showMenu) {
     let key=1;
-    let menuItems = [
-      <li key={key++} onClick={()=>actions.negate(node)}>negate</li>
-    ];
+    let menuItems = [];
     if (node.hasOwnProperty('operation')) {
       menuItems.push(<li key={key++} onClick={()=>actions.changeOperation(node)}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>);
     }
@@ -71,13 +90,30 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
       menuItems.push(<li key={key++} onClick={()=>actions.markTargets(node,'move')}>move{node.isSource && ' select destination'}</li>);
       menuItems.push(<li key={key++} onClick={()=>actions.markTargets(node,'copy')}>copy{node.isSource && ' select destination'}</li>)
     }
+    menuItems.push(<li key={key++} onClick={()=>actions.negate(node)}>negate</li>);
     menu = <div className='gramene-filter-menu'><ul>{menuItems}</ul></div>;
   }
-
+  let warning;
+  if (node.warning) {
+    const popover = (
+      <Popover>
+        <Popover.Title as="h3">Warning</Popover.Title>
+        <Popover.Content>{node.warning}</Popover.Content>
+      </Popover>
+    );
+    warning = (
+      <OverlayTrigger trigger="click" placement="right" overlay={popover}><span style={{float:'right', color:'red', cursor:'pointer'}}><IoAlertCircle/></span></OverlayTrigger>
+    )
+  }
   if (node.operation) {
     children = node.children.map((child,idx) => <Filter key={idx} moveCopyMode={moveCopyMode} node={child} showMarked={showMarked} actions={actions}/>);
-    content = <span className='gramene-filter-operation'
-                    onClick={()=>actions.toggleMenu(node)}>{node.operation}</span>
+    content = (
+      <div>
+        <span className='gramene-filter-operation'
+              onClick={()=>actions.toggleMenu(node)}>{node.operation}</span>
+        {warning}
+      </div>
+    );
   }
   else {
     content = <span className='gramene-filter-text'
@@ -130,16 +166,26 @@ const Filters = connect(
 );
 
 const ResultsCmp = props => {
-  let activeViews = props.grameneViews.options.filter(v => {return v.show === 'on'});
+  let activeViews = props.grameneViews.options.filter((v,idx) => {
+    v.idx = idx;
+    return v.show === 'on'
+  });
   if (props.grameneFilters.rightIdx === 1 || activeViews.length === 0) {
     return <HelpDemo/>
   }
   return (
-    <div>
-      {activeViews.map((v,idx) => {
+    <div style={{padding:'10px'}}>
+      {activeViews.map(v => {
         let p = Object.assign({}, props);
-        p.key = idx;
-        return React.createElement(inventory[v.id], p)
+        p.key = v.idx;
+        return (
+          <div>
+            <Alert variant="primary" onClose={() => props.doToggleGrameneView(v.idx)} dismissible>
+              {v.name}
+            </Alert>
+            {React.createElement(inventory[v.id], p)}
+          </div>
+        )
       })}
     </div>
   );
@@ -148,6 +194,7 @@ const ResultsCmp = props => {
 const Results = connect(
   'selectGrameneFilters',
   'selectGrameneViews',
+  'doToggleGrameneView',
   ResultsCmp
 );
 

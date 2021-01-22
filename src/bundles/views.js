@@ -1,6 +1,3 @@
-import {createSelector} from "redux-bundler";
-import _ from 'lodash';
-
 const grameneViews = {
   name: 'grameneViews',
   getReducer: () => {
@@ -14,7 +11,7 @@ const grameneViews = {
         {
           id: 'taxonomy',
           name: 'Taxonomic distribution',
-          show: 'off'
+          show: 'on'
         },
         {
           id: 'list',

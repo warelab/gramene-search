@@ -4,7 +4,8 @@ const grameneDocs = {
     const initialState = {
       genes: {},
       trees: {},
-      domains: {}
+      domains: {},
+      pathways: {}
     };
     return (state = initialState, {type, payload}) => {
       let newState;
@@ -30,6 +31,18 @@ const grameneDocs = {
         case 'GRAMENE_TREE_RECEIVED':
           newState = Object.assign({}, state);
           newState.trees = Object.assign({}, state.trees, payload);
+          return newState;
+        // case 'GRAMENE_PATHWAYS_REQUESTED':
+          // newState = Object.assign({}, state);
+          // payload.forEach(id => {
+          //   if (!state.pathways.hasOwnProperty(id)) {
+          //     newState.pathways[id] = {};
+          //   }
+          // });
+          // return newState;
+        case 'GRAMENE_PATHWAYS_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.pathways = Object.assign({}, state.pathways, payload);
           return newState;
       }
       return state;
@@ -65,8 +78,25 @@ const grameneDocs = {
         })
     }
   },
+  doRequestGramenePathways: ids => ({dispatch, store}) => {
+    const pathways = store.selectGramenePathways();
+    let newIds = ids.filter(id => !pathways.hasOwnProperty(id));
+    if (newIds) {
+      dispatch({type: 'GRAMENE_PATHWAYS_REQUESTED', payload: newIds});
+      fetch(`${store.selectGrameneAPI()}/pathways?idList=${newIds.join(',')}`)
+        .then(res => res.json())
+        .then(res => {
+          let pathways = {};
+          res.forEach(p => {
+            pathways[p._id] = p;
+          });
+          dispatch({type: 'GRAMENE_PATHWAYS_RECEIVED', payload: pathways})
+        })
+    }
+  },
   selectGrameneGenes: state => state.grameneDocs.genes,
-  selectGrameneTrees: state => state.grameneDocs.trees
+  selectGrameneTrees: state => state.grameneDocs.trees,
+  selectGramenePathways: state => state.grameneDocs.pathways
 };
 
 export default grameneDocs;

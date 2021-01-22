@@ -1,53 +1,46 @@
 import React from 'react'
 import { connect } from 'redux-bundler-react'
-import _ from 'lodash'
+import { Vis } from "gramene-search-vis"
+import Selection from './selection.js'
+import '../../../node_modules/gramene-search-vis/styles/main.less';
 
-function convertFacetCountsToMap(a) {
-  let res = new Map();
-  for(let i=0;i<a.length;i+=2) {
-    res.set(a[i], a[i+1]);
+class TaxDist extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {};
   }
-  return res;
-}
-
-const TaxDist = ({grameneSearch, grameneTaxonomy, grameneMaps}) => {
-  if (grameneSearch && grameneTaxonomy && grameneMaps) {
-    const binTally = convertFacetCountsToMap(grameneSearch.facet_counts.facet_fields.fixed_1000__bin);
-    const taxTally = convertFacetCountsToMap(grameneSearch.facet_counts.facet_fields.taxon_id);
-
-    // calculate a num_results field in each taxonomy node based on taxTally
-    let speciesTree = _.cloneDeep(grameneTaxonomy);
-    taxTally.forEach((count, tax) => {
-      let node = speciesTree[tax];
-      node.num_results = count;
-      node.ancestors.forEach(a => {
-        let ancestor = speciesTree[a];
-        if (!ancestor.hasOwnProperty('num_results')) ancestor.num_results = 0;
-        ancestor.num_results += count;
-      })
-    });
-
-    // we have
-    // 1000 bins per genome
-    // ~100 genomes (leaves in species tree)
-    // non-zero count per taxonomy node and per bin
-    //
-    // display should have the species tree, node labels, number of hits, and genome visualization
-    // tree should collapse non-leaf branches with 0 results
-    // select regions in genomic distribution to modify search
-    // adds an OR node of the selected regions to the top level
-    //
-    // how do we reuse TBrowse here?
-
+  handleSelection(selections) {
+    this.setState({selections})
+  }
+  handleHighlight(highlight) {
+    this.setState({highlight})
+  }
+  handleFilter() {
+    this.setState({selections:null})
+  }
+  render() {
     return (
-      <div>This is the TaxDist component <pre>{JSON.stringify(speciesTree, null, 2)}</pre></div>
+      <div className="results-vis big-vis">
+        {this.props.grameneTaxDist && <Vis taxonomy={this.props.grameneTaxDist}
+                                           selectedTaxa={{}}
+                                           onSelection={this.handleSelection.bind(this)}
+                                           onHighlight={this.handleHighlight.bind(this)}
+        />}
+        {this.renderSelection()}
+      </div>
     );
   }
-  return null
-};
+  renderSelection() {
+    if (this.state.selections && this.props.grameneTaxDist) {
+      return <Selection taxonomy={this.props.grameneTaxDist}
+                        selectedTaxa={{}}
+                        selections={this.state.selections}
+                        onFilter={this.handleFilter.bind(this)}/>
+    }
+  }
+}
 
 export default connect(
-  'selectGrameneSearch',
-  'selectGrameneTaxonomy',
-  'selectGrameneMaps',
-  TaxDist);
+  'selectGrameneTaxDist',
+  TaxDist
+);
