@@ -6,7 +6,7 @@ import { BsGearFill } from 'react-icons/bs'
 import GeneList from './results/GeneList'
 import TaxDist from './results/TaxDist'
 import HelpDemo from './results/HelpDemo'
-
+import TaxonomyModal from './TaxonomyModal'
 import './styles.css';
 
 const inventory = {
@@ -23,18 +23,7 @@ const StatusCmp = props => {
     content = <span>
       <span>Found:&nbsp;<b>{genes}</b> genes in <b>{genomes}</b> genomes</span>
       <span style={{float:'right', cursor:'pointer'}} onClick={props.doToggleGrameneGenomes}><BsGearFill/></span>
-      <Modal
-        show={props.grameneGenomes.show}
-        onHide={props.doToggleGrameneGenomes}
-        size='lg'
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Select Genomes of Interest</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>checklist of species</p>
-        </Modal.Body>
-      </Modal>
+      <TaxonomyModal/>
     </span>;
   }
   return <div style={{padding:'5px', backgroundColor:'dimgray', color:'cornsilk', fontSize:'small'}}>{content}</div>
