@@ -332,29 +332,11 @@ const grameneFilters = {
       ]
     })
   },
-  doAddGrameneRangeQuery: terms => ({dispatch, getState}) => {
-    const state = getState();
-    const idx = state.grameneFilters.rightIdx;
-    let termIdx = idx + 1;
-    terms.forEach(t => {
-      t.negate = false;
-      t.showMenu = false;
-      t.leftIdx = termIdx;
-      t.rightIdx = termIdx+1;
-      termIdx+=2;
-    });
-    let filter = {
-      leftIdx: idx,
-      rightIdx: termIdx,
-      operation: 'AND',
-      negate: false,
-      showMenu: false,
-      children: terms
-    };
+  doAddGrameneRangeQuery: terms => ({dispatch}) => {
     dispatch({
       type: 'BATCH_ACTIONS', actions: [
         {type: 'GRAMENE_SEARCH_CLEARED'},
-        {type: 'GRAMENE_FILTER_TREE_ADDED', payload: filter}
+        {type: 'GRAMENE_FILTER_SET_ADDED', payload: {operation: 'AND', filters: terms}}
       ]
     })
   },
