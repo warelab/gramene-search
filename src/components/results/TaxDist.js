@@ -22,7 +22,7 @@ class TaxDist extends React.Component {
     return (
       <div className="results-vis big-vis">
         {this.props.grameneTaxDist && <Vis taxonomy={this.props.grameneTaxDist}
-                                           selectedTaxa={{}}
+                                           selectedTaxa={this.props.grameneGenomes.active}
                                            onSelection={this.handleSelection.bind(this)}
                                            onHighlight={this.handleHighlight.bind(this)}
         />}
@@ -42,5 +42,6 @@ class TaxDist extends React.Component {
 
 export default connect(
   'selectGrameneTaxDist',
+  'selectGrameneGenomes',
   TaxDist
 );

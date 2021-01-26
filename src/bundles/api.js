@@ -19,9 +19,24 @@ const grameneSuggestions = createAsyncResourceBundle( {
   persist: false,
   getPromise: ({store}) => {
     const t = store.selectSuggestionsQuery();
+    const g = store.selectGrameneGenomes();
     return fetch(`${store.selectGrameneAPI()}/suggest?q={!boost b=relevance}name:${t}^3 id:${t}^5 synonym:${t}^2 text:${t}*^1`)
       .then(res => res.json())
-      .then(suggestions => {return suggestions})
+      .then(suggestions => {
+        if (Object.keys(g.active).length > 0) {
+          suggestions.grouped.category.groups.forEach(group => {
+            group.doclist.docs.forEach(sugg => {
+              sugg.num_genes = 0;
+              sugg.taxon_id.forEach((id,idx) => {
+                if (g.active[id]) {
+                  sugg.num_genes += sugg.taxon_freq[idx]
+                }
+              })
+            })
+          })
+        }
+        return suggestions
+      })
   }
 });
 
@@ -117,7 +132,14 @@ const grameneSearch = createAsyncResourceBundle({
   getPromise: ({store}) => {
     const offset = store.selectGrameneSearchOffset();
     const rows = store.selectGrameneSearchRows();
-    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}`)
+    const g = store.selectGrameneGenomes();
+    const taxa = Object.keys(g.active);
+    let fq='';
+    if (taxa.length) {
+      console.log('search add a fq for ',taxa);
+      fq = `&fq=taxon_id:(${taxa.join(' OR ')})`;
+    }
+    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}`)
       .then(res => res.json())
   }
 });

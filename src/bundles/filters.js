@@ -257,6 +257,8 @@ const grameneFilters = {
           return Object.assign({}, state, {status: 'loading'});
         case 'GRAMENE_SEARCH_FETCH_FINISHED':
           return Object.assign({}, state, {status: 'finished'});
+        case 'GRAMENE_GENOMES_UPDATED':
+          return Object.assign({}, state, {status: 'search'});
         case 'URL_UPDATED':
           if (state.status === 'ready') {
             return Object.assign({}, initialState, {children:[]})
@@ -407,17 +409,24 @@ const handleIdList = (queryObject) => {
 grameneFilters.reactGrameneFilters = createSelector(
   'selectQueryObject',
   'selectGrameneFilters',
+  'selectActiveGenomes',
   'selectUrlObject',
-  (queryObject, filters, myUrl) => {
+  (queryObject, filters, genomes, myUrl) => {
     if (filters.status === 'init') {
       if (queryObject.filters) {
         const newFilters = JSON.parse(queryObject.filters);
-        return {
-          type: 'BATCH_ACTIONS', actions: [
-            {type: 'GRAMENE_SEARCH_CLEARED'},
-            {type: 'GRAMENE_FILTERS_REPLACED', payload: newFilters}
-          ]
-        };
+        let actions = [
+          {type: 'GRAMENE_SEARCH_CLEARED'},
+          {type: 'GRAMENE_FILTERS_REPLACED', payload: newFilters}
+        ];
+        if (queryObject.genomes) {
+          let active={};
+          queryObject.genomes.split(',').forEach(t => {
+            active[t]=true
+          });
+          actions.push({type: 'GRAMENE_GENOMES_UPDATED', payload: active});
+        }
+        return { type: 'BATCH_ACTIONS', actions: actions };
       }
       if (queryObject.hasOwnProperty('suggestion')) {
         return {
@@ -439,7 +448,7 @@ grameneFilters.reactGrameneFilters = createSelector(
     }
     if (filters.status === 'finished') {
       const url = new URL(myUrl.href);
-      url.search = `filters=${JSON.stringify(Object.assign({}, filters, {status: 'init'}))}`;
+      url.search = `filters=${JSON.stringify(Object.assign({}, filters, {status: 'init'}))}&genomes=${genomes.join(',')}`;
       return {
         type: 'BATCH_ACTIONS', actions: [
           {type: 'URL_UPDATED', payload: {url: url.href, replace:false}},

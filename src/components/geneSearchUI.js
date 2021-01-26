@@ -17,12 +17,25 @@ const inventory = {
 
 const StatusCmp = props => {
   let content = props.grameneFiltersStatus;
-  if (props.grameneFiltersStatus === 'ready' && props.grameneSearch) {
-    let genes = props.grameneSearch.response.numFound;
-    let genomes = props.grameneSearch.facet_counts.facet_fields.taxon_id.length / 2;
+  if (props.grameneFiltersStatus === 'ready') {
+    let tally = <span>Ready</span>;
+    if (props.grameneSearch) {
+      let genes = props.grameneSearch.response.numFound;
+      let genomes = props.grameneSearch.facet_counts.facet_fields.taxon_id.length / 2;
+      tally = <span><b>{genes}</b> genes in <b>{genomes}</b> genomes</span>;
+    }
+    const popover = (
+      <Popover>
+        <Popover.Title as="h3">Genomes Filter</Popover.Title>
+        <Popover.Content>Searching {props.activeGenomeCount} genomes</Popover.Content>
+      </Popover>
+    );
+
     content = <span>
-      <span>Found:&nbsp;<b>{genes}</b> genes in <b>{genomes}</b> genomes</span>
-      <span style={{float:'right', cursor:'pointer'}} onClick={props.doToggleGrameneGenomes}><BsGearFill/></span>
+      {tally}
+      <OverlayTrigger placement="auto" overlay={popover}>
+        <span style={{float:'right', cursor:'pointer'}} onClick={props.doShowGrameneGenomes}><BsGearFill/></span>
+      </OverlayTrigger>
       <TaxonomyModal/>
     </span>;
   }
@@ -32,8 +45,8 @@ const StatusCmp = props => {
 const Status = connect(
   'selectGrameneSearch',
   'selectGrameneFiltersStatus',
-  'selectGrameneGenomes',
-  'doToggleGrameneGenomes',
+  'selectActiveGenomeCount',
+  'doShowGrameneGenomes',
   StatusCmp
 );
 
@@ -91,7 +104,7 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
       </Popover>
     );
     warning = (
-      <OverlayTrigger trigger="click" placement="right" overlay={popover}><span style={{float:'right', color:'red', cursor:'pointer'}}><IoAlertCircle/></span></OverlayTrigger>
+      <OverlayTrigger placement="auto" overlay={popover}><span style={{float:'right', color:'red', cursor:'pointer'}}><IoAlertCircle/></span></OverlayTrigger>
     )
   }
   if (node.operation) {

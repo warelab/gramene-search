@@ -72,3 +72,12 @@
     color: darkgray;
     border-left-color: #efefef;
 }
+#gramene-suggestion button {
+    border-radius: .6rem;
+    line-height: 1;
+}
+#gramene-suggestion button:focus {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}

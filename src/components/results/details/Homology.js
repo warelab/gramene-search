@@ -17,7 +17,7 @@ class Homology extends React.Component {
       <div className="gene-genetree">
         <TreeVis genetree={this.tree}
                  initialGeneOfInterest={this.gene}
-                 genomesOfInterest={{}}
+                 genomesOfInterest={this.props.grameneGenomes.active}
                  taxonomy={this.taxonomy}
                  allowGeneSelection={true}
                  pivotTree={true}
@@ -141,6 +141,7 @@ class Homology extends React.Component {
 export default connect(
   'selectGrameneTaxonomy',
   'selectGrameneTrees',
+  'selectGrameneGenomes',
   'selectEnsemblURL',
   'doRequestGrameneTree',
   'doAcceptGrameneSuggestion',
