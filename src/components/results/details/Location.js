@@ -151,10 +151,13 @@ class Location extends React.Component {
   }
 
   links() {
+    function jgiify(id) {
+      return id.replace('SORBI_3','Sobic.');
+    }
     var gene = this.gene;
     let links = [
-      {name: 'Gramene Ensembl', url: `${this.props.ensemblURL}/${gene.system_name}/Gene/Summary?g=${gene._id}`},
-      {name: 'PhytoMine', url: `https://phytozome.jgi.doe.gov/phytomine/keywordSearchResults.do?searchTerm=${gene._id}&searchSubmit=Search`},
+      {name: 'Ensembl Browser', url: `${this.props.ensemblURL}/${gene.system_name}/Gene/Summary?g=${gene._id}`},
+      {name: 'PhytoMine', url: `https://phytozome.jgi.doe.gov/phytomine/keywordSearchResults.do?searchTerm=${jgiify(gene._id)}&searchSubmit=Search`},
     ];
     if (gene.taxon_id === 3702)
       links.push({name: 'Araport', url: `https://www.araport.org/search/thalemine/${gene._id}`});

@@ -80,3 +80,85 @@
     background-color: #557B74;
     cursor: pointer;
 }
+.result-gene-summary {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-start;
+}
+.result-gene-summary .species-name {
+    white-space: nowrap;
+    font-style: italic;
+}
+.result-gene-title-body {
+    flex: 1 1 auto;
+    width: 1036px;
+}
+.closest-ortholog, .gene-summary-tair {
+    cursor: pointer;
+    flex: 1 1 auto;
+    width: 500px;
+    font-size: smaller;
+    margin-top: 10px;
+    padding: 0 1rem;
+    margin-left: 1rem;
+    border: 1px solid darkorange;
+}
+.closest-orthologs, .gene-summary-tair > h4, > p {
+    /*margin: @padding-base-vertical 0;*/
+}
+
+/* clear the title (defined in the ::before block below) */
+.closest-orthologs, .gene-summary-tair :first-child {
+    clear: right;
+}
+
+.closest-ortholog {
+    border: 1px dotted darkorange;
+}
+
+.gene-summary-tair {
+    border: 1px dotted darkgreen;
+}
+.gene-summary-tair .rest {
+    display: none;
+}
+
+.gene-summary-tair:hover .rest {
+    display: inline;
+}
+.gene-summary-tair:focus .rest {
+    display: inline;
+}
+.gene-summary-tair:hover .ellipsis {
+    display: none;
+}
+.gene-summary-tair:focus .ellipsis {
+    display: none;
+}
+
+/* this is the "title" of the closest ortholog box */
+.closest-ortholog::before,
+.gene-summary-tair::before {
+    position: relative;
+    float: right;
+    margin-top: -12px;
+    margin-right: 6px;
+    border: dotted 1px;
+    padding: 0 1rem;
+    background: #fff;
+}
+
+.closest-ortholog::before {
+    content: "Model Species Homolog";
+    color: orange;
+}
+
+/* this is the "title" of the closest ortholog box */
+.gene-summary-tair::before {
+    content: "TAIR Curated Description";
+    color: darkgreen;
+}
+
+.gene-search-pic > img {
+    width: 100%
+}

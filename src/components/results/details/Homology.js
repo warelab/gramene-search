@@ -4,12 +4,16 @@ import {connect} from "redux-bundler-react";
 import TreeVis from "gramene-genetree-vis";
 import treesClient from "gramene-trees-client";
 import {Detail, Title, Description, Content, Explore, Links} from "./generic";
+import {Spinner} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
 import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
 
 class Homology extends React.Component {
   constructor(props) {
     super(props);
+    if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
+      props.requestGene(props.searchResult.id)
+    }
     this.taxonomy = treesClient.taxonomy.tree(Object.values(props.grameneTaxonomy))
   }
   renderTreeVis() {
@@ -109,11 +113,14 @@ class Homology extends React.Component {
     return [
       {
         name: 'Ensembl Gene Tree view',
-        url: `//${this.props.ensemblURL}/${this.gene.system_name}/Gene/Compara_Tree?g=${this.gene._id}`
+        url: `${this.props.ensemblURL}/${this.gene.system_name}/Gene/Compara_Tree?g=${this.gene._id}`
       }
     ]
   }
   render() {
+    if (!this.props.geneDocs.hasOwnProperty(this.props.searchResult.id)) {
+      return <Spinner/>
+    }
     this.gene = this.props.geneDocs[this.props.searchResult.id];
     const treeId = this.gene.homology.gene_tree.id;
     if (! this.props.grameneTrees.hasOwnProperty(treeId)) {

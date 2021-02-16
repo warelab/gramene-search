@@ -2,7 +2,7 @@ import React from 'react'
 import { connect } from 'redux-bundler-react'
 import { Alert, OverlayTrigger, Popover, Modal } from 'react-bootstrap'
 import { IoAlertCircle } from 'react-icons/io5'
-import { BsGearFill } from 'react-icons/bs'
+import { BsGearFill,BsTrash } from 'react-icons/bs'
 import GeneList from './results/GeneList'
 import TaxDist from './results/TaxDist'
 import HelpDemo from './results/HelpDemo'
@@ -17,6 +17,9 @@ const inventory = {
 
 const StatusCmp = props => {
   let content = props.grameneFiltersStatus;
+  if (props.grameneFiltersStatus === 'init') {
+    props.doClearGrameneFilters();
+  }
   if (props.grameneFiltersStatus === 'ready') {
     let tally = <span>Ready</span>;
     if (props.grameneSearch) {
@@ -47,6 +50,7 @@ const Status = connect(
   'selectGrameneFiltersStatus',
   'selectActiveGenomeCount',
   'doShowGrameneGenomes',
+  'doClearGrameneFilters',
   StatusCmp
 );
 
@@ -141,6 +145,7 @@ const FiltersCmp = props => {
   if (props.grameneFilters.rightIdx > 1) {
     return <div className='gramene-filter-container'>
       <b>Filters</b>
+      <span style={{float:'right', cursor:'pointer'}} onClick={props.doClearGrameneFilters}><BsTrash/></span>
       <Filter node={props.grameneFilters}
                    moveCopyMode={props.grameneFilters.moveCopyMode}
                    showMarked={props.grameneFilters.showMarked}
@@ -164,6 +169,7 @@ const Filters = connect(
   'doMarkGrameneFilterTargets',
   'doUnmarkGrameneFilterTargets',
   'doToggleGrameneFilterMenu',
+  'doClearGrameneFilters',
   FiltersCmp
 );
 
@@ -182,9 +188,9 @@ const ResultsCmp = props => {
         p.key = v.idx;
         return (
           <div>
-            <Alert variant="primary" onClose={() => props.doToggleGrameneView(v.idx)} dismissible>
-              {v.name}
-            </Alert>
+            {/*<Alert variant="primary" onClose={() => props.doToggleGrameneView(v.idx)} dismissible>*/}
+            {/*  {v.name}*/}
+            {/*</Alert>*/}
             {React.createElement(inventory[v.id], p)}
           </div>
         )

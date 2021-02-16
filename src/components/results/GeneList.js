@@ -19,6 +19,80 @@ let inventory = {
   xrefs: Xrefs
 };
 
+function renderTairSummary(searchResult) {
+  const summary = searchResult.summary;
+  if(summary && searchResult.taxon_id === 3702) {
+    return (
+      <div className="gene-summary-tair">
+        {trimSummary(summary)}
+      </div>
+    )
+  }
+}
+
+function trimSummary(summary) {
+  if(summary.length > 160) {
+    const start = summary.substr(0, 150);
+    const rest = summary.substr(150);
+    return <p>{start}<span className="ellipsis">…</span><span className="rest">{rest}</span></p>
+  }
+  else {
+    return <p>{summary}</p>
+  }
+}
+
+const ClosestOrtholog = ({gene}) =>
+{
+  let name, desc, species;
+
+  if (gene.model_rep_id) {
+    name = gene.model_rep_name || gene.model_rep_id;
+    desc = gene.model_rep_description;
+    species = gene.model_rep_species_name;
+  }
+
+  else if (gene.closest_rep_id) {
+    name = gene.closest_rep_name || gene.closest_rep_id;
+    desc = gene.closest_rep_description;
+    species = gene.closest_rep_species_name;
+  }
+
+  return (
+    <div className="closest-ortholog">
+      <h4>
+        <span className="gene-id">{name}</span>
+        <small className="species-name"> {species}</small>
+      </h4>
+      <p>{desc}</p>
+    </div>
+  );
+};
+
+function renderClosestOrtholog(gene) {
+
+  if (shouldShowClosestOrtholog(gene)) {
+
+    // we used to not add the closest ortholog to the DOM if the homology detail was visible.
+    // however, that could cause the height of the result to change. Instead we set visibility:hidden
+    // so that the renderer takes into account the height of the ortholog even if not shown.
+    return (
+      <ClosestOrtholog gene={gene}/>
+    );
+  }
+}
+
+// show closest ortholog prominently if we have data to show:-
+//   a. either there's a closest ortholog (determined by traversing the gene tree until an id or description looks
+// curated) b. or there's a model ortholog (traverse tree to find an ortholog in arabidopsis)
+function shouldShowClosestOrtholog(searchResult) {
+  return (
+    searchResult.closest_rep_id || (
+      searchResult.model_rep_id &&
+      searchResult.model_rep_id !== searchResult.id
+    )
+  );
+}
+
 class Gene extends React.Component {
   constructor(props) {
     super(props);
@@ -44,18 +118,18 @@ class Gene extends React.Component {
           label: 'Pathways',
           available: false
         },
-        {
-          id: 'pubs',
-          label: 'Publications',
-          available: false
-        },
+        // {
+        //   id: 'pubs',
+        //   label: 'Publications',
+        //   available: false
+        // },
         {
           id: 'xrefs',
           label: 'Xrefs',
           available: false
         }
       ],
-      expandedDetail: null
+      expandedDetail: props.expandedDetail
     };
     let hasData = {};
     props.searchResult.capabilities.forEach(c => hasData[c]=true);
@@ -83,6 +157,16 @@ class Gene extends React.Component {
     //   this.props.requestOrthologs(id);
     // }
   }
+  renderMetadata() {
+    let gene = this.props.searchResult;
+    if (gene.model_rep_taxon_id) {
+      gene.model_rep_species_name = this.props.taxLut[gene.model_rep_taxon_id].name;
+    }
+    if (gene.closest_rep_taxon_id) {
+      gene.closest_rep_species_name = this.props.taxLut[gene.closest_rep_taxon_id].name;
+    }
+    return renderTairSummary(gene) || renderClosestOrtholog(gene);
+  }
   render() {
     const ensemblURL = this.props.ensemblURL;
     const searchResult = this.props.searchResult;
@@ -94,23 +178,26 @@ class Gene extends React.Component {
     return (
       <div className="result-gene" onMouseOver={()=>this.ensureGene(searchResult.id)}>
         <div className="result-gene-summary">
-          <h3 className="gene-title">
-            <span className="gene-name">{searchResult.name} </span>
-            <wbr/>
-            <small className="gene-id">{searchResult.id === searchResult.name ? '' : searchResult.id} </small>
-            <small className="gene-synonyms">{searchResult.synonyms && searchResult.synonyms.join(', ') || ''}</small>
-            <small className="gene-species">
-              <ReactGA.OutboundLink
-                eventLabel={searchResult.system_name}
-                to={`//${ensemblURL}/${searchResult.system_name}/Info/Index`}
-                className="external-link"
-              >
-                {taxName}{external}
-              </ReactGA.OutboundLink>
-            </small>
-            {/*<small className="gene-extras">{orthologs}</small>*/}
-          </h3>
-          <p className="gene-description">{searchResult.description}</p>
+          <div className="result-gene-title-body">
+            <h3 className="gene-title">
+              <span className="gene-name">{searchResult.name} </span>
+              <wbr/>
+              <small className="gene-id">{searchResult.id === searchResult.name ? '' : searchResult.id} </small>
+              <small className="gene-synonyms">{searchResult.synonyms && searchResult.synonyms.join(', ') || ''}</small>
+              <small className="gene-species">
+                <ReactGA.OutboundLink
+                  eventLabel={searchResult.system_name}
+                  to={`//${ensemblURL}/${searchResult.system_name}/Info/Index`}
+                  className="external-link"
+                >
+                  {taxName}{external}
+                </ReactGA.OutboundLink>
+              </small>
+              {/*<small className="gene-extras">{orthologs}</small>*/}
+            </h3>
+            <p className="gene-description">{searchResult.description}</p>
+          </div>
+          {this.renderMetadata()}
         </div>
         <div className="gene-detail-tabs">
           {this.state.details.map((d,idx) => (
@@ -129,15 +216,16 @@ class Gene extends React.Component {
 const GeneList = props => {
   if (props.grameneSearch && props.grameneSearch.response && props.grameneTaxonomy) {
     let prev,page,next;
-    if (props.grameneSearch.response.numFound > props.grameneSearchRows) {
+    const numFound = props.grameneSearch.response.numFound;
+    if (numFound > props.grameneSearchRows) {
       const pageNum = props.grameneSearchOffset/props.grameneSearchRows;
-      page = <span>page <b>{pageNum + 1}</b> of <b>{Math.ceil(props.grameneSearch.response.numFound/props.grameneSearchRows)}</b></span>;
+      page = <span>page <b>{pageNum + 1}</b> of <b>{Math.ceil(numFound/props.grameneSearchRows)}</b></span>;
       prev = <GrHpe/>;
       if (pageNum > 0) {
         prev = <GrFormPreviousLink onClick={()=>props.doRequestResultsPage(pageNum - 1)}/>
       }
       next = <GrHpe/>;
-      if (props.grameneSearch.response.numFound > props.grameneSearchOffset + props.grameneSearchRows) {
+      if (numFound > props.grameneSearchOffset + props.grameneSearchRows) {
         next = <GrFormNextLink onClick={()=>props.doRequestResultsPage(pageNum + 1)}/>
       }
     }
@@ -152,6 +240,8 @@ const GeneList = props => {
               requestGene={props.doRequestGrameneGene}
               requestOrthologs={props.doRequestOrthologs}
               orthologs={props.grameneOrthologs}
+              taxLut={props.grameneTaxonomy}
+              expandedDetail={null}
         />
       ))}
       {prev}{page}{next}

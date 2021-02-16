@@ -3,6 +3,20 @@ import React from 'react'
 import { Button, Badge } from 'react-bootstrap'
 import './styles.css'
 
+function showMatches(text, x) {
+  let re = new RegExp(`(${x})`, 'ig');
+  let match = text.split(re);
+  console.log('showMatches',text, x, match);
+  return <span>
+    {match.map((str, idx) => {
+      if (idx % 2 === 1) {
+        return <span key={idx} style={{fontWeight:'bolder'}}>{str}</span>
+      }
+      return <span key={idx}>{str}</span>
+    })}
+  </span>
+}
+
 const Suggestions = props => {
   let suggestions = props.grameneSuggestions;
   return (
@@ -21,7 +35,7 @@ const Suggestions = props => {
                     size='sm'
                     variant="outline-secondary"
                     onClick={() => {props.doAcceptSuggestion(sugg); props.doAcceptGrameneSuggestion(sugg)}}>
-              {sugg.display_name}{' '}
+              {showMatches(sugg.display_name,props.suggestionsQuery)}{' '}
               <Badge variant="secondary">{sugg.num_genes}</Badge>
             </Button>
           )}
@@ -33,6 +47,7 @@ const Suggestions = props => {
 
 export default connect(
   'selectGrameneSuggestions',
+  'selectSuggestionsQuery',
   'doAcceptSuggestion',
   'doAcceptGrameneSuggestion',
   Suggestions

@@ -51,7 +51,7 @@ const grameneDocs = {
   doRequestGrameneGene: id => ({dispatch, store}) => {
     const genes = store.selectGrameneGenes();
     if (!genes.hasOwnProperty(id)) {
-      dispatch({type: 'GRAMENE_GENE_REQUESTED', payload: id});
+      // dispatch({type: 'GRAMENE_GENE_REQUESTED', payload: id});
       fetch(`${store.selectGrameneAPI()}/genes?idList=${id}`)
         .then(res => res.json())
         .then(res => {

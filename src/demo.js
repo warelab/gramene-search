@@ -16,7 +16,7 @@ const cache = getConfiguredCache({
 });
 
 const initialState = {
-  ensemblSite: '//banon:88',
+  ensemblSite: 'https://ensembl.sorghumbase.org',
   grameneData: 'https://data.sorghumbase.org/sorghum2',
   targetTaxonId: 4558
 };
@@ -46,7 +46,7 @@ const GeneSearchUI = (store) => (
       <div className="col-md-2 no-padding">
         <Status/>
         <Filters/>
-        <Views/>
+        {/*<Views/>*/}
       </div>
       <div className="col-md-10 no-padding">
         <Results/>

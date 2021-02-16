@@ -62,6 +62,12 @@ const grameneFilters = {
     return (state = initialState, {type, payload}) => {
       let newState;
       switch (type) {
+        case 'GRAMENE_FILTERS_CLEARED': {
+          newState = Object.assign({}, initialState, {
+            status: 'search'
+          });
+          return newState;
+        }
         case 'GRAMENE_FILTER_ADDED': {
           const idx = state.rightIdx;
           newState = Object.assign({}, state, {
@@ -353,6 +359,22 @@ const grameneFilters = {
       ]
     })
   },
+  doReplaceGrameneFilters: filters => ({dispatch}) => {
+    dispatch({
+      type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_FILTERS_REPLACED', payload: filters}
+      ]
+    })
+  },
+  doClearGrameneFilters: () => ({dispatch}) => {
+    dispatch({
+      type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_FILTERS_CLEARED'}
+      ]
+    })
+  },
   selectGrameneFilters: state => state.grameneFilters,
   selectGrameneFiltersStatus: state => state.grameneFilters.status,
   selectGrameneFiltersQueryString: state => {
@@ -370,6 +392,9 @@ const grameneFilters = {
         else
           return `${negate}${node.fq_field}:${node.fq_value}`;
       }
+    }
+    if (state.grameneFilters.rightIdx === 1) {
+      return '*:*';
     }
     return `*:* AND (${getQuery(state.grameneFilters)})`;
   },
@@ -439,12 +464,12 @@ grameneFilters.reactGrameneFilters = createSelector(
       if (queryObject.hasOwnProperty('idList')) {
         return handleIdList(queryObject);
       }
-      return {
-        type: 'BATCH_ACTIONS', actions: [
-          {type: 'GRAMENE_SEARCH_CLEARED'},
-          {type: 'GRAMENE_FILTERS_STATUS_CHANGED', payload: 'ready'}
-        ]
-      }
+      // return {
+      //   type: 'BATCH_ACTIONS', actions: [
+      //     {type: 'GRAMENE_SEARCH_CLEARED'},
+      //     {type: 'GRAMENE_FILTERS_STATUS_CHANGED', payload: 'search'}
+      //   ]
+      // }
     }
     if (filters.status === 'finished') {
       const url = new URL(myUrl.href);
