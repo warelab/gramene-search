@@ -8,6 +8,29 @@ import {Spinner} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
 import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
 
+function suggestionToFilters(suggestion) {
+  return {
+    status: 'init',
+    rows: 20,
+    operation: 'AND',
+    negate: false,
+    leftIdx: 0,
+    rightIdx: 3,
+    children: [
+      {
+        fq_field: suggestion.fq_field,
+        fq_value: suggestion.fq_value,
+        name: suggestion.name,
+        category: suggestion.category,
+        leftIdx: 1,
+        rightIdx: 2,
+        negate: false,
+        marked: false
+      }
+    ]
+  }
+}
+
 class Homology extends React.Component {
   constructor(props) {
     super(props);
@@ -33,28 +56,28 @@ class Homology extends React.Component {
     )
   }
   filterAllHomologs() {
-    this.props.doAcceptGrameneSuggestion({
+    this.props.doReplaceGrameneFilters(suggestionToFilters({
       category: 'Gene Tree',
       fq_field: 'gene_tree',
       fq_value: this.tree._id,
       name: `Homologs of ${this.gene.name}`
-    })
+    }))
   }
   filterOrthologs() {
-    this.props.doAcceptGrameneSuggestion({
+    this.props.doReplaceGrameneFilters(suggestionToFilters({
       category: 'Gene Tree',
       fq_field: 'homology__all_orthologs',
       fq_value: this.gene._id,
       name: `Orthologs of ${this.gene.name}`
-    })
+    }))
   }
   filterParalogs() {
-    this.props.doAcceptGrameneSuggestion({
+    this.props.doReplaceGrameneFilters(suggestionToFilters({
       category: 'Gene Tree',
       fq_field: 'homology__within_species_paralog',
       fq_value: this.gene._id,
       name: `Paralogs of ${this.gene.name}`
-    })
+    }))
   }
   orthologList() {
     return this.orthoParaList('ortholog');
@@ -127,9 +150,12 @@ class Homology extends React.Component {
       this.props.doRequestGrameneTree(treeId);
     }
     else {
-      this.tree = treesClient.genetree.tree([this.props.grameneTrees[treeId]]);
-      this.orthologs = this.orthologList();
-      this.paralogs = this.paralogList();
+      const tree = this.props.grameneTrees[treeId];
+      if (tree.hasOwnProperty('taxon_id')) {
+        this.tree = treesClient.genetree.tree([this.props.grameneTrees[treeId]]);
+        this.orthologs = this.orthologList();
+        this.paralogs = this.paralogList();
+      }
     }
     return (
       <Detail>
@@ -152,6 +178,7 @@ export default connect(
   'selectEnsemblURL',
   'doRequestGrameneTree',
   'doAcceptGrameneSuggestion',
+  'doReplaceGrameneFilters',
   Homology
 );
 

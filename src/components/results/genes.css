@@ -63,6 +63,7 @@
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;
+    width: 80em;
 }
 .gene-detail-tab-closed {
     color: darkgreen;

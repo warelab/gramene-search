@@ -41,7 +41,7 @@ const examples = [
 const HelpDemo = ({doReplaceGrameneFilters}) => (
   <Container fluid style={{padding: '40px'}}>
     <Alert variant='primary'>
-      Type '/' to search! Try typing a gene identifier, ontology term, pathway, or functional domain
+      Click the search icon in the menu bar or type / to search
     </Alert>
     <Row>
       <h3>Features</h3>

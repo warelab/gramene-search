@@ -145,6 +145,10 @@ class Gene extends React.Component {
         this.setState({expandedDetail: null})
       }
       else {
+        const geneId = this.props.searchResult.id;
+        if (!(this.props.geneDocs && this.props.geneDocs.hasOwnProperty(geneId))) {
+          this.props.requestGene(geneId)
+        }
         this.setState({expandedDetail: d.id})
       }
     }
@@ -152,10 +156,9 @@ class Gene extends React.Component {
   ensureGene(id) {
     if (!(this.props.geneDocs && this.props.geneDocs.hasOwnProperty(id))) {
       this.props.requestGene(id);
+      return false;
     }
-    // if (!(this.props.orthologs && this.props.orthologs.hasOwnProperty(id))) {
-    //   this.props.requestOrthologs(id);
-    // }
+    return this.props.geneDocs[id].hasOwnProperty('taxon_id')
   }
   renderMetadata() {
     let gene = this.props.searchResult;
@@ -175,27 +178,24 @@ class Gene extends React.Component {
     // if (this.props.orthologs && this.props.orthologs.hasOwnProperty(searchResult.id)) {
     //   orthologs = this.props.orthologs[searchResult.id].join(', ');
     // }
+    const numWordsInDescription = searchResult.description.split(' ').length;
     return (
-      <div className="result-gene" onMouseOver={()=>this.ensureGene(searchResult.id)}>
+      <div className="result-gene">
         <div className="result-gene-summary">
           <div className="result-gene-title-body">
             <h3 className="gene-title">
-              <span className="gene-name">{searchResult.name} </span>
-              <wbr/>
-              <small className="gene-id">{searchResult.id === searchResult.name ? '' : searchResult.id} </small>
-              <small className="gene-synonyms">{searchResult.synonyms && searchResult.synonyms.join(', ') || ''}</small>
-              <small className="gene-species">
-                <ReactGA.OutboundLink
-                  eventLabel={searchResult.system_name}
-                  to={`//${ensemblURL}/${searchResult.system_name}/Info/Index`}
-                  className="external-link"
-                >
-                  {taxName}{external}
-                </ReactGA.OutboundLink>
-              </small>
-              {/*<small className="gene-extras">{orthologs}</small>*/}
+              <span className="gene-name">{searchResult.name}</span>
+              {searchResult.id !== searchResult.name && <small className="gene-id">{' '}{searchResult.id}</small>}
+              <ReactGA.OutboundLink
+                eventLabel={searchResult.system_name}
+                to={`${ensemblURL}/${searchResult.system_name}/Info/Index`}
+                className="external-link"
+              >
+                <small className="gene-species">{taxName}</small>
+              </ReactGA.OutboundLink>
             </h3>
-            <p className="gene-description">{searchResult.description}</p>
+            {searchResult.synonyms && <small className="gene-synonyms">{searchResult.synonyms.join(', ')}</small>}
+            {numWordsInDescription > 1 && <p className="gene-description">{searchResult.description}</p>}
           </div>
           {this.renderMetadata()}
         </div>
@@ -207,7 +207,7 @@ class Gene extends React.Component {
             >{d.label}</div>
           ))}
         </div>
-        {this.state.expandedDetail && <div className="visible-detail">{React.createElement(inventory[this.state.expandedDetail], this.props)}</div>}
+        {this.state.expandedDetail && this.ensureGene(searchResult.id) && <div className="visible-detail">{React.createElement(inventory[this.state.expandedDetail], this.props)}</div>}
       </div>
     )
   }
@@ -241,7 +241,7 @@ const GeneList = props => {
               requestOrthologs={props.doRequestOrthologs}
               orthologs={props.grameneOrthologs}
               taxLut={props.grameneTaxonomy}
-              expandedDetail={null}
+              expandedDetail={props.grameneSearch.response.numFound === 1 ? 'homology' : null}
         />
       ))}
       {prev}{page}{next}

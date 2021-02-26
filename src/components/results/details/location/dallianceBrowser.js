@@ -102,7 +102,7 @@ export default class DallianceBrowser extends React.Component {
     // this.browser();
     this.cancel();
     var self = this;
-    this.timeoutID = window.setTimeout(function () {self.browser();}, 200);
+    this.timeoutID = window.setTimeout(function () {self.browser();}, 0);
   }
 
   componentWillUnmount() {

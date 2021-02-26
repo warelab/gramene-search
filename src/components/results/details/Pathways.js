@@ -72,8 +72,9 @@ class Pathways extends React.Component {
       this.loadNodes(path);
     }
     if (!this.state.hierarchy && this.pathwayIds) {
-      const docs = this.pathwayIds.map(id => this.props.gramenePathways[id]);
-      if (docs.length === this.pathwayIds.length) {
+      const haveDocs = this.pathwayIds.filter(id => this.props.gramenePathways.hasOwnProperty(id));
+      if (haveDocs.length === this.pathwayIds.length) {
+        const docs = this.pathwayIds.map(id => this.props.gramenePathways[id]);
         this.getHierarchy(this.makeTaxonSpecific(docs,this.gene.taxon_id));
       }
     }
@@ -99,7 +100,6 @@ class Pathways extends React.Component {
   }
 
   makeTaxonSpecific(docs,taxon_id) {
-    if (taxon_id === 39947) taxon_id = 4530;
     let lineageField = 'lineage_'+taxon_id;
     let tsDocs = docs.map(function(doc) {
       let tsDoc = _.pick(doc,['_id','name','type']);
@@ -229,9 +229,11 @@ class Pathways extends React.Component {
     if (this.state.selectedNode) {
       let xrefLUT = _.keyBy(this.gene.xrefs,'db');
       let links = [
-        {name: 'Plant Reactome Gene', url: `${reactomeURL}/content/detail/${xrefLUT.notGramene_Plant_Reactome.ids[0]}`},
         {name: 'Plant Reactome '+this.state.selectedNode.type, url: `${reactomeURL}/content/detail/${this.stableId(this.state.selectedNode.id)}`}
       ];
+      if (xrefLUT.hasOwnProperty('notGramene_Plant_Reactome')) {
+        links.push({name: 'Plant Reactome Gene', url: `${reactomeURL}/content/detail/${xrefLUT.notGramene_Plant_Reactome.ids[0]}`});
+      }
       reactomeLink = <Links key="links" links={links}/>;
       let filters = [
         {

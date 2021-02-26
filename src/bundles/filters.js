@@ -64,7 +64,8 @@ const grameneFilters = {
       switch (type) {
         case 'GRAMENE_FILTERS_CLEARED': {
           newState = Object.assign({}, initialState, {
-            status: 'search'
+            status: 'search',
+            children: []
           });
           return newState;
         }
@@ -464,12 +465,10 @@ grameneFilters.reactGrameneFilters = createSelector(
       if (queryObject.hasOwnProperty('idList')) {
         return handleIdList(queryObject);
       }
-      // return {
-      //   type: 'BATCH_ACTIONS', actions: [
-      //     {type: 'GRAMENE_SEARCH_CLEARED'},
-      //     {type: 'GRAMENE_FILTERS_STATUS_CHANGED', payload: 'search'}
-      //   ]
-      // }
+      const url = new URL(myUrl.href);
+      if (url.pathname === '/genes') {
+        return {type: 'GRAMENE_FILTERS_CLEARED'}
+      }
     }
     if (filters.status === 'finished') {
       const url = new URL(myUrl.href);

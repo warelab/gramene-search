@@ -160,7 +160,7 @@ class Location extends React.Component {
       {name: 'PhytoMine', url: `https://phytozome.jgi.doe.gov/phytomine/keywordSearchResults.do?searchTerm=${jgiify(gene._id)}&searchSubmit=Search`},
     ];
     if (gene.taxon_id === 3702)
-      links.push({name: 'Araport', url: `https://www.araport.org/search/thalemine/${gene._id}`});
+      links.push({name: 'Thalemine', url: `https://bar.utoronto.ca/thalemine/keywordSearchResults.do?searchTerm=${gene._id}&searchSubmit=search`});
     if (gene.taxon_id === 4577)
       links.push({name: 'MaizeGDB', url: `http://www.maizegdb.org/gene_center/gene/${gene._id}`});
     return links;

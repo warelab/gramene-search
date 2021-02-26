@@ -17,9 +17,9 @@ const inventory = {
 
 const StatusCmp = props => {
   let content = props.grameneFiltersStatus;
-  if (props.grameneFiltersStatus === 'init') {
-    props.doClearGrameneFilters();
-  }
+  // if (props.grameneFiltersStatus === 'init') {
+  //   props.doClearGrameneFilters();
+  // }
   if (props.grameneFiltersStatus === 'ready') {
     let tally = <span>Ready</span>;
     if (props.grameneSearch) {

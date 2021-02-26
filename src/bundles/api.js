@@ -86,6 +86,7 @@ const grameneTaxonomy = createAsyncResourceBundle({
       .then(taxNodes => {
         let taxonomy = _.keyBy(taxNodes, '_id');
         taxNodes.forEach(t => {
+          t._id = +t._id; // ensure taxonomy id is a number
           if (t.hasOwnProperty("is_a")) {
             t.is_a.forEach(p_id => {
               const p = taxonomy[p_id];
