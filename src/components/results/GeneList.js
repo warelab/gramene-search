@@ -241,7 +241,7 @@ const GeneList = props => {
               requestOrthologs={props.doRequestOrthologs}
               orthologs={props.grameneOrthologs}
               taxLut={props.grameneTaxonomy}
-              expandedDetail={props.grameneSearch.response.numFound === 1 ? 'homology' : null}
+              expandedDetail={props.grameneSearch.response.numFound === 1 && g.can_show.homology ? 'homology' : null}
         />
       ))}
       {prev}{page}{next}

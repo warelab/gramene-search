@@ -17,22 +17,22 @@ const grameneViews = {
           id: 'list',
           name: 'Gene list',
           show: 'on'
-        },
-        {
-          id: 'pathways',
-          name: 'Pathways',
-          show: 'disabled'
-        },
-        {
-          id: 'domains',
-          name: 'Domains',
-          show: 'disabled'
-        },
-        {
-          id: 'go',
-          name: 'GO terms',
-          show: 'disabled'
         }
+        // {
+        //   id: 'pathways',
+        //   name: 'Pathways',
+        //   show: 'disabled'
+        // },
+        // {
+        //   id: 'domains',
+        //   name: 'Domains',
+        //   show: 'disabled'
+        // },
+        // {
+        //   id: 'go',
+        //   name: 'GO terms',
+        //   show: 'disabled'
+        // }
       ]
     };
     return (state = initialState, {type, payload}) => {

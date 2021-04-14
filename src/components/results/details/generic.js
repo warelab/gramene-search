@@ -42,7 +42,7 @@ const QueryTerm = props => {
     badge = <Badge style={{marginLeft: "0.5rem"}} variant='dark'>{props.count}</Badge>
   }
   return (
-    <Button variant='light' onClick={props.handleClick}>
+    <Button variant='outline-dark' onClick={props.handleClick}>
       {category}{name}{badge}
     </Button>
   )

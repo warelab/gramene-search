@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Gramene Search</title>
+    <title>Gramene Search Feedback</title>
     <script>
       window.gramene = {};
       gramene.defaultServer = 'https://data.sorghumbase.org/sorghum2/swagger';
@@ -14,18 +14,8 @@
     <link rel="stylesheet" type="text/css" href="static/style.css">
 </head>
 <body>
-<div id="demo"></div>
+<div id="menubar">menu here</div>
+<div id="subsite-feedback">feedback form goes here</div>
 <script src="./demo.js"></script>
-<script>
-    document.addEventListener('keyup', possiblyFocus);
-    function possiblyFocus(e) {
-      if (e.key === '/') {
-        var el = document.getElementById('search-input');
-        if (el) {
-          el.focus()
-        }
-      }
-    }
-</script>
 </body>
 </html>

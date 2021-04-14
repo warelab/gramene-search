@@ -142,6 +142,15 @@ const grameneSearch = createAsyncResourceBundle({
     }
     return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}`)
       .then(res => res.json())
+      .then(res => {
+        res.response.docs.forEach(d => {
+          d.can_show = {};
+          d.capabilities.forEach(c => {
+            d.can_show[c]=true;
+          })
+        });
+        return res;
+      })
   }
 });
 grameneSearch.reactGrameneSearch = createSelector(

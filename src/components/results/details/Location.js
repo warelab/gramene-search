@@ -169,7 +169,7 @@ class Location extends React.Component {
   render() {
     return (
       <Detail>
-        <Title key="title">Genome location: {this.renderGenePosition()}</Title>
+        {/*<Title key="title">Genome location: {this.renderGenePosition()}</Title>*/}
         <Description key="description">Currently viewing: {this.renderLocation()}&nbsp;{this.renderResetButton()}</Description>
         <Content key="content">
           {this.renderBrowser()}
@@ -217,6 +217,7 @@ class Location extends React.Component {
     return (
       <Button
         size="sm"
+        variant="outline-dark"
         onClick={() => this.resetVisibleRange()}>
         Reset
       </Button>

@@ -220,14 +220,14 @@ const ViewsCmp = props => (
         >{view.name}</li>
       ))}
     </ul>
-    <div>
-      &nbsp;Key:
-      <ul className={'gramene-view'}>
-        <li className='gramene-view-on'>On</li>
-        <li className='gramene-view-off'>Off</li>
-        <li className='gramene-view-disabled'>Disabled</li>
-      </ul>
-    </div>
+    {/*<div>*/}
+    {/*  &nbsp;Key:*/}
+    {/*  <ul className={'gramene-view'}>*/}
+    {/*    <li className='gramene-view-on'>On</li>*/}
+    {/*    <li className='gramene-view-off'>Off</li>*/}
+    {/*    <li className='gramene-view-disabled'>Disabled</li>*/}
+    {/*  </ul>*/}
+    {/*</div>*/}
     &nbsp;
   </div>
 );
