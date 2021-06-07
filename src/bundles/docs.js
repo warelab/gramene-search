@@ -51,7 +51,7 @@ const grameneDocs = {
   doRequestGrameneGene: id => ({dispatch, store}) => {
     const genes = store.selectGrameneGenes();
     if (!genes.hasOwnProperty(id)) {
-      // dispatch({type: 'GRAMENE_GENE_REQUESTED', payload: id});
+      dispatch({type: 'GRAMENE_GENE_REQUESTED', payload: id});
       fetch(`${store.selectGrameneAPI()}/genes?idList=${id}`)
         .then(res => res.json())
         .then(res => {
@@ -65,6 +65,7 @@ const grameneDocs = {
   },
   doRequestGrameneTree: id => ({dispatch, store}) => {
     const trees = store.selectGrameneTrees();
+    const maps = store.selectGrameneMaps();
     if (!trees.hasOwnProperty(id)) {
       dispatch({type: 'GRAMENE_TREE_REQUESTED', payload: id});
       fetch(`${store.selectGrameneAPI()}/genetrees?idList=${id}`)
@@ -72,6 +73,22 @@ const grameneDocs = {
         .then(res => {
           let trees = {};
           res.forEach(t => {
+            console.log(maps);
+            function update_taxon_name(node) {
+              if (maps.hasOwnProperty(node.taxon_id)) {
+                node.taxon_name = maps[node.taxon_id].display_name
+              }
+              else if (node.taxon_id === 1100004558) {
+                node.taxon_name = "Sorghum bicolor"
+              }
+              if (node.taxon_id === 297600009 && node.hasOwnProperty('children')) {
+                node.taxon_name = "Vitis vinifera"
+              }
+              if (node.hasOwnProperty('children')) {
+                node.children.forEach(c => update_taxon_name(c))
+              }
+            }
+            update_taxon_name(t);
             trees[t._id] = t;
           });
           dispatch({type: 'GRAMENE_TREE_RECEIVED', payload: trees})

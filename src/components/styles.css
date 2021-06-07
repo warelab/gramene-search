@@ -1,5 +1,12 @@
+.gramene-sidebar {
+    background-color: dimgray;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-bottom: 8px;
+}
 .gramene-filter-container {
     background-color: #cfb5e6;
+    padding-left: 4px;
 }
 .gramene-filter {
     padding-left: 4px;
@@ -47,6 +54,7 @@
 
 .gramene-view-container {
     background-color: lightblue;
+    padding-left: 10px;
 }
 .gramene-view {
     padding-left: 5px;

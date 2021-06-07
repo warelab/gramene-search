@@ -6,7 +6,7 @@ class TaxonomyModal extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      genomes : Object.values(props.grameneMaps).sort((a,b) => a.length - b.length)
+      genomes : Object.values(props.grameneMaps).sort((a,b) => a.left_index - b.left_index)
     };
     if (Object.keys(props.grameneGenomes.active).length === 0) {
       this.state.genomes.forEach(g => {

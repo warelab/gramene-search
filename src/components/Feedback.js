@@ -1,7 +1,7 @@
 import React from 'react'
 import { Formik } from 'formik'
 import * as Yup from 'yup'
-import { Form, Col, Button } from 'react-bootstrap'
+import { Container, Form, Col, Button } from 'react-bootstrap'
 import axios from 'axios'
 
 const categories = ['Bug','Enhancement','Help Needed','Data','Uncategorized'];
@@ -24,7 +24,7 @@ const postFeedback = (formData) => {
 };
 
 const Feedback = (props) => (
-  <div>
+  <Container>
     <h3>Questions? Comments? Please let us know.</h3>
     <Formik
       validationSchema={schema}
@@ -123,7 +123,7 @@ const Feedback = (props) => (
         </Form>
       )}
     </Formik>
-  </div>
+  </Container>
 );
 
 export default Feedback;

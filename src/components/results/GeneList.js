@@ -7,7 +7,8 @@ import Homology from './details/Homology'
 import Location from './details/Location'
 import Pathways from "./details/Pathways"
 import Xrefs from "./details/Xrefs"
-import {GrFormPreviousLink, GrFormNextLink, GrHpe} from 'react-icons/gr'
+import {GrFormPrevious, GrFormNextLink, GrFormNext, GrHpe} from 'react-icons/gr'
+import { Badge } from 'react-bootstrap'
 
 let external = <small title="This link opens a page from an external site"> <i className="fa fa-external-link"/></small>;
 
@@ -219,18 +220,18 @@ const GeneList = props => {
     const numFound = props.grameneSearch.response.numFound;
     if (numFound > props.grameneSearchRows) {
       const pageNum = props.grameneSearchOffset/props.grameneSearchRows;
-      page = <span>page <b>{pageNum + 1}</b> of <b>{Math.ceil(numFound/props.grameneSearchRows)}</b></span>;
+      page = <span style={{padding:'10px'}}>page <b>{pageNum + 1}</b> of <b>{Math.ceil(numFound/props.grameneSearchRows)}</b></span>;
       prev = <GrHpe/>;
       if (pageNum > 0) {
-        prev = <GrFormPreviousLink onClick={()=>props.doRequestResultsPage(pageNum - 1)}/>
+        prev = <Badge onClick={()=>props.doRequestResultsPage(pageNum - 1)}><GrFormPrevious/></Badge>
       }
       next = <GrHpe/>;
       if (numFound > props.grameneSearchOffset + props.grameneSearchRows) {
-        next = <GrFormNextLink onClick={()=>props.doRequestResultsPage(pageNum + 1)}/>
+        next = <Badge onClick={()=>props.doRequestResultsPage(pageNum + 1)}><GrFormNext/></Badge>
       }
     }
     return <div>
-      {prev}{page}{next}
+      <div>{prev}{page}{next}</div>
       {props.grameneSearch.response.docs.map((g,idx) => (
         <Gene key={idx}
               searchResult={g}

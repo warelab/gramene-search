@@ -187,7 +187,7 @@ const ResultsCmp = props => {
         let p = Object.assign({}, props);
         p.key = v.idx;
         return (
-          <div>
+          <div key={v.idx}>
             {/*<Alert variant="primary" onClose={() => props.doToggleGrameneView(v.idx)} dismissible>*/}
             {/*  {v.name}*/}
             {/*</Alert>*/}

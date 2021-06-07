@@ -16,20 +16,32 @@ import {
   Link
 } from "react-router-dom";
 import Feedback from './components/Feedback';
-import MDView from '../../mdView/src';
+import MDView from 'gramene-mdview';
 
 const cache = getConfiguredCache({
   maxAge: 100 * 60 * 60,
   version: 1
 });
 
-const initialState = {
-  ensemblSite: 'https://ensembl.sorghumbase.org',
-  grameneData: 'https://data.sorghumbase.org/sorghum2',
-  // ensemblSite: 'http://maize-pangenome-ensembl.gramene.org',
-  // grameneData: 'http://data.gramene.org/maizepan1',
-  targetTaxonId: 4558
+const configurations = {
+  maize: {
+    ensemblSite: 'http://maize-pangenome-ensembl.gramene.org',
+    grameneData: 'http://data.gramene.org/maizepan1',
+    targetTaxonId: 4577
+  },
+  sorghum: {
+    ensemblSite: 'https://ensembl.sorghumbase.org',
+    grameneData: 'https://data.sorghumbase.org/sorghum2',
+    targetTaxonId: 4588
+  },
+  grapevine: {
+    ensemblSite: 'http://vitis-ensembl.gramene.org',
+    grameneData: 'https://data.gramene.org/vitis1',
+    targetTaxonId: 29760
+  }
 };
+const subsite = 'grapevine';
+const initialState = configurations[subsite];
 
 const config = {
   name: 'config',
@@ -67,9 +79,11 @@ const GeneSearchUI = (store) => (
 const SearchViews = props => (
     <div className="row no-margin no-padding">
       <div className="col-md-2 no-padding">
-        <Status/>
-        <Filters/>
-        <Views/>
+        <div className="gramene-sidebar">
+          <Status/>
+          <Filters/>
+          {/*<Views/>*/}
+        </div>
       </div>
       <div className="col-md-10 no-padding">
         <Results/>
@@ -176,7 +190,8 @@ const Notes = props => (
   <MDView
     org='warelab'
     repo='release-notes'
-    path='sorghum'
+    path={subsite}
+    heading='Releases'
   />
 )
 
@@ -184,7 +199,7 @@ const demo = (store) => (
   <Provider store={store}>
     <Router>
       <div>
-        <Navbar bg="light" expand="lg">
+        <Navbar bg="light" expand="lg" sticky='top'>
           <Navbar.Brand href="/">
             <img
               src="/static/images/logo.svg"
@@ -202,6 +217,7 @@ const demo = (store) => (
                   <Link className="nav-link" to="/">Search</Link>
                 </Route>
               </Switch>
+              <Nav.Link href={initialState.ensemblSite}>Genome browser</Nav.Link>
               <Link className="nav-link" to="/release">
               Release notes
               </Link>
@@ -209,6 +225,7 @@ const demo = (store) => (
                 pathname: '/feedback',
                 state: { search: document.location.href }
               })}>Feedback</Link>
+              <Nav.Link href='//gramene.org'>Gramene</Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Navbar>

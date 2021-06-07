@@ -198,6 +198,9 @@ const grameneTaxDist = {
     'selectGrameneMaps',
     (grameneSearch,grameneTaxonomy,grameneMaps) => {
       if (grameneSearch && grameneTaxonomy && grameneMaps) {
+        _.forIn(grameneMaps, (map, tid) => {
+          grameneTaxonomy[tid].name = map.display_name;
+        });
         const binnedResults = formatFacetCountsForViz(grameneSearch.facet_counts.facet_fields.fixed_1000__bin);
         let speciesTree = treesClient.taxonomy.tree(Object.values(grameneTaxonomy));
         let binMapper = binsClient.bins(grameneMaps);
