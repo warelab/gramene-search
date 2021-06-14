@@ -133,12 +133,19 @@ class Homology extends React.Component {
     return x;
   }
   links() {
-    return [
+    let links = [
       {
         name: 'Ensembl Gene Tree view',
         url: `${this.props.ensemblURL}/${this.gene.system_name}/Gene/Compara_Tree?g=${this.gene._id}`
       }
-    ]
+    ];
+    if (this.props.curation && this.props.curation.taxa.hasOwnProperty(this.gene.taxon_id)) {
+      links.push({
+        name: 'Curate',
+        url: this.props.curation.url + this.gene._id
+      })
+    }
+    return links;
   }
   render() {
     if (!this.props.geneDocs.hasOwnProperty(this.props.searchResult.id)) {
@@ -176,6 +183,7 @@ export default connect(
   'selectGrameneTrees',
   'selectGrameneGenomes',
   'selectEnsemblURL',
+  'selectCuration',
   'doRequestGrameneTree',
   'doAcceptGrameneSuggestion',
   'doReplaceGrameneFilters',

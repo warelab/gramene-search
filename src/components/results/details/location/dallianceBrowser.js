@@ -2,9 +2,9 @@ import React from "react";
 import isEqual from "lodash/isEqual";
 // var ensemblREST = require('../../../../../package.json').gramene.ensemblREST;
 //const ensemblREST = 'http://data.gramene.org/ensembl63';
-//const ensemblREST = 'https://data.sorghumbase.org/ensembl2';
-const ensemblREST = 'https://data.gramene.org/vitis-ensembl1';
-
+const ensemblREST = 'https://data.sorghumbase.org/ensembl2';
+// const ensemblREST = 'https://data.gramene.org/vitis-ensembl1';
+// const ensemblREST = 'http://data.gramene.org/maize-ensembl4';
 
 // calculate this once.
 const PREFIX = (global.location ? global.location.origin : '')

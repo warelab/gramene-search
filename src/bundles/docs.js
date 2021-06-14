@@ -73,13 +73,15 @@ const grameneDocs = {
         .then(res => {
           let trees = {};
           res.forEach(t => {
-            console.log(maps);
             function update_taxon_name(node) {
               if (maps.hasOwnProperty(node.taxon_id)) {
                 node.taxon_name = maps[node.taxon_id].display_name
               }
               else if (node.taxon_id === 1100004558) {
                 node.taxon_name = "Sorghum bicolor"
+              }
+              if (node.taxon_id === 45770001 && node.hasOwnProperty('children')) {
+                node.taxon_name = "Zea mays"
               }
               if (node.taxon_id === 297600009 && node.hasOwnProperty('children')) {
                 node.taxon_name = "Vitis vinifera"

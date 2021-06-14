@@ -4,7 +4,7 @@ import { render } from 'react-dom'
 import { composeBundles, createCacheBundle } from "redux-bundler";
 import { getConfiguredCache } from 'money-clip';
 import { DebounceInput } from 'react-debounce-input'
-import { Form, Navbar, Nav, Tab, Row, Col } from 'react-bootstrap'
+import { Form, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
 import { Status, Filters, Results, Views } from './components/geneSearchUI';
 import GrameneSuggestions from './components/suggestions';
 import bundles from './bundles';
@@ -23,25 +23,48 @@ const cache = getConfiguredCache({
   version: 1
 });
 
-const configurations = {
-  maize: {
+const panSites = [
+  {
+    id: 'main',
+    name: 'Gramene Main',
+    url: '//www.gramene.org',
+    ensemblStie: 'http://ensembl.gramene.org',
+    grameneData: 'https://data.gramene.org/v63',
+    targetTaxonId: 3702
+  },
+  {
+    id: 'maize',
+    name: 'Maize',
+    url: '//maize-pangenome.gramene.org',
     ensemblSite: 'http://maize-pangenome-ensembl.gramene.org',
     grameneData: 'http://data.gramene.org/maizepan1',
     targetTaxonId: 4577
   },
-  sorghum: {
+  {
+    id: 'sorghum',
+    name: 'Sorghumbase',
+    url: '//dev.sorghumbase.org',
     ensemblSite: 'https://ensembl.sorghumbase.org',
     grameneData: 'https://data.sorghumbase.org/sorghum2',
     targetTaxonId: 4588
   },
-  grapevine: {
+  {
+    id: 'grapevine',
+    name: 'Grapevine',
+    url: '//vitis.gramene.org',
     ensemblSite: 'http://vitis-ensembl.gramene.org',
     grameneData: 'https://data.gramene.org/vitis1',
+    curation: {
+      url: 'http://curate.gramene.org/grapevine?gene=',
+      taxa: {
+        29760 : 1
+      }
+    },
     targetTaxonId: 29760
   }
-};
-const subsite = 'grapevine';
-const initialState = configurations[subsite];
+];
+const initialState = panSites[2];
+const subsite = initialState.id;
 
 const config = {
   name: 'config',
@@ -52,7 +75,8 @@ const config = {
   },
   selectEnsemblURL: state => state.config.ensemblSite,
   selectGrameneAPI: state => state.config.grameneData,
-  selectTargetTaxonId: state => state.config.targetTaxonId
+  selectTargetTaxonId: state => state.config.targetTaxonId,
+  selectCuration: state => state.config.curation
 };
 
 const getStore = composeBundles(
@@ -195,6 +219,14 @@ const Notes = props => (
   />
 )
 
+const Genomes = props => (
+    <MDView
+        org='warelab'
+        repo='release-notes'
+        path={subsite+'-genomes'}
+        heading='Genomes'
+    />
+)
 const demo = (store) => (
   <Provider store={store}>
     <Router>
@@ -202,7 +234,7 @@ const demo = (store) => (
         <Navbar bg="light" expand="lg" sticky='top'>
           <Navbar.Brand href="/">
             <img
-              src="/static/images/logo.svg"
+              src={`/static/images/${subsite}_logo.svg`}
               height="80"
               className="d-inline-block align-top"
               alt="Gramene Search"
@@ -221,11 +253,20 @@ const demo = (store) => (
               <Link className="nav-link" to="/release">
               Release notes
               </Link>
+              <Link className="nav-link" to="/genomes">
+                Genomes
+              </Link>
               <Link className="nav-link" to={location => ({
                 pathname: '/feedback',
                 state: { search: document.location.href }
               })}>Feedback</Link>
-              <Nav.Link href='//gramene.org'>Gramene</Nav.Link>
+              <NavDropdown id={"gramene-sites"} title={"Gramene Sites"}>
+                {panSites.filter(site => site.id !== subsite).map((site,idx) =>
+                    // <NavDropdown.Item eventKey={idx} key={idx}>
+                      <Nav.Link key={idx} href={site.url}>{site.name}</Nav.Link>
+                    // </NavDropdown.Item>
+                )}
+              </NavDropdown>
             </Nav>
           </Navbar.Collapse>
         </Navbar>
@@ -233,6 +274,7 @@ const demo = (store) => (
         <Switch>
           <Route path="/feedback" component={Feedback} />
           <Route path="/release" component={Notes} />
+          <Route path="/genomes" component={Genomes} />
           <Route path="/" component={SearchViews} />
         </Switch>
       </div>
