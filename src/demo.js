@@ -22,49 +22,81 @@ const cache = getConfiguredCache({
   maxAge: 100 * 60 * 60,
   version: 1
 });
+// const subsite = 'main';
+const subsite = process.env.SUBSITE;
+// const subsite = 'grapevine';
+// const subsite = 'sorghum';
+// const subsite = 'rice';
 
+const subsitelut = {
+  main: 0,
+  maize: 1,
+  sorghum: 2,
+  grapevine: 3,
+  rice: 4
+}
 const panSites = [
   {
     id: 'main',
     name: 'Gramene Main',
     url: '//www.gramene.org',
     ensemblStie: 'http://ensembl.gramene.org',
+    ensemblRest: 'https://data.gramene.org/ensembl',
     grameneData: 'https://data.gramene.org/v63',
-    targetTaxonId: 3702
+    targetTaxonId: 3702,
+    alertText: 'Main site'
   },
   {
     id: 'maize',
     name: 'Maize',
     url: '//maize-pangenome.gramene.org',
-    ensemblSite: 'http://maize-pangenome-ensembl.gramene.org',
+    ensemblURL: 'http://maize-pangenome-ensembl.gramene.org',
+    ensemblSite: 'http://maize-pangenome-ensembl.gramene.org/genome_browser/index.html',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl',
     grameneData: 'http://data.gramene.org/maizepan1',
-    targetTaxonId: 4577
+    targetTaxonId: 4577,
+    alertText: 'Maize site'
   },
   {
     id: 'sorghum',
     name: 'Sorghumbase',
     url: '//dev.sorghumbase.org',
+    ensemblURL: 'https://ensembl.sorghumbase.org',
     ensemblSite: 'https://ensembl.sorghumbase.org',
+    ensemblRest: 'https://data.sorghumbase.org/ensembl2',
     grameneData: 'https://data.sorghumbase.org/sorghum2',
-    targetTaxonId: 4588
+    targetTaxonId: 4588,
+    alertText: 'Click the search icon in the menu bar or type / to search'
   },
   {
     id: 'grapevine',
     name: 'Grapevine',
     url: '//vitis.gramene.org',
-    ensemblSite: 'http://vitis-ensembl.gramene.org',
+    ensemblURL: 'http://vitis-ensembl.gramene.org',
+    ensemblSite: 'http://vitis-ensembl.gramene.org/genome_browser/index.html',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl',
     grameneData: 'https://data.gramene.org/vitis1',
     curation: {
       url: 'http://curate.gramene.org/grapevine?gene=',
       taxa: {
-        29760 : 1
+        29760: 1
       }
     },
-    targetTaxonId: 29760
-  }
+    targetTaxonId: 29760,
+    alertText: 'Grapevine site'
+  },
+  {
+    id: 'rice',
+    name: 'Rice',
+    url: '//oge.gramene.org',
+    ensemblStie: 'http://ensembl-oge.gramene.org',
+    ensemblRest: 'https://data.gramene.org/ensembl',
+    grameneData: 'https://data.gramene.org/v63',
+    targetTaxonId: 3702,
+    alertText: 'Rice site'
+  },
 ];
-const initialState = panSites[2];
-const subsite = initialState.id;
+const initialState = panSites[subsitelut[subsite]];
 
 const config = {
   name: 'config',
@@ -73,10 +105,10 @@ const config = {
       return state;
     }
   },
-  selectEnsemblURL: state => state.config.ensemblSite,
   selectGrameneAPI: state => state.config.grameneData,
   selectTargetTaxonId: state => state.config.targetTaxonId,
-  selectCuration: state => state.config.curation
+  selectCuration: state => state.config.curation,
+  selectConfiguration: state => state.config
 };
 
 const getStore = composeBundles(
@@ -210,12 +242,12 @@ const SearchMenu = props => (
   </div>
 )
 
-const Notes = props => (
+const News = props => (
   <MDView
     org='warelab'
     repo='release-notes'
     path={subsite}
-    heading='Releases'
+    heading='News'
   />
 )
 
@@ -227,6 +259,16 @@ const Genomes = props => (
         heading='Genomes'
     />
 )
+
+const Guides = props => (
+    <MDView
+      org='warelab'
+      repo='release-notes'
+      path={subsite+'-guides'}
+      heading='Guides'
+    />
+)
+
 const demo = (store) => (
   <Provider store={store}>
     <Router>
@@ -249,12 +291,17 @@ const demo = (store) => (
                   <Link className="nav-link" to="/">Search</Link>
                 </Route>
               </Switch>
-              <Nav.Link href={initialState.ensemblSite}>Genome browser</Nav.Link>
-              <Link className="nav-link" to="/release">
-              Release notes
+              <Nav.Link href={initialState.ensemblSite}>
+                <img style={{height:'25px', verticalAlign:'bottom'}}
+                     src={`/static/images/e_bang.png`}/>Genome browser</Nav.Link>
+              <Link className="nav-link" to="/news">
+              News
               </Link>
-              <Link className="nav-link" to="/genomes">
-                Genomes
+              {/*<Link className="nav-link" to="/genomes">*/}
+              {/*  Genomes*/}
+              {/*</Link>*/}
+              <Link className="nav-link" to="/guides">
+                Guides
               </Link>
               <Link className="nav-link" to={location => ({
                 pathname: '/feedback',
@@ -262,9 +309,7 @@ const demo = (store) => (
               })}>Feedback</Link>
               <NavDropdown id={"gramene-sites"} title={"Gramene Sites"}>
                 {panSites.filter(site => site.id !== subsite).map((site,idx) =>
-                    // <NavDropdown.Item eventKey={idx} key={idx}>
-                      <Nav.Link key={idx} href={site.url}>{site.name}</Nav.Link>
-                    // </NavDropdown.Item>
+                    <NavDropdown.Item key={idx} href={site.url}>{site.name}</NavDropdown.Item>
                 )}
               </NavDropdown>
             </Nav>
@@ -273,8 +318,9 @@ const demo = (store) => (
         <Route exact path="/" component={Suggestions} />
         <Switch>
           <Route path="/feedback" component={Feedback} />
-          <Route path="/release" component={Notes} />
-          <Route path="/genomes" component={Genomes} />
+          <Route path="/news" component={News} />
+          {/*<Route path="/genomes" component={Genomes} />*/}
+          <Route path="/guides" component={Guides} />
           <Route path="/" component={SearchViews} />
         </Switch>
       </div>

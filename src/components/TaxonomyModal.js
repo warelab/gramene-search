@@ -1,6 +1,6 @@
 import React from "react";
 import { connect } from 'redux-bundler-react'
-import { Modal, Form, Button } from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 
 class TaxonomyModal extends React.Component {
   constructor(props) {

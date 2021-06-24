@@ -235,7 +235,8 @@ const GeneList = props => {
       {props.grameneSearch.response.docs.map((g,idx) => (
         <Gene key={idx}
               searchResult={g}
-              ensemblURL={props.ensemblURL}
+              ensemblURL={props.configuration.ensemblURL}
+              ensemblRest={props.configuration.ensemblRest}
               taxName={props.grameneTaxonomy[g.taxon_id].name}
               geneDocs={props.grameneGenes}
               requestGene={props.doRequestGrameneGene}
@@ -252,7 +253,7 @@ const GeneList = props => {
 };
 
 export default connect(
-  'selectEnsemblURL',
+  'selectConfiguration',
   'selectGrameneSearch',
   'selectGrameneTaxonomy',
   'selectGrameneGenes',

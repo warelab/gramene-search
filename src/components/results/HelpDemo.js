@@ -5,6 +5,11 @@ import './genes.css'
 
 const examples = [
   {
+    subsite: {
+      maize:1,
+      sorghum:1,
+      main:1,
+    },
     text: "What are the orthologs of Arabidopsis thaliana's PAD4 gene in Andropogoneae?",
     filters: {
       status: 'init',
@@ -36,15 +41,51 @@ const examples = [
         }
       ]
     }
+  },
+  {
+    subsite: {
+      grapevine:1
+    },
+    text: "What are the orthologs of Arabidopsis thaliana's PAD4 gene in rosids?",
+    filters: {
+      status: 'init',
+      rows: 20,
+      operation: 'AND',
+      negate: false,
+      leftIdx: 0,
+      rightIdx: 5,
+      children: [
+        {
+          fq_field: 'homology__all_orthologs',
+          fq_value: 'AT3G52430',
+          name: 'Orthologs of PAD4',
+          category: 'Gene Tree',
+          leftIdx:1,
+          rightIdx:2,
+          negate: false,
+          marked: false
+        },
+        {
+          fq_field: 'taxonomy__ancestors',
+          fq_value: 71275,
+          name: 'rosids',
+          category: 'Taxonomy',
+          leftIdx:3,
+          rightIdx:4,
+          negate: false,
+          marked: false
+        }
+      ]
+    }
   }
 ];
-const HelpDemo = ({doReplaceGrameneFilters}) => (
+const HelpDemo = ({configuration,doReplaceGrameneFilters}) => (
   <Container fluid style={{padding: '40px'}}>
     <Alert variant='primary'>
-      Click the search icon in the menu bar or type / to search
+      {configuration.alertText}
     </Alert>
     <Row>
-      <h3>Features</h3>
+      <h3>Search Features</h3>
     </Row>
     <Row>
       <CardDeck style={{width:'80%'}}>
@@ -72,13 +113,13 @@ const HelpDemo = ({doReplaceGrameneFilters}) => (
       </CardDeck>
     </Row>
     <Row>
-      <h3>For Example</h3>
+      <h4>For Example</h4>
     </Row>
     <Row>
       <small>
         You can ask sophisticated questions about the genes:<br/>
         <ul>
-          {examples.map((e,idx) => (
+          {examples.filter(e => !!e.subsite[configuration.id]).map((e,idx) => (
             <li key={idx}><a onClick={() => doReplaceGrameneFilters(e.filters)}>{e.text}</a></li>
           ))}
         </ul>
@@ -88,6 +129,7 @@ const HelpDemo = ({doReplaceGrameneFilters}) => (
 );
 
 export default connect(
+  'selectConfiguration',
   'doReplaceGrameneFilters',
   HelpDemo
 );

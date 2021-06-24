@@ -14,7 +14,7 @@ const schema = Yup.object().shape({
 });
 
 const postFeedback = (formData) => {
-  axios.post('/feedback', formData)
+  axios.post('/feedback/', formData)
     .then(function (response) {
       alert(`Thank you for your feedback!\nticket #${response.data.ticket}`);
     })
@@ -30,7 +30,7 @@ const Feedback = (props) => (
       validationSchema={schema}
       onSubmit={postFeedback}
       initialValues={{
-        referrer: props.location.state.search || document.referrer,
+        referrer: props.location.state && props.location.state.search || document.referrer,
         category: '',
         subject: '',
         content: '',

@@ -2,9 +2,9 @@ import React from "react";
 import isEqual from "lodash/isEqual";
 // var ensemblREST = require('../../../../../package.json').gramene.ensemblREST;
 //const ensemblREST = 'http://data.gramene.org/ensembl63';
-const ensemblREST = 'https://data.sorghumbase.org/ensembl2';
+// const ensemblREST = 'https://data.sorghumbase.org/ensembl2';
 // const ensemblREST = 'https://data.gramene.org/vitis-ensembl1';
-// const ensemblREST = 'http://data.gramene.org/maize-ensembl4';
+// const ensemblREST = 'https://data.gramene.org/pansite-ensembl';
 
 // calculate this once.
 const PREFIX = (global.location ? global.location.origin : '')
@@ -57,13 +57,13 @@ export default class DallianceBrowser extends React.Component {
         sources: [
           {
             name: 'DNA',
-            ensemblURI: ensemblREST,
+            ensemblURI: this.props.ensemblRest,
             species: g.system_name,
             tier_type: 'sequence'
           },
           {
             name: 'Genes',
-            uri: ensemblREST,
+            uri: this.props.ensemblRest,
             tier_type: 'ensembl',
             species: g.system_name,
             type: ['gene', 'transcript', 'exon', 'cds']

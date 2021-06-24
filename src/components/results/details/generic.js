@@ -70,6 +70,7 @@ function renderLinks(links) {
       <ReactGA.OutboundLink
         eventLabel={link.name}
         to={link.url}
+        target="_blank"
         className="external-link"
       >
         {link.name}{external}

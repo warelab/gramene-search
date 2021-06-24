@@ -51,7 +51,7 @@ class Homology extends React.Component {
                  enableCuration={false}
                  enablePhyloview={true}
                  numberOfNeighbors={10}
-                 ensemblUrl={this.props.ensemblURL}/>
+                 ensemblUrl={this.props.configuration.ensemblURL}/>
       </div>
     )
   }
@@ -136,7 +136,7 @@ class Homology extends React.Component {
     let links = [
       {
         name: 'Ensembl Gene Tree view',
-        url: `${this.props.ensemblURL}/${this.gene.system_name}/Gene/Compara_Tree?g=${this.gene._id}`
+        url: `${this.props.configuration.ensemblURL}/${this.gene.system_name}/Gene/Compara_Tree?g=${this.gene._id}`
       }
     ];
     if (this.props.curation && this.props.curation.taxa.hasOwnProperty(this.gene.taxon_id)) {
@@ -182,7 +182,7 @@ export default connect(
   'selectGrameneTaxonomy',
   'selectGrameneTrees',
   'selectGrameneGenomes',
-  'selectEnsemblURL',
+  'selectConfiguration',
   'selectCuration',
   'doRequestGrameneTree',
   'doAcceptGrameneSuggestion',
