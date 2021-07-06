@@ -81,9 +81,10 @@ const examples = [
 ];
 const HelpDemo = ({configuration,doReplaceGrameneFilters}) => (
   <Container fluid style={{padding: '40px'}}>
-    <Alert variant='primary'>
+    {configuration.alertText && <Alert variant='primary'>
       {configuration.alertText}
-    </Alert>
+    </Alert>}
+    {configuration.renderAlert && configuration.renderAlert()}
     <Row>
       <h3>Search Features</h3>
     </Row>

@@ -4,7 +4,7 @@ import { render } from 'react-dom'
 import { composeBundles, createCacheBundle } from "redux-bundler";
 import { getConfiguredCache } from 'money-clip';
 import { DebounceInput } from 'react-debounce-input'
-import { Form, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
+import { Alert, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
 import { Status, Filters, Results, Views } from './components/geneSearchUI';
 import GrameneSuggestions from './components/suggestions';
 import bundles from './bundles';
@@ -55,12 +55,19 @@ const panSites = [
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
     grameneData: 'http://data.gramene.org/maizepan1',
     targetTaxonId: 4577,
-    alertText: 'Maize site'
+    renderAlert: () => (
+        <Alert variant='primary'>
+          bio<span style={{color:"#FF0000"}}>R</span>&chi;iv preprint&nbsp;
+          <a href='https://www.biorxiv.org/content/10.1101/2021.01.14.426684v1' target='_blank'>
+            <i>De novo</i> assembly, annotation, and comparative analysis of 26 diverse maize genomes
+          </a>
+        </Alert>
+    )
   },
   {
     id: 'sorghum',
     name: 'Sorghumbase',
-    url: '//dev.sorghumbase.org',
+    url: '//www.sorghumbase.org',
     ensemblURL: 'https://ensembl.sorghumbase.org',
     ensemblSite: 'https://ensembl.sorghumbase.org',
     ensemblRest: 'https://data.sorghumbase.org/ensembl2',
