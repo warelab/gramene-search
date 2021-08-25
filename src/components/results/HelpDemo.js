@@ -81,6 +81,9 @@ const examples = [
 ];
 const HelpDemo = ({configuration,doReplaceGrameneFilters}) => (
   <Container fluid style={{padding: '40px'}}>
+    {configuration.downtime && <Alert variant='danger'>
+      {configuration.downtime}
+    </Alert>}
     {configuration.alertText && <Alert variant='primary'>
       {configuration.alertText}
     </Alert>}

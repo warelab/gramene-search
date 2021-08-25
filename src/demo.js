@@ -39,22 +39,24 @@ const panSites = [
   {
     id: 'main',
     name: 'Gramene Main',
-    url: '//www.gramene.org',
-    ensemblStie: 'http://ensembl.gramene.org',
+    url: 'https://www.gramene.org',
+    ensemblURL: 'https://ensembl.gramene.org',
+    ensemblSite: 'https://ensembl.gramene.org',
     ensemblRest: 'https://data.gramene.org/ensembl',
-    grameneData: 'https://data.gramene.org/v63',
+    grameneData: 'https://data.gramene.org/v64',
     targetTaxonId: 3702,
     alertText: 'Main site'
   },
   {
     id: 'maize',
     name: 'Maize',
-    url: '//maize-pangenome.gramene.org',
+    url: 'https://maize-pangenome.gramene.org',
     ensemblURL: 'http://maize-pangenome-ensembl.gramene.org',
     ensemblSite: 'http://maize-pangenome-ensembl.gramene.org/genome_browser/index.html',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
-    grameneData: 'http://data.gramene.org/maizepan1',
+    grameneData: 'https://data.gramene.org/maizepan1',
     targetTaxonId: 4577,
+    not_downtime: 'The search interface will be undergoing maintenance on Tuesday, July 20 from 3:00 - 4:00 PM EDT',
     renderAlert: () => (
         <Alert variant='primary'>
           bio<span style={{color:"#FF0000"}}>R</span>&chi;iv preprint&nbsp;
@@ -67,7 +69,7 @@ const panSites = [
   {
     id: 'sorghum',
     name: 'Sorghumbase',
-    url: '//www.sorghumbase.org',
+    url: 'https://www.sorghumbase.org',
     ensemblURL: 'https://ensembl.sorghumbase.org',
     ensemblSite: 'https://ensembl.sorghumbase.org',
     ensemblRest: 'https://data.sorghumbase.org/ensembl2',
@@ -78,9 +80,9 @@ const panSites = [
   {
     id: 'grapevine',
     name: 'Grapevine',
-    url: '//vitis.gramene.org',
+    url: 'https://vitis.gramene.org',
     ensemblURL: 'http://vitis-ensembl.gramene.org',
-    ensemblSite: 'http://vitis-ensembl.gramene.org/genome_browser/index.html',
+    ensemblSite: 'https://vitis-ensembl.gramene.org/genome_browser/index.html',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
     grameneData: 'https://data.gramene.org/vitis1',
     curation: {
