@@ -1,0 +1,91 @@
+.gramene-sidebar {
+    background-color: dimgray;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-bottom: 8px;
+}
+.gramene-filter-container {
+    background-color: #cfb5e6;
+    padding-left: 4px;
+}
+.gramene-filter {
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-bottom: 4px;
+    background-color: white;
+    font-size: small;
+}
+.gramene-filter span:hover {
+    font-weight:bolder;
+}
+.gramene-filter-AND {
+    background-color: #ffcd82;
+}
+.gramene-filter-OR {
+    background-color: #c5eeb9;
+}
+.gramene-filter-NOT {
+    border-left-color: #ff5354;
+    border-left-style: inset;
+    border-left-width: 4px;
+    padding-left: 4px;
+}
+.gramene-filter-operation {
+    text-align: center;
+    font-style: italic;
+}
+.gramene-filter-marked {
+    font-weight: bolder;
+    /*background-color: #feff96;*/
+}
+.gramene-filter-menu ul {
+    border-top-style: solid;
+    border-top-width: 2px;
+    padding-left: 0;
+}
+.gramene-filter-menu li {
+    display: block;
+    cursor: pointer;
+    padding-left: 15px;
+}
+.gramene-filter-menu li:hover {
+    background-color: #feff96;
+}
+
+.gramene-view-container {
+    background-color: lightblue;
+    padding-left: 10px;
+}
+.gramene-view {
+    padding-left: 5px;
+    margin: 4px;
+    background-color: white;
+}
+.gramene-view li {
+    display: block;
+    cursor: pointer;
+    padding-left: 5px;
+    border-left-style: inset;
+    border-left-width: 4px;
+    margin-bottom: 2px;
+}
+
+.gramene-view-on {
+    border-left-color: #40a0ff;
+}
+.gramene-view-off {
+    border-left-color: #ff6d68;
+}
+.gramene-view-disabled {
+    color: darkgray;
+    border-left-color: #efefef;
+}
+#gramene-suggestion button {
+    border-radius: .6rem;
+    line-height: 1;
+}
+#gramene-suggestion button:focus {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}

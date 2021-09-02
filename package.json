@@ -1,23 +1,49 @@
 {
   "name": "gramene-search",
-  "version": "1.1.5",
+  "version": "1.1.31",
   "description": "search wrapper for gramene",
-  "main": "dist/index.js",
-  "source": "src/index.js",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "parcel build ./src/index.js",
     "watch": "parcel watch ./src/index.js",
+    "build-maize": "SUBSITE=maize parcel build -d maize -o index.html src/maize.html",
+    "build-grapevine": "SUBSITE=grapevine parcel build -d grapevine -o index.html src/grapevine.html",
+    "build-main": "SUBSITE=main parcel build -d main -o index.html src/index.html",
+    "build-sorghum": "SUBSITE=sorghum parcel build -d sorghum -o index.html src/sorghum.html",
+    "build-rice": "SUBSITE=rice parcel build -d rice -o index.html src/rice.html",
+    "start-maize": "SUBSITE=maize parcel src/maize.html",
+    "start-grapevine": "SUBSITE=grapevine parcel  src/grapevine.html",
+    "start-main": "SUBSITE=main parcel src/index.html",
+    "start-sorghum": "SUBSITE=sorghum parcel src/sorghum.html",
+    "start-rice": "SUBSITE=rice parcel src/rice.html",
     "prepare": "npm run build"
   },
   "author": "Andrew Olson",
   "license": "MIT",
   "dependencies": {
-    "react": "*",
+    "axios": "^0.21.1",
+    "formik": "^2.2.6",
+    "gramene-bins-client": "^2.2.14",
+    "gramene-dbxrefs": "^3.0.4",
+    "gramene-genetree-vis": "^4.1.0",
+    "gramene-mdview": "^1.1.7",
+    "gramene-search-vis": "github:warelab/gramene-search-vis#upgrade-react",
+    "gramene-taxonomy-with-genomes": "^3.0.10",
+    "gramene-trees-client": "^2.5.6",
+    "lodash": "^4.17.15",
+    "money-clip": "^3.0.2",
+    "querystringify": "^2.2.0",
+    "react": "^16.14.0",
+    "react-bootstrap": "^1.4.3",
+    "react-debounce-input": "^3.2.3",
+    "react-dom": "16.14.0",
+    "react-ga": "^2.7.0",
+    "react-icons": "^4.1.0",
+    "react-markdown": "^5.0.3",
+    "react-router-dom": "^5.2.0",
+    "react-tree-menu": "github:ajo2995/react-tree-menu",
     "redux-bundler": "21.0.0",
-    "redux-bundler-react": "1.0.1"
+    "redux-bundler-react": "1.0.1",
+    "yup": "^0.32.9"
   },
   "prettier": {
     "singleQuote": true,
@@ -25,9 +51,14 @@
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
+    "babel-plugin-jsx": "^1.2.0",
     "babel-preset-env": "^1.7.0",
     "babel-preset-react": "^6.24.1",
     "node-sass": "^4.9.3",
-    "parcel-bundler": "^1.10.1"
+    "parcel-bundler": "^1.12.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/warelab/gramene-search.git"
   }
 }

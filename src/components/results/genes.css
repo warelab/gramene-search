@@ -1,0 +1,183 @@
+.visible-detail {
+    border: 1px solid #557B74;
+    padding: 6px 12px;
+}
+.detail {
+    margin-right: auto;
+    margin-left: auto;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.table {
+    width: 100%;
+    max-width: 100%;
+}
+.xrefs {
+    border-collapse: collapse;
+    border-spacing: 0;
+    border-color: grey;
+    table-layout: fixed;
+}
+.xref-name-col {
+    width: 20%;
+}
+.xref-value-col {
+    width: 80%;
+}
+.xref-id-list {
+    padding-left: 0;
+    list-style: none;
+}
+.result-gene {
+    padding: 0.2em;
+    border: 5px solid white;
+}
+.result-gene:hover {
+    border-color: antiquewhite;
+}
+.gene-title {
+    padding-top:0.5em;
+}
+.gene-id {
+    white-space: nowrap;
+}
+.gene-name {
+    color: #557B74;
+}
+.gene-description {
+    margin-bottom: 0;
+}
+.gene-species {
+    white-space: nowrap;
+    font-style: italic;
+    padding-left: 1em;
+}
+.gene-synonyms {
+    white-space: nowrap;
+    font-size: small;
+}
+.gene-extras {
+    float: right;
+    border: dashed 1px blue;
+}
+.gene-detail-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    width: 80em;
+}
+.gene-detail-tab-closed {
+    color: darkgreen;
+    cursor: pointer;
+    /*background-color: lightgray;*/
+}
+.gene-detail-tab-disabled {
+    /*color: white;*/
+    /*background-color: lightgray;*/
+    color: lightgray;
+    cursor: not-allowed;
+}
+.gene-detail-tab-expanded {
+    color: white;
+    background-color: #557B74;
+    cursor: pointer;
+}
+.result-gene-summary {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-start;
+}
+.result-gene-summary .species-name {
+    white-space: nowrap;
+    font-style: italic;
+}
+.result-gene-title-body {
+    flex: 1 1 auto;
+    width: 1036px;
+}
+.closest-ortholog, .gene-summary-tair {
+    cursor: pointer;
+    flex: 1 1 auto;
+    width: 500px;
+    font-size: smaller;
+    margin-top: 10px;
+    padding: 0 1rem;
+    margin-left: 1rem;
+    border: 1px solid darkorange;
+}
+.closest-orthologs, .gene-summary-tair > h4, > p {
+    /*margin: @padding-base-vertical 0;*/
+}
+
+/* clear the title (defined in the ::before block below) */
+.closest-orthologs, .gene-summary-tair :first-child {
+    clear: right;
+}
+
+.closest-ortholog {
+    border: 1px dotted darkorange;
+}
+
+.gene-summary-tair {
+    border: 1px dotted darkgreen;
+}
+.gene-summary-tair .rest {
+    display: none;
+}
+
+.gene-summary-tair:hover .rest {
+    display: inline;
+}
+.gene-summary-tair:focus .rest {
+    display: inline;
+}
+.gene-summary-tair:hover .ellipsis {
+    display: none;
+}
+.gene-summary-tair:focus .ellipsis {
+    display: none;
+}
+
+/* this is the "title" of the closest ortholog box */
+.closest-ortholog::before,
+.gene-summary-tair::before {
+    position: relative;
+    float: right;
+    margin-top: -12px;
+    margin-right: 6px;
+    border: dotted 1px;
+    padding: 0 1rem;
+    background: #fff;
+}
+
+.closest-ortholog::before {
+    content: "Model Species Homolog";
+    color: orange;
+}
+
+/* this is the "title" of the closest ortholog box */
+.gene-summary-tair::before {
+    content: "TAIR Curated Description";
+    color: darkgreen;
+}
+
+.gene-search-pic-sugg {
+    width: 100%;
+    height: 200px;
+    background: url("../../static/images/suggestions.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+.gene-search-pic-results {
+    width: 100%;
+    height: 200px;
+    background: url("../../static/images/results.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+.gene-search-pic-genetree {
+    width: 100%;
+    height: 200px;
+    background: url("../../static/images/genetree.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
