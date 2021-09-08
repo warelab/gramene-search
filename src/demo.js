@@ -59,10 +59,10 @@ const panSites = [
     not_downtime: 'The search interface will be undergoing maintenance on Tuesday, July 20 from 3:00 - 4:00 PM EDT',
     renderAlert: () => (
         <Alert variant='primary'>
-          bio<span style={{color:"#FF0000"}}>R</span>&chi;iv preprint&nbsp;
-          <a href='https://www.biorxiv.org/content/10.1101/2021.01.14.426684v1' target='_blank'>
-            <i>De novo</i> assembly, annotation, and comparative analysis of 26 diverse maize genomes
-          </a>
+          Hufford et. al., 2021. &nbsp;
+          <a href='https://www.science.org/doi/abs/10.1126/science.abg5289' target='_blank'>
+            <i>De novo</i> assembly, annotation, and comparative analysis of 26 diverse maize genomes.
+          </a>&nbsp;Science, Vol 373, Issue 6555, pp. 655-662.
         </Alert>
     )
   },
@@ -288,7 +288,7 @@ const demo = (store) => (
               src={`/static/images/${subsite}_logo.svg`}
               height="80"
               className="d-inline-block align-top"
-              alt="Gramene Search"
+              alt="Gene Search"
             />
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
