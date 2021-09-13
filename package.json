@@ -2,6 +2,7 @@
   "name": "gramene-search",
   "version": "1.2.0",
   "description": "search wrapper for gramene",
+  "main": "src/index.js",
   "scripts": {
     "build": "parcel build ./src/index.js",
     "watch": "parcel watch ./src/index.js",
