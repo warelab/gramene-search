@@ -44,7 +44,7 @@
     "react-icons": "^4.1.0",
     "react-markdown": "^5.0.3",
     "react-router-dom": "^5.2.0",
-    "react-tree-menu": "^1.5.0",
+    "react-tree-menu": "https://github.com/ajo2995/react-tree-menu",
     "redux-bundler": "21.0.0",
     "redux-bundler-react": "1.0.1",
     "yup": "^0.32.9"
