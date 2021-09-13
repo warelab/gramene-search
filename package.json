@@ -2,7 +2,7 @@
   "name": "gramene-search",
   "version": "1.2.1",
   "description": "search wrapper for gramene",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "parcel build ./src/index.js",
     "watch": "parcel watch ./src/index.js",
@@ -22,6 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.21.1",
+    "flat-to-nested": "^1.1.1",
     "formik": "^3.0.0-next.8",
     "gramene-bins-client": "^2.2.14",
     "gramene-dbxrefs": "^3.0.4",
@@ -33,6 +34,7 @@
     "lodash": "^4.17.15",
     "lodash-compat": "^3.10.2",
     "money-clip": "^3.0.2",
+    "numeral": "^2.0.6",
     "querystringify": "^2.2.0",
     "react": "^17.0.2",
     "react-bootstrap": "^1.6.3",
