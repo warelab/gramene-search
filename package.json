@@ -26,7 +26,7 @@
     "formik": "^3.0.0-next.8",
     "gramene-bins-client": "^2.2.14",
     "gramene-dbxrefs": "^3.0.4",
-    "gramene-genetree-vis": "^4.1.8",
+    "gramene-genetree-vis": "^4.1.9",
     "gramene-mdview": "^1.1.8",
     "gramene-search-vis": "^4.1.6",
     "gramene-taxonomy-with-genomes": "^3.0.10",
