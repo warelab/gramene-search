@@ -4,6 +4,7 @@
     padding-left: 8px;
     padding-right: 8px;
     padding-bottom: 8px;
+    max-width: 16.67%;
 }
 .gramene-filter-container {
     background-color: #cfb5e6;
