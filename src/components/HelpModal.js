@@ -92,7 +92,7 @@ const HelpDemo = ({configuration, doToggleGrameneHelp, doReplaceGrameneFilters})
       <Modal.Body>
         <Container fluid style={{padding: '40px'}}>
           <Row>
-            <CardDeck style={{width:'80%'}}>
+            <CardDeck style={{width:'100%'}}>
               <Card style={{'backgroundColor':'#f3f6f5', 'borderColor':'#DDE5E3'}}>
                 <Card.Body>
                   <Card.Title>Suggestions</Card.Title>
