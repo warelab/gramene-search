@@ -7,6 +7,7 @@ import { DebounceInput } from 'react-debounce-input'
 import { Alert, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
 import { Status, Filters, Results, Views } from './components/geneSearchUI';
 import GrameneSuggestions from './components/suggestions';
+import HelpModal from './components/HelpModal';
 import bundles from './bundles';
 import UIbundle from './bundles/UIbundle';
 import {
@@ -105,14 +106,25 @@ const panSites = [
     alertText: 'Rice site'
   },
 ];
-const initialState = panSites[subsitelut[subsite]];
+const initialState = Object.assign({helpIsOn:false}, panSites[subsitelut[subsite]]);
 
 const config = {
   name: 'config',
   getReducer: () => {
     return (state = initialState, {type, payload}) => {
-      return state;
+      let newState;
+      switch (type) {
+        case 'GRAMENE_HELP_TOGGLED':
+          newState = Object.assign({},state);
+          newState.helpIsOn = !newState.helpIsOn;
+          return newState;
+        default:
+          return state;
+      }
     }
+  },
+  doToggleGrameneHelp: () => ({dispatch})  => {
+    dispatch({type: 'GRAMENE_HELP_TOGGLED', payload: null})
   },
   selectGrameneAPI: state => state.config.grameneData,
   selectTargetTaxonId: state => state.config.targetTaxonId,
@@ -169,24 +181,29 @@ const handleKey = (e, props) => {
 };
 
 const SearchBarCmp = props =>
-  <DebounceInput
-    minLength={0}
-    debounceTimeout={300}
-    onChange={e => props.doChangeSuggestionsQuery(e.target.value)}
-    onKeyDown={e => handleKey(e, props)}
-    // onKeyUp={e => handleKey(e.key,props)}
-    className="form-control"
-    value={props.suggestionsQuery || ''}
-    placeholder="Search for genes, species, pathways, ontology terms, domains..."
-    id="search-input"
-    autoComplete="off"
-    spellCheck="false"
-  />;
+  <div>
+    <DebounceInput
+        minLength={0}
+        debounceTimeout={300}
+        onChange={e => props.doChangeSuggestionsQuery(e.target.value)}
+        onKeyDown={e => handleKey(e, props)}
+        // onKeyUp={e => handleKey(e.key,props)}
+        className="form-control"
+        value={props.suggestionsQuery || ''}
+        placeholder="Search for genes, species, pathways, ontology terms, domains..."
+        id="search-input"
+        autoComplete="off"
+        spellCheck="false"
+    />
+    <small><a onClick={props.doToggleGrameneHelp}>Need help searching?</a></small>
+    <HelpModal/>
+  </div>
 
 const SearchBar = connect(
   'selectSuggestionsQuery',
   'doChangeSuggestionsQuery',
   'doClearSuggestions',
+  'doToggleGrameneHelp',
   'selectGrameneSuggestionsReady',
   SearchBarCmp
 );

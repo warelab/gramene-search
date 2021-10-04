@@ -178,10 +178,10 @@ const ResultsCmp = props => {
     v.idx = idx;
     return v.show === 'on'
   });
-  if (props.grameneFilters.rightIdx === 1 || activeViews.length === 0) {
-    return <HelpDemo/>
-  }
-  return (
+  // if (props.grameneFilters.rightIdx === 1 || activeViews.length === 0) {
+  //   return <HelpDemo/>
+  // }
+  return props.grameneFilters.rightIdx > 1 ? (
     <div style={{padding:'10px'}}>
       {activeViews.map(v => {
         let p = Object.assign({}, props);
@@ -196,7 +196,7 @@ const ResultsCmp = props => {
         )
       })}
     </div>
-  );
+  ) : null;
 };
 
 const Results = connect(
