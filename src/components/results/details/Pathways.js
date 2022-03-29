@@ -23,7 +23,7 @@ class Pathways extends React.Component {
     this.diagram = Reactome.Diagram.create({
       proxyPrefix: reactomeURL, //'//plantreactome.gramene.org', //'//plantreactomedev.oicr.on.ca', ////cord3084-pc7.science.oregonstate.edu', // reactomedev.oicr.on.ca
       placeHolder: this.holderId,
-      width: this.divWrapper.clientWidth - 350,
+      width: this.divWrapper.clientWidth - 350 - 1,
       height: 500
     });
   }

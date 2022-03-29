@@ -380,6 +380,7 @@ const grameneFilters = {
   selectGrameneFiltersStatus: state => state.grameneFilters.status,
   selectGrameneFiltersQueryString: state => {
     const hasSpaces = new RegExp(/^[^\[\(].*\s/);
+    const isQuery = new RegExp(/\([a-zA-Z0-9_]+:[a-zA-Z0-9_]+\s/);
     function getQuery(node) {
       const negate = node.negate ? 'NOT ' : '';
       if (node.hasOwnProperty('children')) {
@@ -388,6 +389,8 @@ const grameneFilters = {
       }
       else {
         // this node is a suggestion
+        if (isQuery.test(node.fq_value))
+          return `${negate}${node.fq_value}`;
         if (hasSpaces.test(node.fq_value))
           return `${negate}${node.fq_field}:"${node.fq_value}"`;
         else
