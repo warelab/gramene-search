@@ -7,6 +7,7 @@ import { DebounceInput } from 'react-debounce-input'
 import { Alert, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
 import { Status, Filters, Results, Views } from './components/geneSearchUI';
 import GrameneSuggestions from './components/suggestions';
+import HelpModal from './components/HelpModal';
 import bundles from './bundles';
 import UIbundle from './bundles/UIbundle';
 import {
@@ -59,10 +60,10 @@ const panSites = [
     not_downtime: 'The search interface will be undergoing maintenance on Tuesday, July 20 from 3:00 - 4:00 PM EDT',
     renderAlert: () => (
         <Alert variant='primary'>
-          bio<span style={{color:"#FF0000"}}>R</span>&chi;iv preprint&nbsp;
-          <a href='https://www.biorxiv.org/content/10.1101/2021.01.14.426684v1' target='_blank'>
-            <i>De novo</i> assembly, annotation, and comparative analysis of 26 diverse maize genomes
-          </a>
+          Hufford et. al., 2021. &nbsp;
+          <a href='https://www.science.org/doi/abs/10.1126/science.abg5289' target='_blank'>
+            <i>De novo</i> assembly, annotation, and comparative analysis of 26 diverse maize genomes.
+          </a>&nbsp;Science, Vol 373, Issue 6555, pp. 655-662.
         </Alert>
     )
   },
@@ -70,10 +71,10 @@ const panSites = [
     id: 'sorghum',
     name: 'Sorghumbase',
     url: 'https://www.sorghumbase.org',
-    ensemblURL: 'https://ensembl.sorghumbase.org',
-    ensemblSite: 'https://ensembl.sorghumbase.org',
-    ensemblRest: 'https://data.sorghumbase.org/ensembl2',
-    grameneData: 'https://data.sorghumbase.org/sorghum2',
+    ensemblURL: 'https://ensembl-dev.sorghumbase.org',
+    ensemblSite: 'https://ensembl-dev.sorghumbase.org',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl',
+    grameneData: 'https://devdata.gramene.org/sorghum_v2',
     targetTaxonId: 4588,
     alertText: 'Click the search icon in the menu bar or type / to search'
   },
@@ -105,14 +106,25 @@ const panSites = [
     alertText: 'Rice site'
   },
 ];
-const initialState = panSites[subsitelut[subsite]];
+const initialState = Object.assign({helpIsOn:false}, panSites[subsitelut[subsite]]);
 
 const config = {
   name: 'config',
   getReducer: () => {
     return (state = initialState, {type, payload}) => {
-      return state;
+      let newState;
+      switch (type) {
+        case 'GRAMENE_HELP_TOGGLED':
+          newState = Object.assign({},state);
+          newState.helpIsOn = !newState.helpIsOn;
+          return newState;
+        default:
+          return state;
+      }
     }
+  },
+  doToggleGrameneHelp: () => ({dispatch})  => {
+    dispatch({type: 'GRAMENE_HELP_TOGGLED', payload: null})
   },
   selectGrameneAPI: state => state.config.grameneData,
   selectTargetTaxonId: state => state.config.targetTaxonId,
@@ -169,24 +181,29 @@ const handleKey = (e, props) => {
 };
 
 const SearchBarCmp = props =>
-  <DebounceInput
-    minLength={0}
-    debounceTimeout={300}
-    onChange={e => props.doChangeSuggestionsQuery(e.target.value)}
-    onKeyDown={e => handleKey(e, props)}
-    // onKeyUp={e => handleKey(e.key,props)}
-    className="form-control"
-    value={props.suggestionsQuery || ''}
-    placeholder="Search for genes, species, pathways, ontology terms, domains..."
-    id="search-input"
-    autoComplete="off"
-    spellCheck="false"
-  />;
+  <div>
+    <DebounceInput
+        minLength={0}
+        debounceTimeout={300}
+        onChange={e => props.doChangeSuggestionsQuery(e.target.value)}
+        onKeyDown={e => handleKey(e, props)}
+        // onKeyUp={e => handleKey(e.key,props)}
+        className="form-control"
+        value={props.suggestionsQuery || ''}
+        placeholder="Search for genes, species, pathways, ontology terms, domains..."
+        id="search-input"
+        autoComplete="off"
+        spellCheck="false"
+    />
+    <small><a onClick={props.doToggleGrameneHelp}>Need help searching?</a></small>
+    <HelpModal/>
+  </div>
 
 const SearchBar = connect(
   'selectSuggestionsQuery',
   'doChangeSuggestionsQuery',
   'doClearSuggestions',
+  'doToggleGrameneHelp',
   'selectGrameneSuggestionsReady',
   SearchBarCmp
 );
@@ -288,7 +305,7 @@ const demo = (store) => (
               src={`/static/images/${subsite}_logo.svg`}
               height="80"
               className="d-inline-block align-top"
-              alt="Gramene Search"
+              alt="Gene Search"
             />
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
