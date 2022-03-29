@@ -1,6 +1,6 @@
 import {connect} from 'redux-bundler-react'
 import React from 'react'
-import { Button, Badge } from 'react-bootstrap'
+import { Button, Badge, Alert } from 'react-bootstrap'
 import './styles.css'
 
 function showMatches(text, x) {
@@ -19,31 +19,65 @@ function showMatches(text, x) {
 
 const Suggestions = props => {
   let suggestions = props.grameneSuggestions;
-  return (
-    <div>
-      {suggestions
-        && suggestions.grouped
-        && suggestions.grouped.category
-        && suggestions.grouped.category.groups
-        && suggestions.grouped.category.groups.map((g,idx) => {
-        return <div key={idx} id='gramene-suggestion'>
-          <h4 className="mt10">{g.groupValue}</h4>
-          {g.doclist.docs.map((sugg,jdx) =>
-            <Button id={`${idx}-${jdx}`}
-                    key={jdx}
-                    disabled={sugg.num_genes === 0}
-                    size='sm'
-                    variant="outline-secondary"
-                    onClick={() => {props.doAcceptSuggestion(sugg); props.doAcceptGrameneSuggestion(sugg)}}>
-              {showMatches(sugg.display_name,props.suggestionsQuery)}{' '}
-              <Badge variant="secondary">{sugg.num_genes}</Badge>
-            </Button>
-          )}
+  if (suggestions && suggestions.grouped) {
+    if (suggestions.grouped.category.matches === 0) {
+      let sugg1 = {
+        fq_field: 'text',
+        fq_value: props.suggestionsQuery,
+        name: `Genes containing "${props.suggestionsQuery}"`,
+        category: 'Gene',
+      };
+      let sugg2 = {
+        fq_field: 'text',
+        fq_value: `${props.suggestionsQuery}*`,
+        name: `Genes matching "${props.suggestionsQuery}*"`,
+        category: 'Gene',
+      };
+      return (
+        <div style={{margin: '10px', maxWidth: '820px'}}>
+          <Alert variant={'info'}><em>No suggestions found.</em> You may still attempt a full text search, though it is unlikely to find any genes for you.</Alert>
+          <Button id={'word'}
+                  size={'sm'}
+                  variant={'outline-secondary'}
+                  onClick={() => {props.doAcceptSuggestion(sugg1); props.doAcceptGrameneSuggestion(sugg1)}}>
+            {`All genes that contain the word "${props.suggestionsQuery}"`}
+          </Button>
+          <Button id={'word'}
+                  size={'sm'}
+                  variant={'outline-secondary'}
+                  onClick={() => {props.doAcceptSuggestion(sugg2); props.doAcceptGrameneSuggestion(sugg2)}}>
+            {`All genes that contain a word that starts with "${props.suggestionsQuery}"`}
+          </Button>
         </div>
-      })}
-    </div>
-  );
-};
+      );
+    }
+    else {
+      return (
+        <div style={{margin: '10px'}}>
+          {suggestions.grouped.category.groups.map((g,idx) => {
+              return <div key={idx} id='gramene-suggestion'>
+                <h4 className="mt10">{g.groupValue}</h4>
+                {g.doclist.docs.map((sugg,jdx) =>
+                  <Button id={`${idx}-${jdx}`}
+                          key={jdx}
+                          disabled={sugg.num_genes === 0}
+                          size='sm'
+                          variant="outline-secondary"
+                          onClick={() => {props.doAcceptSuggestion(sugg); props.doAcceptGrameneSuggestion(sugg)}}>
+                    {showMatches(sugg.display_name,props.suggestionsQuery)}{' '}
+                    <Badge variant="secondary">{sugg.num_genes}</Badge>
+                  </Button>
+                )}
+              </div>
+            })}
+        </div>
+      );
+    }
+  }
+  else {
+    return <div></div>
+  }
+}
 
 export default connect(
   'selectGrameneSuggestions',
