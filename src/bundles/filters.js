@@ -1,6 +1,6 @@
 import {createSelector} from "redux-bundler";
 import _ from 'lodash';
-const MAX_IDLIST_LENGTH = 10;
+const MAX_IDLIST_LENGTH = 20;
 
 function findNodeWithLeftIdx(node, idx) {
   if (node.leftIdx === idx) {
