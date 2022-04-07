@@ -390,11 +390,11 @@ const grameneFilters = {
       else {
         // this node is a suggestion
         if (isQuery.test(node.fq_value))
-          return `${negate}${node.fq_value}`;
+          return `${negate}${node.fq_value.replace(/:/g,'\\:')}`;
         if (hasSpaces.test(node.fq_value))
-          return `${negate}${node.fq_field}:"${node.fq_value}"`;
+          return `${negate}${node.fq_field}:"${node.fq_value.replace(/:/g,'\\:')}"`;
         else
-          return `${negate}${node.fq_field}:${node.fq_value}`;
+          return `${negate}${node.fq_field}:${node.fq_value.replace(/:/g,'\\:')}`;
       }
     }
     if (state.grameneFilters.rightIdx === 1) {
