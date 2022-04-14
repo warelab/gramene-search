@@ -381,6 +381,7 @@ const grameneFilters = {
   selectGrameneFiltersQueryString: state => {
     const hasSpaces = new RegExp(/^[^\[\(].*\s/);
     const isQuery = new RegExp(/\([a-zA-Z0-9_]+:[a-zA-Z0-9_]+\s/);
+    const idWithColon = new RegExp(/^[a-zA-Z0-9_]+:[a-zA-Z0-9_]+$/);
     function getQuery(node) {
       const negate = node.negate ? 'NOT ' : '';
       if (node.hasOwnProperty('children')) {
@@ -392,9 +393,11 @@ const grameneFilters = {
         if (isQuery.test(node.fq_value))
           return `${negate}${node.fq_value.replace(/:/g,'\\:')}`;
         if (hasSpaces.test(node.fq_value))
-          return `${negate}${node.fq_field}:"${node.fq_value.replace(/:/g,'\\:')}"`;
-        else
+          return `${negate}${node.fq_field}:"${node.fq_value}"`;
+        else if (idWithColon.test(node.fq_value))
           return `${negate}${node.fq_field}:${node.fq_value.replace(/:/g,'\\:')}`;
+        else
+          return `${negate}${node.fq_field}:${node.fq_value}`
       }
     }
     if (state.grameneFilters.rightIdx === 1) {
