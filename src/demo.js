@@ -85,7 +85,7 @@ const panSites = [
     ensemblURL: 'https://vitis-ensembl.gramene.org',
     ensemblSite: 'https://vitis-ensembl.gramene.org/genome_browser/index.html',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
-    grameneData: 'https://data.gramene.org/vitis1',
+    grameneData: 'https://data.gramene.org/grapevine_v3',
     curation: {
       url: 'http://curate.gramene.org/grapevine?gene=',
       taxa: {
