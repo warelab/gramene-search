@@ -7,7 +7,9 @@ import '../../../node_modules/gramene-search-vis/styles/main.less';
 class TaxDist extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      collapseEmpties: true
+    };
   }
   handleSelection(selections) {
     this.setState({selections})
@@ -18,11 +20,24 @@ class TaxDist extends React.Component {
   handleFilter() {
     this.setState({selections:null})
   }
+  toggleEmpties() {
+    this.setState({collapseEmpties: !this.state.collapseEmpties})
+  }
   render() {
+    let selectedTaxa = {};
+    if (this.props.grameneSearch && this.state.collapseEmpties) {
+      this.props.grameneSearch.facet_counts.facet_fields.taxon_id.filter((tid,idx) => idx % 2 === 0).forEach(tid => {
+        selectedTaxa[tid] = true;
+      })
+    }
+    else {
+      selectedTaxa = this.props.grameneGenomes.active;
+    }
     return (
       <div className="results-vis big-vis">
+        <button type="button" className="btn btn-primary btn-sm" onClick={this.toggleEmpties.bind(this)}>{this.state.collapseEmpties ? 'Expand' : 'Collapse'} empty branches</button>
         {this.props.grameneTaxDist && <Vis taxonomy={this.props.grameneTaxDist}
-                                           selectedTaxa={this.props.grameneGenomes.active}
+                                           selectedTaxa={selectedTaxa}
                                            onSelection={this.handleSelection.bind(this)}
                                            onHighlight={this.handleHighlight.bind(this)}
         />}
@@ -43,5 +58,6 @@ class TaxDist extends React.Component {
 export default connect(
   'selectGrameneTaxDist',
   'selectGrameneGenomes',
+  'selectGrameneSearch',
   TaxDist
 );
