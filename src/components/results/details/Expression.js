@@ -5,7 +5,7 @@ const PREFIX = (global.location ? global.location.origin + global.location.pathn
 
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
-  const url = `${PREFIX}static/atlasWidget.html?${gene.taxon_id === 112509 ? gene.synonyms[0] : gene._id}`;
+  const url = `/static/atlasWidget.html?${gene.taxon_id === 112509 ? gene.synonyms[0] : gene._id}`;
   const height = '500px';
   return (
     <iframe src={url} frameBorder="0" width="100%" height={height}>
