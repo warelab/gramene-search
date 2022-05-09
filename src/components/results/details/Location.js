@@ -152,7 +152,7 @@ class Location extends React.Component {
 
   links() {
     function jgiify(id) {
-      return id.replace('SORBI_3','Sobic.');
+      return id.replace('SORBI_3','Sobic.').replace(/\.v[0-9]\.[0-9]$/,'');
     }
     var gene = this.gene;
     let links = [
