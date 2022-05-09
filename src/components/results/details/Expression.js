@@ -1,7 +1,7 @@
 import React from 'react'
 import {connect} from "redux-bundler-react";
 
-const PREFIX = (global.location ? global.location.origin + global.location.pathname : '');
+const PREFIX = (global.location ? global.location.origin + global.location.pathname + '/' : '');
 
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];

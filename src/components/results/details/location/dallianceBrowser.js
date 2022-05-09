@@ -7,7 +7,7 @@ import isEqual from "lodash/isEqual";
 // const ensemblREST = 'https://data.gramene.org/pansite-ensembl';
 
 // calculate this once.
-const PREFIX = (global.location ? global.location.origin + global.location.pathname : '')
+const PREFIX = (global.location ? global.location.origin + global.location.pathname + '/' : '')
   + 'static/gramene-dalliance/';
 
 export default class DallianceBrowser extends React.Component {
