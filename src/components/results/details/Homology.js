@@ -99,10 +99,14 @@ class Homology extends React.Component {
         })
         .values()
         .flatten()
+        .uniq()
         .value();
 
       if (!_.isEmpty(homologs)) {
-        homologs.push(thisGeneId);
+        if (!homologs.includes(thisGeneId)) {
+          console.log("add to homologs list",thisGeneId);
+          homologs.push(thisGeneId);
+        }
         return homologs; // only return something if we have something. We're testing for truthiness later.
       }
     }
