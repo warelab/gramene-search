@@ -98,10 +98,10 @@ const panSites = [
   {
     id: 'rice',
     name: 'Rice',
-    url: 'https://oge.gramene.org',
-    ensemblStie: 'https://ensembl-oge.gramene.org',
-    ensemblRest: 'https://data.gramene.org/ensembl',
-    grameneData: 'https://data.gramene.org/v63',
+    url: 'https://oryza.gramene.org',
+    ensemblStie: 'https://ensembl-oryza.gramene.org',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl-87',
+    grameneData: 'https://data.gramene.org/oryza_v4',
     targetTaxonId: 3702,
     alertText: 'Rice site'
   },

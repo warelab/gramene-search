@@ -126,6 +126,25 @@ grameneMaps.reactGrameneMaps = createSelector(
   }
 );
 
+const curatedGenes = createAsyncResourceBundle( {
+  name: 'curatedGenes',
+  actionBaseType: 'CURATED_GENES',
+  persist: true,
+  getPromise: ({store}) => {
+    return fetch(`https://devdata.gramene.org/curation/curations?rows=0&minFlagged=2`)
+      .then(res => res.json())
+      .then(curation => _.keyBy(curation.genes, 'gene_id'))
+  }
+});
+curatedGenes.reactCuratedGenes = createSelector(
+  'selectCuratedGenesShouldUpdate',
+  (shouldUpdate) => {
+    if (shouldUpdate) {
+      return { actionCreator: 'doFetchCuratedGenes' }
+    }
+  }
+);
+
 const grameneSearch = createAsyncResourceBundle({
   name: 'grameneSearch',
   actionBaseType: 'GRAMENE_SEARCH',
@@ -311,4 +330,4 @@ const grameneOrthologs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes];

@@ -4,7 +4,7 @@ import {connect} from "redux-bundler-react";
 import TreeVis from "gramene-genetree-vis";
 import treesClient from "gramene-trees-client";
 import {Detail, Title, Description, Content, Explore, Links} from "./generic";
-import {Spinner} from "react-bootstrap";
+import {Spinner, Alert} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
 import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
 
@@ -152,10 +152,11 @@ class Homology extends React.Component {
     return links;
   }
   render() {
-    if (!this.props.geneDocs.hasOwnProperty(this.props.searchResult.id)) {
+    const id = this.props.searchResult.id;
+    if (!this.props.geneDocs.hasOwnProperty(id)) {
       return <Spinner/>
     }
-    this.gene = this.props.geneDocs[this.props.searchResult.id];
+    this.gene = this.props.geneDocs[id];
     const treeId = this.gene.homology.gene_tree.id;
     if (! this.props.grameneTrees.hasOwnProperty(treeId)) {
       this.props.doRequestGrameneTree(treeId);
@@ -168,11 +169,16 @@ class Homology extends React.Component {
         this.paralogs = this.paralogList();
       }
     }
+    let flagged=0;
+    if (this.props.curation && this.props.curation.taxa.hasOwnProperty(this.gene.taxon_id)) {
+      flagged = this.props.curatedGenes && this.props.curatedGenes[id] ? this.props.curatedGenes[id].flagged : 0;
+    }
     return (
       <Detail>
         <Title key="title">Compara Gene Tree</Title>
         <Description key="description">
           This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.
+          {flagged > 1 && <Alert variant={'warning'}>This gene was flagged for potential gene structural annotation issues by {flagged} curators</Alert>}
         </Description>
         {this.tree && <Content key="content">{this.renderTreeVis()}</Content>}
         {this.tree && <Explore key="explore" explorations={this.explorations()}/>}
@@ -188,6 +194,7 @@ export default connect(
   'selectGrameneGenomes',
   'selectConfiguration',
   'selectCuration',
+  'selectCuratedGenes',
   'doRequestGrameneTree',
   'doAcceptGrameneSuggestion',
   'doReplaceGrameneFilters',
