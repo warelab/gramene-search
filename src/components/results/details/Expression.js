@@ -14,7 +14,7 @@ const Detail = props => {
     props.doRequestParalogExpression(gene._id)
   }
   return <Tabs>
-    <Tab eventKey="gene" title="All Studiess">
+    <Tab eventKey="gene" title="All Studies">
       <iframe src={gene_url} frameBorder="0" width="100%" height="500px"></iframe>
     </Tab>
     <Tab eventKey="paralogs" title="Reference Study (all paralogs)">
