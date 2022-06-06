@@ -8,7 +8,9 @@ const Detail = props => {
   let gene_url = `/static/atlasWidget.html?reference=0&genes=${gene._id}`;
   if (props.paralogExpression && props.paralogExpression[gene._id]) {
     let paralogs = props.paralogExpression[gene._id].map(p => p.id);
-    paralogs_url= `/static/atlasWidget.html?reference=1&genes=${paralogs.join(' ')}`;
+    if (paralogs.length > 1) {
+      paralogs_url= `/static/atlasWidget.html?reference=1&genes=${paralogs.join(' ')}`;
+    }
   }
   else {
     props.doRequestParalogExpression(gene._id)
@@ -17,9 +19,9 @@ const Detail = props => {
     <Tab eventKey="gene" title="All Studies">
       <iframe src={gene_url} frameBorder="0" width="100%" height="500px"></iframe>
     </Tab>
-    <Tab eventKey="paralogs" title="Reference Study (all paralogs)">
-      {paralogs_url && <iframe src={paralogs_url} frameBorder="0" width="100%" height="500px"></iframe>}
-    </Tab>
+    {paralogs_url && <Tab eventKey="paralogs" title="Reference Study (all paralogs)">
+      <iframe src={paralogs_url} frameBorder="0" width="100%" height="500px"></iframe>
+    </Tab>}
   </Tabs>
 };
 
