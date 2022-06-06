@@ -145,6 +145,63 @@ curatedGenes.reactCuratedGenes = createSelector(
   }
 );
 
+const grameneExpressionStudies = createAsyncResourceBundle( {
+  name: 'grameneExpressionStudies',
+  actionBaseType: 'GRAMENE_EXPRESSION_STUDIES',
+  persist: true,
+  getPromise: ({store}) => {
+    return fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
+      .then(res => res.json())
+      .then(res => _.keyBy(res, '_id'))
+  }
+});
+grameneExpressionStudies.reactGrameneExpressionStudies = createSelector(
+  'selectGrameneExpressionStudiesShouldUpdate',
+  (shouldUpdate) => {
+    if (shouldUpdate) {
+      return { actionCreator: 'doFetchGrameneExpressionStudies' }
+    }
+  }
+);
+
+const grameneExpressionAssays = createAsyncResourceBundle( {
+  name: 'grameneExpressionAssays',
+  actionBaseType: 'GRAMENE_EXPRESSION_ASSAYS',
+  persist: true,
+  getPromise: ({store}) => {
+    return fetch(`${store.selectGrameneAPI()}/assays?rows=-1`)
+      .then(res => res.json())
+      .then(res => {
+        let expr={};
+        res.forEach(assay => {
+          if (!expr.hasOwnProperty(assay.taxon_id)) {
+            expr[assay.taxon_id] = {};
+          }
+          if (!expr[assay.taxon_id].hasOwnProperty(assay.experiment)) {
+            expr[assay.taxon_id][assay.experiment] = [];
+          }
+          assay.order = +assay.group.replace('g','');
+          expr[assay.taxon_id][assay.experiment].push(assay);
+        });
+        // sort each experiment
+        for (const tid in expr) {
+          for (const exp in expr[tid]) {
+            expr[tid][exp].sort((a,b) => a.order - b.order);
+          }
+        }
+        return expr;
+      })
+  }
+});
+grameneExpressionAssays.reactGrameneExpressionAssays = createSelector(
+  'selectGrameneExpressionAssaysShouldUpdate',
+  (shouldUpdate) => {
+    if (shouldUpdate) {
+      return { actionCreator: 'doFetchGrameneExpressionAssays' }
+    }
+  }
+);
+
 const grameneSearch = createAsyncResourceBundle({
   name: 'grameneSearch',
   actionBaseType: 'GRAMENE_SEARCH',
@@ -330,4 +387,4 @@ const grameneOrthologs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes];//, grameneExpressionStudies, grameneExpressionAssays];

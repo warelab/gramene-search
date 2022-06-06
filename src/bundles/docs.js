@@ -5,7 +5,8 @@ const grameneDocs = {
       genes: {},
       trees: {},
       domains: {},
-      pathways: {}
+      pathways: {},
+      expression: {}
     };
     return (state = initialState, {type, payload}) => {
       let newState;
@@ -43,6 +44,18 @@ const grameneDocs = {
         case 'GRAMENE_PATHWAYS_RECEIVED':
           newState = Object.assign({}, state);
           newState.pathways = Object.assign({}, state.pathways, payload);
+          return newState;
+        case 'PARALOG_EXPRESSION_REQUESTED':
+          if (!state.expression.hasOwnProperty(payload)) {
+            newState = Object.assign({},state);
+            newState.expression[payload] = [];
+            return newState;
+          }
+          break;
+        case 'PARALOG_EXPRESSION_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.expression = Object.assign({}, state.expression);
+          newState.expression[payload.id] = payload.paralogs;
           return newState;
       }
       return state;
@@ -113,9 +126,51 @@ const grameneDocs = {
         })
     }
   },
+  doRequestParalogExpression: id => ({dispatch, store}) => {
+    const expr = store.selectParalogExpression();
+    if (!expr.hasOwnProperty(id)) {
+      dispatch({type: 'PARALOG_EXPRESSION_REQUESTED', payload: id});
+      fetch(`${store.selectGrameneAPI()}/search?q=homology__within_species_paralog:${id}&fl=id,name,*__expr&rows=100`)
+        .then(res => res.json())
+        .then(res => {
+          const assay_re = /(.+)_tpms_g(\d+)/;
+          const paralogs = res.response.docs.map(d => {
+            let p = {
+              id: d.id,
+              name: d.name,
+              experiments: {},
+              min:1000,
+              max:0
+            };
+            delete d.id;
+            delete d.name;
+            Object.entries(d).forEach(assay => {
+              const parsed = assay[0].match(assay_re);
+              const expr = parsed[1].replace('_','-');
+              if (! p.experiments.hasOwnProperty(expr)) {
+                p.experiments[expr] = [];
+              }
+              const g = parsed[2] - 1;
+              const e = d[assay[0]];
+              if (e < p.min) p.min = e;
+              if (e > p.max) p.max = e;
+              p.experiments[expr][g] = e;
+            });
+            return p;
+          }).map(p => {
+            for (const expr in p.experiments) {
+              p.experiments[expr] = p.experiments[expr].filter(e => e >= 0);
+            }
+            return p;
+          });
+          dispatch({type: 'PARALOG_EXPRESSION_RECEIVED', payload: {id, paralogs}});
+        })
+    }
+  },
   selectGrameneGenes: state => state.grameneDocs.genes,
   selectGrameneTrees: state => state.grameneDocs.trees,
-  selectGramenePathways: state => state.grameneDocs.pathways
+  selectGramenePathways: state => state.grameneDocs.pathways,
+  selectParalogExpression: state => state.grameneDocs.expression
 };
 
 export default grameneDocs;
