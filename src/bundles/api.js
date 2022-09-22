@@ -18,7 +18,7 @@ const grameneSuggestions = createAsyncResourceBundle( {
   actionBaseType: 'GRAMENE_SUGGESTIONS',
   persist: false,
   getPromise: ({store}) => {
-    const t = store.selectSuggestionsQuery();
+    const t = store.selectSuggestionsQuery().replaceAll(':',' ').trim();
     const g = store.selectGrameneGenomes();
     return fetch(`${store.selectGrameneAPI()}/suggest?q={!boost b=relevance}name:${t}^3 id:${t}^5 synonym:${t}^2 text:${t}*^1`)
       .then(res => res.json())
