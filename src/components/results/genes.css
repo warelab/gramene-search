@@ -24,6 +24,12 @@
 .xref-value-col {
     width: 80%;
 }
+.xref-70-col {
+    width: 70%;
+}
+.xref-10-col {
+    width: 10%;
+}
 .xref-id-list {
     padding-left: 0;
     list-style: none;

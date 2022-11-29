@@ -44,7 +44,7 @@ const panSites = [
     ensemblURL: 'https://ensembl.gramene.org',
     ensemblSite: 'https://ensembl.gramene.org',
     ensemblRest: 'https://data.gramene.org/ensembl',
-    grameneData: 'https://data.gramene.org/v64',
+    grameneData: 'https://data.gramene.org/v66',
     targetTaxonId: 3702,
     alertText: 'Main site'
   },

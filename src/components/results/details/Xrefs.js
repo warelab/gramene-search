@@ -44,20 +44,13 @@ class Xref extends React.Component {
   }
 
   render() {
-    var members, vals, db;
-    db = this.props.displayName;
+    var db = this.props.xref.label;
+    var urlfcn = this.props.xref.url;
 
-    members = this.props.members;
+    var members = this.props.members.sort();
 
-    vals = _(members)
-      .map(function (m) {
-        return m.val;
-      })
-      .flatten(true)
-      .sort()
-      .uniq(true) // TODO figure out why there are duplicates.
-      .map(function (item, idx) {
-        var url = members[0].url(item),
+    var vals = members.map(function (item, idx) {
+        var url = urlfcn(item),
           liClass = idx < HOW_MANY_TO_SHOW_BY_DEFAULT ? "default" : "extra";
         let external = <small title="This link opens a page from an external site"> <i className="fa fa-external-link"/></small>;
         return (
@@ -72,16 +65,17 @@ class Xref extends React.Component {
           </li>
         )
       })
-      .value();
 
     vals = this.possiblyTruncateList(vals);
 
     return (
       <tr>
-        <td className="xref-name-col">{this.props.displayName}</td>
+        <td className="xref-name-col">{db}</td>
         <td className="xref-value-col">
           <ol className="xref-id-list">{vals}</ol>
         </td>
+        <td className="xref-name-col">{this.props.source}</td>
+        <td className="xref-value-col">{this.props.text}</td>
       </tr>
     );
   }
@@ -91,22 +85,39 @@ function formatXrefsForGene(gene) {
   if(!gene || !_.isArray(gene.xrefs)) {
     throw new Error("No xrefs for " + _.get(gene._id));
   }
-  return _(gene.xrefs)
-    .keyBy('db')
-    .pickBy(function(val, name) {
-      return dbxrefs.isKnown(name);
+  return gene.xrefs
+    .filter(xr => dbxrefs.isKnown(xr.db))
+    .sort((a,b) => {
+      if (a.source) {
+        if (b.source) {
+          if (a.source < b.source) {
+            return -1;
+          }
+          if (a.source > b.source) {
+            return 1;
+          }
+        }
+        else {
+          return -1;
+        }
+      }
+      else if (b.source) {
+        return 1;
+      }
+      if (a.db < b.db) {
+        return -1;
+      }
+      if (a.db > b.db) {
+        return 1;
+      }
+      return 0;
     })
-    .map(function(val, name) {
-      var xref = dbxrefs.fetch(name);
-      return {url: xref.url, label: xref.label, val: val.ids};
-    })
-    .groupBy('label')
-    .map(function(members, displayName) {
+    .map((xr,idx) => {
+      var xref = dbxrefs.fetch(xr.db);
       return (
-        <Xref key={displayName} displayName={displayName} members={members} />
+        <Xref key={idx} xref={xref} members={xr.ids} source={xr.source} text={xr.text} />
       )
     })
-    .value();
 }
 
 const Xrefs = ({searchResult, geneDocs}) => (
@@ -117,8 +128,10 @@ const Xrefs = ({searchResult, geneDocs}) => (
       <table className="xrefs table">
         <thead>
         <tr>
-          <th className="xref-name-col">Database</th>
-          <th className="xref-value-col">IDs and links</th>
+          <th className="xref-10-col">Database</th>
+          <th className="xref-10-col">IDs and links</th>
+          <th className="xref-10-col">Source</th>
+          <th className="xref-70-col">Text</th>
         </tr>
         </thead>
         <tbody>
