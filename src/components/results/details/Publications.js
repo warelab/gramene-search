@@ -70,22 +70,48 @@ class Xref extends React.Component {
 
     return (
       <tr>
-        <td className="xref-name-col">{db}</td>
+        {/*<td className="xref-name-col">{db}</td>*/}
         <td className="xref-value-col">
           <ol className="xref-id-list">{vals}</ol>
         </td>
+        <td className="xref-name-col">{this.props.source}</td>
+        <td className="xref-value-col">{this.props.text}</td>
       </tr>
     );
   }
 }
 
-function formatXrefsForGene(gene) {
+function formatPubsForGene(gene) {
   if(!gene || !_.isArray(gene.xrefs)) {
     throw new Error("No xrefs for " + _.get(gene._id));
   }
   return gene.xrefs
-    .filter(xr => dbxrefs.isKnown(xr.db) && xr.db !== "PUBMED")
-    .sort()
+    .filter(xr => xr.db === "PUBMED") //dbxrefs.isKnown(xr.db))
+    .sort((a,b) => {
+      if (a.source) {
+        if (b.source) {
+          if (a.source < b.source) {
+            return -1;
+          }
+          if (a.source > b.source) {
+            return 1;
+          }
+        }
+        else {
+          return -1;
+        }
+      }
+      else if (b.source) {
+        return 1;
+      }
+      if (a.db < b.db) {
+        return -1;
+      }
+      if (a.db > b.db) {
+        return 1;
+      }
+      return 0;
+    })
     .map((xr,idx) => {
       var xref = dbxrefs.fetch(xr.db);
       return (
@@ -94,25 +120,26 @@ function formatXrefsForGene(gene) {
     })
 }
 
-const Xrefs = ({searchResult, geneDocs}) => (
+const Publications = ({searchResult, geneDocs}) => (
   <Detail>
-    <Title key="title">Cross-references</Title>
-    <Description key="description">References to this gene in other databases:</Description>
+    <Title key="title">Curated publications</Title>
+    <Description key="description">This gene has been described in the literature:</Description>
     <Content key="content">
       <table className="xrefs table">
         <thead>
         <tr>
-          <th className="xref-name-col">Database</th>
-          <th className="xref-value-col">IDs and links</th>
+          <th className="xref-10-col">PubMed link</th>
+          <th className="xref-10-col">Curation source</th>
+          <th className="xref-80-col">Title/Description</th>
         </tr>
         </thead>
         <tbody>
-        {formatXrefsForGene(geneDocs[searchResult.id])}
+        {formatPubsForGene(geneDocs[searchResult.id])}
         </tbody>
       </table>
     </Content>
   </Detail>
 );
 
-export default Xrefs;
+export default Publications;
 

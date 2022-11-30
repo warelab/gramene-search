@@ -7,8 +7,9 @@ import Homology from './details/Homology'
 import Location from './details/Location'
 import Pathways from "./details/Pathways"
 import Xrefs from "./details/Xrefs"
+import Publications from "./details/Publications"
 import {GrFormPrevious, GrFormNextLink, GrFormNext, GrHpe} from 'react-icons/gr'
-import { Badge } from 'react-bootstrap'
+import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 let external = <small title="This link opens a page from an external site"> <i className="fa fa-external-link"/></small>;
 
@@ -17,7 +18,8 @@ let inventory = {
   expression: Expression,
   homology: Homology,
   pathways: Pathways,
-  xrefs: Xrefs
+  xrefs: Xrefs,
+  pubs: Publications
 };
 
 function renderTairSummary(searchResult) {
@@ -102,31 +104,37 @@ class Gene extends React.Component {
         {
           id: 'location',
           label: 'Location',
+          popup: 'Genome Browser',
           available: false
         },
         {
           id: 'expression',
           label: 'Expression',
+          popup: 'Gene Expression Atlas',
           available: false
         },
         {
           id: 'homology',
           label: 'Homology',
+          popup: 'Gene Family Tree',
           available: false
         },
         {
           id: 'pathways',
           label: 'Pathways',
+          popup: 'Plant Reactome Pathways',
           available: false
         },
-        // {
-        //   id: 'pubs',
-        //   label: 'Publications',
-        //   available: false
-        // },
+        {
+          id: 'pubs',
+          label: 'Papers',
+          popup: 'Curated Publications',
+          available: false
+        },
         {
           id: 'xrefs',
           label: 'Xrefs',
+          popup: 'Database Cross-references',
           available: false
         }
       ],
@@ -202,10 +210,18 @@ class Gene extends React.Component {
         </div>
         <div className="gene-detail-tabs">
           {this.state.details.map((d,idx) => (
+            <OverlayTrigger
+              key={idx}
+              placement={'bottom'}
+              overlay={
+                <Tooltip id={`tooltip`}>{d.popup}</Tooltip>
+              }
+            >
             <div key={idx}
                  className={`col-md-1 text-center gene-detail-tab-${this.getDetailStatus(d)}`}
                  onClick={()=>this.setExpanded(d)}
             >{d.label}</div>
+            </OverlayTrigger>
           ))}
         </div>
         {this.state.expandedDetail && this.ensureGene(searchResult.id) && <div className="visible-detail">{React.createElement(inventory[this.state.expandedDetail], this.props)}</div>}
