@@ -178,10 +178,7 @@ const ResultsCmp = props => {
     v.idx = idx;
     return v.show === 'on'
   });
-  // if (props.grameneFilters.rightIdx === 1 || activeViews.length === 0) {
-  //   return <HelpDemo/>
-  // }
-  return props.grameneFilters.rightIdx > 1 ? (
+  return props.grameneFilters.rightIdx > 0 ? (
     <div style={{padding:'10px'}}>
       {activeViews.map(v => {
         let p = Object.assign({}, props);
@@ -209,6 +206,16 @@ const Results = connect(
 const ViewsCmp = props => (
   <div className={'gramene-view-container'}>
     <b>Views</b>
+    {/*{props.grameneViews.options.map((view,idx) => (*/}
+    {/*  <div key={idx}>*/}
+    {/*    <input type="checkbox" className='toggle-switch' id={`toggle${idx}`} onChange={(e) => {*/}
+    {/*      if (view.show !== 'disabled') {*/}
+    {/*        props.doToggleGrameneView(idx)*/}
+    {/*      }*/}
+    {/*    }} disabled={view.show === 'disabled'} checked={view.show === 'on'}/>*/}
+    {/*    <label for={`toggle${idx}`}>{view.show}</label>{view.name}*/}
+    {/*  </div>*/}
+    {/*))}*/}
     <ul className={'gramene-view'}>
       {props.grameneViews.options.map((view,idx) => (
         <li key={idx} className={`gramene-view-${view.show}`}
@@ -228,7 +235,6 @@ const ViewsCmp = props => (
     {/*    <li className='gramene-view-disabled'>Disabled</li>*/}
     {/*  </ul>*/}
     {/*</div>*/}
-    &nbsp;
   </div>
 );
 

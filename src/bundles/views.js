@@ -3,11 +3,11 @@ const grameneViews = {
   getReducer: () => {
     const initialState = {
       options: [
-        // {
-        //   id: 'help',
-        //   name: 'Help / Demo',
-        //   show: 'off'
-        // },
+        {
+          id: 'help',
+          name: 'Help / Demo',
+          show: 'off'
+        },
         {
           id: 'taxonomy',
           name: 'Taxonomic distribution',
@@ -17,12 +17,12 @@ const grameneViews = {
           id: 'list',
           name: 'Gene list',
           show: 'on'
-        }
+        // },
         // {
         //   id: 'pathways',
         //   name: 'Pathways',
         //   show: 'disabled'
-        // },
+        }
         // {
         //   id: 'domains',
         //   name: 'Domains',

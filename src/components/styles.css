@@ -9,6 +9,7 @@
 .gramene-filter-container {
     background-color: #cfb5e6;
     padding-left: 4px;
+    padding-bottom: 4px;
 }
 .gramene-filter {
     padding-left: 4px;
@@ -56,11 +57,14 @@
 
 .gramene-view-container {
     background-color: lightblue;
-    padding-left: 10px;
+    padding-left: 4px;
+    padding-right: 4px;
+    padding-bottom: 4px;
 }
 .gramene-view {
-    padding-left: 5px;
-    margin: 4px;
+    padding-left: 0px;
+    padding-right: 10px;
+    margin-bottom: 0;
     background-color: white;
 }
 .gramene-view li {
@@ -68,19 +72,22 @@
     cursor: pointer;
     padding-left: 5px;
     border-left-style: inset;
-    border-left-width: 4px;
+    border-left-width: 8px;
     margin-bottom: 2px;
 }
 
 .gramene-view-on {
     border-left-color: #40a0ff;
+    font-weight: bold;
 }
 .gramene-view-off {
     border-left-color: #ff6d68;
+    color: grey;
 }
 .gramene-view-disabled {
     color: darkgray;
     border-left-color: #efefef;
+    cursor: default!important;
 }
 #gramene-suggestion button {
     border-radius: .6rem;
@@ -91,3 +98,4 @@
     background-color: #6c757d;
     border-color: #6c757d;
 }
+

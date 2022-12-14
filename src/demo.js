@@ -159,7 +159,7 @@ const SearchViews = props => (
         <div className="gramene-sidebar">
           <Status/>
           <Filters/>
-          {/*<Views/>*/}
+          <Views/>
         </div>
       </div>
       <div className="col-md-10 no-padding">

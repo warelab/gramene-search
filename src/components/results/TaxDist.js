@@ -35,7 +35,11 @@ class TaxDist extends React.Component {
     }
     return (
       <div className="results-vis big-vis">
-        <button type="button" className="btn btn-primary btn-sm" onClick={this.toggleEmpties.bind(this)}>{this.state.collapseEmpties ? 'Expand' : 'Collapse'} empty branches</button>
+        {this.props.grameneTaxDist && <button type="button"
+                                              className="btn btn-primary btn-sm"
+                                              onClick={this.toggleEmpties.bind(this)}>
+          {this.state.collapseEmpties ? 'Expand' : 'Collapse'} empty branches
+        </button>}
         {this.props.grameneTaxDist && <Vis taxonomy={this.props.grameneTaxDist}
                                            selectedTaxa={selectedTaxa}
                                            onSelection={this.handleSelection.bind(this)}
