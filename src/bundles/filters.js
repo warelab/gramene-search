@@ -380,7 +380,8 @@ const grameneFilters = {
   selectGrameneFiltersStatus: state => state.grameneFilters.status,
   selectGrameneFiltersQueryString: state => {
     const hasSpaces = new RegExp(/^[^\[\(].*\s/);
-    const isQuery = new RegExp(/\([a-zA-Z0-9_]+:[a-zA-Z0-9_.]+\s/);
+    const isQuery = new RegExp(/\([a-zA-Z0-9_]+:[a-zA-Z0-9_]+\s/);
+    const isRegionQuery = new RegExp(/^\(map:/);
     const idWithColon = new RegExp(/^[a-zA-Z0-9_]+:[a-zA-Z0-9_]+$/);
     function getQuery(node) {
       const negate = node.negate ? 'NOT ' : '';
@@ -390,6 +391,8 @@ const grameneFilters = {
       }
       else {
         // this node is a suggestion
+        if (node.fq_field === 'location' && isRegionQuery.test(node.fq_value))
+          return `${negate}${node.fq_value}`
         if (isQuery.test(node.fq_value))
           return `${negate}${node.fq_value.replace(/:/g,'\\:')}`;
         if (hasSpaces.test(node.fq_value))
