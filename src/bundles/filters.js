@@ -380,7 +380,7 @@ const grameneFilters = {
   selectGrameneFiltersStatus: state => state.grameneFilters.status,
   selectGrameneFiltersQueryString: state => {
     const hasSpaces = new RegExp(/^[^\[\(].*\s/);
-    const isQuery = new RegExp(/\([a-zA-Z0-9_]+:[a-zA-Z0-9_]+\s/);
+    const isQuery = new RegExp(/\([a-zA-Z0-9_]+:[a-zA-Z0-9_.]+\s/);
     const idWithColon = new RegExp(/^[a-zA-Z0-9_]+:[a-zA-Z0-9_]+$/);
     function getQuery(node) {
       const negate = node.negate ? 'NOT ' : '';
