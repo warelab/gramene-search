@@ -474,6 +474,15 @@ grameneFilters.reactGrameneFilters = createSelector(
       if (queryObject.hasOwnProperty('idList')) {
         return handleIdList(queryObject);
       }
+      if (queryObject.hasOwnProperty('fq_field') && queryObject.hasOwnProperty('fq_value')
+        && queryObject.hasOwnProperty('category') && queryObject.hasOwnProperty('name')) {
+        return {
+          type: 'BATCH_ACTIONS', actions: [
+            {type: 'GRAMENE_SEARCH_CLEARED'},
+            {type: 'GRAMENE_FILTER_ADDED', payload: queryObject}
+          ]
+        };
+      }
       const url = new URL(myUrl.href);
       if (url.pathname === '/genes') {
         return {type: 'GRAMENE_FILTERS_CLEARED'}
