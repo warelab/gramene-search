@@ -65,7 +65,7 @@ const ClosestOrthologCmp = (props) =>
   }
 
   return (
-    <div className="closest-ortholog" onClick={
+    <div className="closest-ortholog" onClick={() =>
       props.doReplaceGrameneFilters(suggestionToFilters({
         category: 'Gene',
         fq_field: 'id',
