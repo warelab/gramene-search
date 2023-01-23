@@ -4,32 +4,10 @@ import {connect} from "redux-bundler-react";
 import TreeVis from "gramene-genetree-vis";
 import treesClient from "gramene-trees-client";
 import {Detail, Title, Description, Content, Explore, Links} from "./generic";
+import {suggestionToFilters} from "../../utils";
 import {Spinner, Alert} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
 import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
-
-function suggestionToFilters(suggestion) {
-  return {
-    status: 'init',
-    rows: 20,
-    operation: 'AND',
-    negate: false,
-    leftIdx: 0,
-    rightIdx: 3,
-    children: [
-      {
-        fq_field: suggestion.fq_field,
-        fq_value: suggestion.fq_value,
-        name: suggestion.name,
-        category: suggestion.category,
-        leftIdx: 1,
-        rightIdx: 2,
-        negate: false,
-        marked: false
-      }
-    ]
-  }
-}
 
 class Homology extends React.Component {
   constructor(props) {

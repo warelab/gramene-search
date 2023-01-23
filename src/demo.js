@@ -43,7 +43,7 @@ const panSites = [
     url: 'https://www.gramene.org',
     ensemblURL: 'https://ensembl.gramene.org',
     ensemblSite: 'https://ensembl.gramene.org',
-    ensemblRest: 'https://data.gramene.org/ensembl',
+    ensemblRest: 'https://data.gramene.org/ensembl66',
     grameneData: 'https://data.gramene.org/v66',
     targetTaxonId: 3702,
     alertText: 'Main site'
@@ -101,7 +101,7 @@ const panSites = [
     url: 'https://oryza.gramene.org',
     ensemblStie: 'https://ensembl-oryza.gramene.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-87',
-    grameneData: 'https://data.gramene.org/oryza_v4',
+    grameneData: 'https://data.gramene.org/oryza_v5',
     targetTaxonId: 3702,
     alertText: 'Rice site'
   },

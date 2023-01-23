@@ -8,6 +8,7 @@ import Location from './details/Location'
 import Pathways from "./details/Pathways"
 import Xrefs from "./details/Xrefs"
 import Publications from "./details/Publications"
+import {suggestionToFilters} from "../utils";
 import {GrFormPrevious, GrFormNextLink, GrFormNext, GrHpe} from 'react-icons/gr'
 import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
@@ -44,24 +45,34 @@ function trimSummary(summary) {
   }
 }
 
-const ClosestOrtholog = ({gene}) =>
+const ClosestOrthologCmp = (props) =>
 {
-  let name, desc, species;
+  let id, name, desc, species;
+  const gene = props.gene;
 
   if (gene.model_rep_id) {
     name = gene.model_rep_name || gene.model_rep_id;
     desc = gene.model_rep_description;
     species = gene.model_rep_species_name;
+    id = gene.model_rep_id;
   }
 
   else if (gene.closest_rep_id) {
     name = gene.closest_rep_name || gene.closest_rep_id;
     desc = gene.closest_rep_description;
     species = gene.closest_rep_species_name;
+    id = gene.closest_rep_id;
   }
 
   return (
-    <div className="closest-ortholog">
+    <div className="closest-ortholog" onClick={
+      props.doReplaceGrameneFilters(suggestionToFilters({
+        category: 'Gene',
+        fq_field: 'id',
+        fq_value: id,
+        name: name
+      }))
+    }>
       <h4>
         <span className="gene-id">{name}</span>
         <small className="species-name"> {species}</small>
@@ -70,6 +81,11 @@ const ClosestOrtholog = ({gene}) =>
     </div>
   );
 };
+
+const ClosestOrtholog = connect(
+  'doReplaceGrameneFilters',
+  ClosestOrthologCmp
+);
 
 function renderClosestOrtholog(gene) {
 
