@@ -47,7 +47,7 @@ function trimSummary(summary) {
 
 const ClosestOrthologCmp = (props) =>
 {
-  let id, name, desc, species;
+  let id, taxon_id, name, desc, species;
   const gene = props.gene;
 
   if (gene.model_rep_id) {
@@ -55,6 +55,7 @@ const ClosestOrthologCmp = (props) =>
     desc = gene.model_rep_description;
     species = gene.model_rep_species_name;
     id = gene.model_rep_id;
+    taxon_id = gene.model_rep_taxon_id;
   }
 
   else if (gene.closest_rep_id) {
@@ -62,17 +63,19 @@ const ClosestOrthologCmp = (props) =>
     desc = gene.closest_rep_description;
     species = gene.closest_rep_species_name;
     id = gene.closest_rep_id;
+    taxon_id = gene.closest_rep_taxon_id;
   }
 
   return (
-    <div className="closest-ortholog" onClick={() =>
+    <div className="closest-ortholog" onClick={() => {
+      props.doEnsureGrameneGenome(taxon_id);
       props.doReplaceGrameneFilters(suggestionToFilters({
         category: 'Gene',
         fq_field: 'id',
         fq_value: id,
         name: name
       }))
-    }>
+    }}>
       <h4>
         <span className="gene-id">{name}</span>
         <small className="species-name"> {species}</small>
@@ -83,7 +86,7 @@ const ClosestOrthologCmp = (props) =>
 };
 
 const ClosestOrtholog = connect(
-  'doReplaceGrameneFilters',
+  'doReplaceGrameneFilters','doEnsureGrameneGenome',
   ClosestOrthologCmp
 );
 
