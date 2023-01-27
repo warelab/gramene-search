@@ -31,7 +31,7 @@ const grameneGenomes = {
         {type: 'GRAMENE_GENOMES_TOGGLED'},
         {type: 'GRAMENE_GENOMES_UPDATED', payload: genomes}]})
   },
-  doEnsureGrameneGenome: genome => ({dispatch, getSate}) => {
+  doEnsureGrameneGenome: genome => ({dispatch, getState}) => {
     const state = getState();
     if (Object.keys(state.grameneGenomes.active).length > 0 && !state.grameneGenomes.active.hasOwnProperty(genome)) {
       let active = Object.assign({}, state.grameneGenomes.active);
