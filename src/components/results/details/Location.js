@@ -158,17 +158,18 @@ class Location extends React.Component {
     let links = [
       {name: 'Ensembl Browser', url: `${this.props.ensemblURL}/${gene.system_name}/Gene/Summary?g=${gene._id}`}
     ];
-    if (gene.annotations.taxonomy.ancestors.includes(4557)) {
-      links.push({name: 'PhytoMine', url: `https://phytozome.jgi.doe.gov/phytomine/keywordSearchResults.do?searchTerm=${jgiify(gene._id)}&searchSubmit=Search`})
-    }
+    if (gene.annotations.taxonomy.ancestors.includes(4557))
+      links.push({name: 'Phytozome', url: `https://phytozome.jgi.doe.gov/phytomine/keywordSearchResults.do?searchTerm=${jgiify(gene._id)}&searchSubmit=Search`})
     if (gene.taxon_id === 3702)
-      links.push({name: 'Thalemine', url: `https://bar.utoronto.ca/thalemine/keywordSearchResults.do?searchTerm=${gene._id}&searchSubmit=search`});
+      links.push(
+        {name: 'tair', url: `https://www.arabidopsis.org/servlets/TairObject?name=${gene._id}&type=locus`},
+        {name: 'ThaleMine', url: `https://bar.utoronto.ca/thalemine/keywordSearchResults.do?searchTerm=${gene._id}&searchSubmit=search`}
+      );
+    if (gene.taxon_id === 39947)
+      links.push({name: 'RAP-DB', url: `https://rapdb.dna.affrc.go.jp/locus/?name=${gene._id}`});
     const isMaize = new RegExp(/^Zm[0-9]+/);
-    if (isMaize.test(gene._id)) {
+    if (isMaize.test(gene._id))
       links.push({name: 'MaizeGDB', url: `http://www.maizegdb.org/gene_center/gene/${gene._id}`});
-    }
-    // if (gene.taxon_id === 4577)
-    //   links.push({name: 'MaizeGDB', url: `http://www.maizegdb.org/gene_center/gene/${gene._id}`});
     return links;
   }
 
