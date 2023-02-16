@@ -29,8 +29,8 @@ const StatusCmp = props => {
     }
     const popover = (
       <Popover>
-        <Popover.Title as="h3">Genomes Filter</Popover.Title>
-        <Popover.Content>Searching {props.activeGenomeCount} genomes</Popover.Content>
+        <Popover.Header as="h3">Genomes Filter</Popover.Header>
+        <Popover.Body>Searching {props.activeGenomeCount} genomes</Popover.Body>
       </Popover>
     );
 

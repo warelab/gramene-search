@@ -55,7 +55,7 @@ const panSites = [
     ensemblURL: 'https://maize-pangenome-ensembl.gramene.org',
     ensemblSite: 'https://maize-pangenome-ensembl.gramene.org/genome_browser/index.html',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
-    grameneData: 'https://data.gramene.org/maizepan1',
+    grameneData: 'https://data.gramene.org/maize_v3',
     targetTaxonId: 4577,
     not_downtime: 'The search interface will be undergoing maintenance on Tuesday, July 20 from 3:00 - 4:00 PM EDT',
     renderAlert: () => (

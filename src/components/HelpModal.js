@@ -1,6 +1,6 @@
 import React from "react";
 import { connect } from 'redux-bundler-react'
-import {Modal, Container, Row, Card, CardDeck} from 'react-bootstrap'
+import {Modal, Container, Row, Card, CardGroup} from 'react-bootstrap'
 import './results/genes.css'
 
 const examples = [
@@ -92,7 +92,7 @@ const HelpDemo = ({configuration, doToggleGrameneHelp, doReplaceGrameneFilters})
       <Modal.Body>
         <Container fluid style={{padding: '40px'}}>
           <Row>
-            <CardDeck style={{width:'100%'}}>
+            <CardGroup style={{width:'100%'}}>
               <Card style={{'backgroundColor':'#f3f6f5', 'borderColor':'#DDE5E3'}}>
                 <Card.Body>
                   <Card.Title>Suggestions</Card.Title>
@@ -114,7 +114,7 @@ const HelpDemo = ({configuration, doToggleGrameneHelp, doReplaceGrameneFilters})
                   <div className='gene-search-pic-genetree'/>
                 </Card.Body>
               </Card>
-            </CardDeck>
+            </CardGroup>
           </Row>
           <Row>
             <h4>For Example</h4>
