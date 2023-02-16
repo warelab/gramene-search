@@ -1,6 +1,6 @@
 import React from 'react'
 import { connect } from 'redux-bundler-react'
-import { Alert, OverlayTrigger, Popover, Modal } from 'react-bootstrap'
+import { OverlayTrigger, Popover} from 'react-bootstrap'
 import { IoAlertCircle } from 'react-icons/io5'
 import { BsGearFill,BsTrash } from 'react-icons/bs'
 import GeneList from './results/GeneList'
