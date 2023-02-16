@@ -103,8 +103,8 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
   if (node.warning) {
     const popover = (
       <Popover>
-        <Popover.Title as="h3">Warning</Popover.Title>
-        <Popover.Content>{node.warning}</Popover.Content>
+        <Popover.Header as="h3">Warning</Popover.Header>
+        <Popover.Body>{node.warning}</Popover.Body>
       </Popover>
     );
     warning = (
