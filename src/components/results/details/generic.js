@@ -39,7 +39,7 @@ const QueryTerm = props => {
     category = props.category + ' | ';
   }
   if (_.isNumber(props.count)) {
-    badge = <Badge style={{marginLeft: "0.5rem"}} variant='dark'>{props.count}</Badge>
+    badge = <Badge style={{marginLeft: "0.5rem"}} bg='secondary'>{props.count}</Badge>
   }
   return (
     <Button variant='outline-dark' onClick={props.handleClick}>

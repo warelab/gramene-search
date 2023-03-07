@@ -65,7 +65,7 @@ const Suggestions = props => {
                           variant="outline-secondary"
                           onClick={() => {props.doAcceptSuggestion(sugg); props.doAcceptGrameneSuggestion(sugg)}}>
                     {showMatches(sugg.display_name,props.suggestionsQuery)}{' '}
-                    <Badge variant="secondary">{sugg.num_genes}</Badge>
+                    <Badge bg="secondary">{sugg.num_genes}</Badge>
                   </Button>
                 )}
               </div>
