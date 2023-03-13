@@ -2,6 +2,7 @@
   "name": "gramene-search",
   "version": "1.2.59",
   "description": "search wrapper for gramene",
+  "source": "src/index.js",
   "main": "dist/index.js",
   "scripts": {
     "build": "parcel build ./src/index.js",
@@ -16,7 +17,7 @@
     "start-main": "SUBSITE=main parcel src/index.html",
     "start-sorghum": "SUBSITE=sorghum parcel src/sorghum.html",
     "start-rice": "SUBSITE=rice parcel src/rice.html",
-    "prepare": "npm run build"
+    "prepare": "npx parcel build"
   },
   "author": "Andrew Olson",
   "license": "MIT",
