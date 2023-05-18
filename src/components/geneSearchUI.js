@@ -6,13 +6,16 @@ import { BsGearFill,BsTrash } from 'react-icons/bs'
 import GeneList from './results/GeneList'
 import TaxDist from './results/TaxDist'
 import HelpDemo from './results/HelpDemo'
+import GeneAttribs from './results/GeneAttribs'
 import TaxonomyModal from './TaxonomyModal'
+import ReactGA from 'react-ga'
 import './styles.css';
 
 const inventory = {
   help: HelpDemo,
   list: GeneList,
-  taxonomy: TaxDist
+  taxonomy: TaxDist,
+  attribs: GeneAttribs
 };
 
 const StatusCmp = props => {
@@ -69,7 +72,12 @@ const handleClick = (e, moveCopyMode, showMarked, node, actions) => {
   }
   console.log(node, showMarked);
 };
-
+function logAction(action) {
+  ReactGA.event({
+    category: 'Search',
+    action: action
+  })
+}
 const Filter = ({node,moveCopyMode,showMarked,actions}) => {
   let classes = 'gramene-filter gramene-filter';
   if (node.operation) {
@@ -89,14 +97,14 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
     let key=1;
     let menuItems = [];
     if (node.hasOwnProperty('operation')) {
-      menuItems.push(<li key={key++} onClick={()=>actions.changeOperation(node)}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>);
+      menuItems.push(<li key={key++} onClick={()=>{logAction(`Change to ${node.operation}`); actions.changeOperation(node)}}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>);
     }
     if (node.leftIdx > 0) {
-      menuItems.push(<li key={key++} onClick={()=>actions.deleteNode(node)}>delete</li>);
-      menuItems.push(<li key={key++} onClick={()=>actions.markTargets(node,'move')}>move{node.isSource && ' select destination'}</li>);
-      menuItems.push(<li key={key++} onClick={()=>actions.markTargets(node,'copy')}>copy{node.isSource && ' select destination'}</li>)
+      menuItems.push(<li key={key++} onClick={()=>{logAction(`Delete filter`); actions.deleteNode(node)}}>delete</li>);
+      menuItems.push(<li key={key++} onClick={()=>{logAction(`Move filter`); actions.markTargets(node,'move')}}>move{node.isSource && ' select destination'}</li>);
+      menuItems.push(<li key={key++} onClick={()=>{logAction(`Copy filter`); actions.markTargets(node,'copy')}}>copy{node.isSource && ' select destination'}</li>)
     }
-    menuItems.push(<li key={key++} onClick={()=>actions.negate(node)}>negate</li>);
+    menuItems.push(<li key={key++} onClick={()=>{logAction(`Negate filter`); actions.negate(node)}}>negate</li>);
     menu = <div className='gramene-filter-menu'><ul>{menuItems}</ul></div>;
   }
   let warning;

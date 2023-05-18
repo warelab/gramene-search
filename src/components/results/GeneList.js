@@ -177,6 +177,11 @@ class Gene extends React.Component {
         if (!(this.props.geneDocs && this.props.geneDocs.hasOwnProperty(geneId))) {
           this.props.requestGene(geneId)
         }
+        ReactGA.event({
+          category: 'Search',
+          action: 'Details',
+          label: d.label
+        });
         this.setState({expandedDetail: d.id})
       }
     }
@@ -211,17 +216,12 @@ class Gene extends React.Component {
       <div className="result-gene">
         <div className="result-gene-summary">
           <div className="result-gene-title-body">
-            <h3 className="gene-title">
-              <span className="gene-name">{searchResult.name}</span>
-              {searchResult.id !== searchResult.name && <small className="gene-id">{' '}{searchResult.id}</small>}
-              <ReactGA.OutboundLink
-                eventLabel={searchResult.system_name}
-                to={`${ensemblURL}/${searchResult.system_name}/Info/Index`}
-                className="external-link"
-              >
-                <small className="gene-species">{taxName}</small>
-              </ReactGA.OutboundLink>
-            </h3>
+            <div className="gene-title">
+              <div className="gene-species">{taxName}</div>
+              <h3 className="gene-name">{searchResult.name}
+                {searchResult.id !== searchResult.name && <small className="gene-id">&nbsp;{searchResult.id}</small>}
+              </h3>
+            </div>
             {searchResult.synonyms && <small className="gene-synonyms">{searchResult.synonyms.join(', ')}</small>}
             {numWordsInDescription > 1 && <p className="gene-description">{searchResult.description}</p>}
           </div>

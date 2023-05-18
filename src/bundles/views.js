@@ -17,11 +17,11 @@ const grameneViews = {
           id: 'list',
           name: 'Gene list',
           show: 'on'
-        // },
-        // {
-        //   id: 'pathways',
-        //   name: 'Pathways',
-        //   show: 'disabled'
+        },
+        {
+          id: 'attribs',
+          name: 'Gene attributes',
+          show: 'off'
         }
         // {
         //   id: 'domains',

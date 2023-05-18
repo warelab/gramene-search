@@ -45,13 +45,15 @@
     border-color: antiquewhite;
 }
 .gene-title {
-    padding-top:0.5em;
+    /*padding-top:0.5em;*/
 }
 .gene-id {
     white-space: nowrap;
+    color: black;
 }
 .gene-name {
     color: #557B74;
+    margin-bottom: 0;
 }
 .gene-description {
     margin-bottom: 0;
@@ -59,7 +61,8 @@
 .gene-species {
     white-space: nowrap;
     font-style: italic;
-    padding-left: 1em;
+    font-size:small;
+    font-weight: bold;
 }
 .gene-synonyms {
     white-space: nowrap;

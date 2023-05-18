@@ -3,7 +3,10 @@ import {connect} from "redux-bundler-react";
 import FlatToNested from 'flat-to-nested';
 import {Explore, Links} from "./generic";
 import treesClient from "gramene-trees-client";
-import {TreeMenu} from "react-tree-menu";
+// import {TreeMenu} from "react-tree-menu";
+import TreeMenu from "react-simple-tree-menu";
+import '../../../../node_modules/react-simple-tree-menu/dist/main.css';
+
 import {Spinner} from "react-bootstrap";
 import _ from 'lodash'
 import "./tree-view.css"
@@ -63,10 +66,10 @@ class Pathways extends React.Component {
       let node = this.state.hierarchy[0];
       let path = [0];
       let parent = node;
-      while (node.children) {
+      while (node.nodes) {
         path.push(0);
         parent = node;
-        node = node.children[0];
+        node = node.nodes[0];
       }
       console.log(parent,node,path);
       this.loadNodes(path);
@@ -125,6 +128,7 @@ class Pathways extends React.Component {
           let parentOffset = line.length - 2;
           nodes.push({
             id: pwyId,
+            key: pwyId,
             label: pwy.name,
             type: pwy.type,
             checkbox: false,
@@ -135,21 +139,46 @@ class Pathways extends React.Component {
       }
     });
 
-    let nested = new FlatToNested().convert(nodes);
+    let nested = new FlatToNested({
+      children: 'nodes'
+    }).convert(nodes);
 
     this.setState({hierarchy: [nested], selectedNode: undefined});
   }
-
+  possiblyLoadNodes(node) {
+    if (!node.selected) {
+      let selectedNode = this.state.selectedNode;
+      selectedNode.selected = false;
+      node.selected = true;
+      selectedNode = node;
+      if (node.type === "Pathway") {
+        let pathway = this.stableId(node.id);
+        this.loadDiagram(pathway);
+      }
+      else {
+        let reaction = this.stableId(node.id);
+        let pathway = this.stableId(node.parent.split("/").pop());
+        if (this.loadedDiagram === pathway) {
+          this.diagram.selectItem(reaction);
+        }
+        else {
+          if (this.diagram) this.diagram.resetSelection();
+          this.loadDiagram(pathway,reaction);
+        }
+      }
+      this.setState({selectedNode})
+    }
+  }
   loadNodes(nodes) {
     let hierarchy = this.state.hierarchy;
     let selectedNode = this.state.selectedNode;
     let offset = nodes.shift();
     let nodeRef = hierarchy[offset];
     let lineage = [nodeRef];
-    nodes.forEach(function(n) {
-      nodeRef = nodeRef.children[n];
+    while (nodeRef.nodes) {
+      nodeRef = nodeRef.nodes[0];
       lineage.unshift(nodeRef);
-    });
+    }
     if (lineage[0].id !== 2894885) {
       let pathway = this.stableId(lineage[0].id);
       let reaction = undefined;
@@ -198,16 +227,38 @@ class Pathways extends React.Component {
 
   renderHierarchy() {
     if (this.state.hierarchy) {
-      return (
-        <TreeMenu
-          data={this.state.hierarchy}
-          expandIconClass="fa fa-chevron-right"
-          collapseIconClass="fa fa-chevron-down"
-          stateful={true}
-          collapsible={true}
-          onTreeNodeClick={this.loadNodes.bind(this)}
-        />
-      );
+      let path = [];
+      let allPaths = [];
+      let nodes = this.state.hierarchy;
+      while (nodes) {
+        path.push(nodes[0].key);
+        allPaths.push(path.join('/'));
+        if (nodes[0].hasOwnProperty('nodes')) {
+          nodes = nodes[0].nodes;
+        }
+        else {
+          nodes = undefined;
+        }
+      }
+      // console.log(path);
+      return <TreeMenu
+        data={this.state.hierarchy}
+        hasSearch={false}
+        onClickItem={(item) => this.possiblyLoadNodes(item)}
+        onClickItemx={(item) => console.log('onClickItem', item)}
+        initialActiveKey={path.join('/')}
+        initialOpenNodes={allPaths}
+      />;
+      // return (
+      //   <TreeMenu
+      //     data={this.state.hierarchy}
+      //     expandIconClass="fa fa-chevron-right"
+      //     collapseIconClass="fa fa-chevron-down"
+      //     stateful={true}
+      //     collapsible={true}
+      //     onTreeNodeClick={this.loadNodes.bind(this)}
+      //   />
+      // );
     }
     return <Spinner/>
   }

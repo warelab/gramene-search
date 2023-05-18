@@ -20,7 +20,7 @@ const grameneSuggestions = createAsyncResourceBundle( {
   getPromise: ({store}) => {
     const t = store.selectSuggestionsQuery().replaceAll(':',' ').trim();
     const g = store.selectGrameneGenomes();
-    return fetch(`${store.selectGrameneAPI()}/suggest?q={!boost b=relevance}name:${t}^3 id:${t}^5 synonym:${t}^2 text:${t}*^1`)
+    return fetch(`${store.selectGrameneAPI()}/suggest?q={!boost b=relevance}name:${t}^3 ids:${t}^5 synonym:${t}^2 text:${t}*^1`)
       .then(res => res.json())
       .then(suggestions => {
         if (Object.keys(g.active).length > 0) {
@@ -198,6 +198,70 @@ grameneExpressionAssays.reactGrameneExpressionAssays = createSelector(
   (shouldUpdate) => {
     if (shouldUpdate) {
       return { actionCreator: 'doFetchGrameneExpressionAssays' }
+    }
+  }
+);
+
+const attribFacetFields = [
+  "{!facet.limit='10' facet.mincount='1' key='age'}panset_age_attr_s",
+  "{!facet.limit='100' facet.mincount='1' key='taxa'}panset_ntaxa_attr_i",
+  "{!facet.limit='100' facet.mincount='1' key='AED' type='range' start=0 end=1.0 gap=0.25}MAKER_AED_attr_f",
+  "{!facet.limit='100' facet.mincount='1' key='QI2' type='range' start=0 end=1.0 gap=0.25}MAKER_QI2_attr_f",
+  "{!facet.limit='100' facet.mincount='1' key='QI3' type='range' start=0 end=1.0 gap=0.25}MAKER_QI3_attr_f",
+  "{!facet.limit='100' facet.mincount='1' key='QI4' type='range' start=0 end=1.0 gap=0.25}MAKER_QI4_attr_f",
+  "{!facet.limit='100' facet.mincount='1' key='QI5' type='range' start=0 end=1.0 gap=0.25}MAKER_QI5_attr_f",
+  "{!facet.limit='100' facet.mincount='1' key='QI6' type='range' start=0 end=1.0 gap=0.25}MAKER_QI6_attr_f"
+];
+const attribFacets = {
+  "age":{ "type": "terms", "field": "panset_age_attr_s" },
+  "nTaxa": { "type": "terms", "field": "panset_ntaxa_attr_i", "limit": 100 },
+  "AED":{ "type": "range", "field": "MAKER_AED_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+  "QI2":{ "type": "range", "field": "MAKER_QI2_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+  "QI3":{ "type": "range", "field": "MAKER_QI3_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+  "QI4":{ "type": "range", "field": "MAKER_QI4_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+  "QI5":{ "type": "range", "field": "MAKER_QI5_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+  "QI6":{ "type": "range", "field": "MAKER_QI6_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+  "byAge":{ "type": "terms", "field": "panset_age_attr_s", "facet": {
+      "nTaxa": { "type": "terms", "field": "panset_ntaxa_attr_i", "limit": 100 },
+      "AED":{ "type": "range", "field": "MAKER_AED_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+      "QI2":{ "type": "range", "field": "MAKER_QI2_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+      "QI3":{ "type": "range", "field": "MAKER_QI3_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+      "QI4":{ "type": "range", "field": "MAKER_QI4_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+      "QI5":{ "type": "range", "field": "MAKER_QI5_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
+      "QI6":{ "type": "range", "field": "MAKER_QI6_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 }
+    }
+  }
+}
+const grameneGeneAttribs = createAsyncResourceBundle( {
+  name: 'grameneGeneAttribs',
+  actionBaseType: 'GRAMENE_GENE_ATTRIBS',
+  persist: false,
+  getPromise: ({store}) => {
+    const g = store.selectGrameneGenomes();
+    const taxa = Object.keys(g.active);
+    let fq='';
+    if (taxa.length) {
+      console.log('search add a fq for ',taxa);
+      fq = `&fq=taxon_id:(${taxa.join(' OR ')})`;
+    }
+    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&json.facet=${JSON.stringify(attribFacets)}&rows=0${fq}`)
+    // return fetch(`${store.selectGrameneAPI()}/search?rows=1&q=MAKER_AED_attr_f:*&json.facet=${JSON.stringify(attribFacets)}`)
+      .then(res => res.json())
+      .then(res => {
+        return res.facets
+      })
+  }
+});
+grameneGeneAttribs.reactGrameneGeneAttribs = createSelector(
+  'selectGrameneGeneAttribsShouldUpdate',
+  'selectGrameneFiltersStatus',
+  'selectGrameneViews',
+  (shouldUpdate, status, views) => {
+    if (shouldUpdate && (status === 'finished' || status === 'ready')) {
+      const byId = _.keyBy(views.options,'id');
+      if (byId.attribs.show === "on") {
+        return { actionCreator: 'doFetchGrameneGeneAttribs' }
+      }
     }
   }
 );
@@ -387,4 +451,4 @@ const grameneOrthologs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes];//, grameneExpressionStudies, grameneExpressionAssays];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes, grameneGeneAttribs];//, grameneExpressionStudies, grameneExpressionAssays];

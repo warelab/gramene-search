@@ -1,5 +1,6 @@
 import {connect} from 'redux-bundler-react'
 import React from 'react'
+import ReactGA from 'react-ga'
 import { Button, Badge, Alert } from 'react-bootstrap'
 import './styles.css'
 
@@ -17,6 +18,13 @@ function showMatches(text, x) {
   </span>
 }
 
+function logAction(sugg) {
+  ReactGA.event({
+    category: 'Search',
+    action: 'SetFilter',
+    label: sugg.name
+  })
+}
 const Suggestions = props => {
   let suggestions = props.grameneSuggestions;
   if (suggestions && suggestions.grouped) {
@@ -39,13 +47,13 @@ const Suggestions = props => {
           <Button id={'word'}
                   size={'sm'}
                   variant={'outline-secondary'}
-                  onClick={() => {props.doAcceptSuggestion(sugg1); props.doAcceptGrameneSuggestion(sugg1)}}>
+                  onClick={() => {logAction(sugg1); props.doAcceptSuggestion(sugg1); props.doAcceptGrameneSuggestion(sugg1)}}>
             {`All genes that contain the word "${props.suggestionsQuery}"`}
           </Button>
           <Button id={'word'}
                   size={'sm'}
                   variant={'outline-secondary'}
-                  onClick={() => {props.doAcceptSuggestion(sugg2); props.doAcceptGrameneSuggestion(sugg2)}}>
+                  onClick={() => {logAction(sugg2); props.doAcceptSuggestion(sugg2); props.doAcceptGrameneSuggestion(sugg2)}}>
             {`All genes that contain a word that starts with "${props.suggestionsQuery}"`}
           </Button>
         </div>
@@ -63,7 +71,7 @@ const Suggestions = props => {
                           disabled={sugg.num_genes === 0}
                           size='sm'
                           variant="outline-secondary"
-                          onClick={() => {props.doAcceptSuggestion(sugg); props.doAcceptGrameneSuggestion(sugg)}}>
+                          onClick={() => {logAction(sugg); props.doAcceptSuggestion(sugg); props.doAcceptGrameneSuggestion(sugg)}}>
                     {showMatches(sugg.display_name,props.suggestionsQuery)}{' '}
                     <Badge bg="secondary">{sugg.num_genes}</Badge>
                   </Button>

@@ -74,7 +74,7 @@ const panSites = [
     ensemblURL: 'https://ensembl-dev.sorghumbase.org',
     ensemblSite: 'https://ensembl-dev.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
-    grameneData: 'https://devdata.gramene.org/sorghum_v2',
+    grameneData: 'https://data.sorghumbase.org/sorghum_v6',
     targetTaxonId: 4588,
     alertText: 'Click the search icon in the menu bar or type / to search'
   },
