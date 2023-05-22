@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactGA from 'react-ga'
+import ReactGA from 'react-ga4'
 // import {connect} from "redux-bundler-react";
 import _ from 'lodash'
 import dbxrefs from 'gramene-dbxrefs';
@@ -55,13 +55,18 @@ class Xref extends React.Component {
         let external = <small title="This link opens a page from an external site"> <i className="fa fa-external-link"/></small>;
         return (
           <li key={idx} className={liClass}>
-            <ReactGA.OutboundLink
-              eventLabel={db}
-              to={url}
-              target="_blank"
-            >
-              {item}{external}
-            </ReactGA.OutboundLink>
+            <a href={url} target="_blank" onClick={()=>{
+              ReactGA.event({
+                category: "outbound link", action: "follow", label: item
+              })
+            }}>{item}{external}</a>
+            {/*<ReactGA.OutboundLink*/}
+            {/*  eventLabel={db}*/}
+            {/*  to={url}*/}
+            {/*  target="_blank"*/}
+            {/*>*/}
+            {/*  {item}{external}*/}
+            {/*</ReactGA.OutboundLink>*/}
           </li>
         )
       })

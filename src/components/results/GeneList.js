@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactGA from 'react-ga'
+import ReactGA from 'react-ga4'
 import { connect } from 'redux-bundler-react'
 import './genes.css'
 import Expression from './details/Expression'

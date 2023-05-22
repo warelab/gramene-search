@@ -1,7 +1,7 @@
 import React from 'react';
 import keyBy from 'lodash/keyBy';
 import _ from "lodash";
-import ReactGA from "react-ga";
+import ReactGA from "react-ga4";
 import { BiLinkExternal } from "react-icons/bi";
 import { Button, Badge } from "react-bootstrap";
 
@@ -67,14 +67,19 @@ function renderLinks(links) {
   let external = <small title="This link opens a page from an external site"> <BiLinkExternal/></small>;
   return links.map((link, idx) =>
     <li key={idx}>
-      <ReactGA.OutboundLink
-        eventLabel={link.name}
-        to={link.url}
-        target="_blank"
-        className="external-link"
-      >
-        {link.name}{external}
-      </ReactGA.OutboundLink>
+      <a href={link.url} target="_blank" className="external-link" onClick={()=>{
+        ReactGA.event({
+          category: "outbound link", action: "follow", label: link.name
+        })
+      }}>{link.name}{external}</a>
+      {/*<ReactGA.OutboundLink*/}
+      {/*  eventLabel={link.name}*/}
+      {/*  to={link.url}*/}
+      {/*  target="_blank"*/}
+      {/*  className="external-link"*/}
+      {/*>*/}
+      {/*  {link.name}{external}*/}
+      {/*</ReactGA.OutboundLink>*/}
     </li>
   )
 }

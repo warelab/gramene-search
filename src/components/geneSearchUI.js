@@ -8,7 +8,7 @@ import TaxDist from './results/TaxDist'
 import HelpDemo from './results/HelpDemo'
 import GeneAttribs from './results/GeneAttribs'
 import TaxonomyModal from './TaxonomyModal'
-import ReactGA from 'react-ga'
+import ReactGA from 'react-ga4'
 import './styles.css';
 
 const inventory = {

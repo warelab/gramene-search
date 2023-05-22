@@ -4,6 +4,7 @@ import { render } from 'react-dom'
 import { composeBundles, createCacheBundle } from "redux-bundler";
 import { getConfiguredCache } from 'money-clip';
 import { DebounceInput } from 'react-debounce-input'
+import ReactGA from 'react-ga4'
 import { Alert, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
 import { Status, Filters, Results, Views } from './components/geneSearchUI';
 import GrameneSuggestions from './components/suggestions';
@@ -75,6 +76,7 @@ const panSites = [
     ensemblSite: 'https://ensembl-dev.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
     grameneData: 'https://data.sorghumbase.org/sorghum_v6',
+    ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4588,
     alertText: 'Click the search icon in the menu bar or type / to search'
   },
@@ -360,6 +362,9 @@ cache.getAll().then(initialData => {
     console.log('starting with locally cached data:', initialData)
   }
   const store = getStore(initialData);
+  const config = store.selectConfiguration();
+  ReactGA.initialize(config.ga);
+
   let element = document.getElementById('demo');
   element && render(demo(store), element);
 

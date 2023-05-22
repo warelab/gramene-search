@@ -1,6 +1,6 @@
 import {connect} from 'redux-bundler-react'
 import React from 'react'
-import ReactGA from 'react-ga'
+import ReactGA from 'react-ga4'
 import { Button, Badge, Alert } from 'react-bootstrap'
 import './styles.css'
 
