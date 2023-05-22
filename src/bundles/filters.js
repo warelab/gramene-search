@@ -1,5 +1,6 @@
 import {createSelector} from "redux-bundler";
 import _ from 'lodash';
+import ReactGA from 'react-ga4'
 const MAX_IDLIST_LENGTH = 20;
 
 function findNodeWithLeftIdx(node, idx) {
@@ -491,6 +492,11 @@ grameneFilters.reactGrameneFilters = createSelector(
     if (filters.status === 'finished') {
       const url = new URL(myUrl.href);
       url.search = `filters=${JSON.stringify(Object.assign({}, filters, {status: 'init'}))}&genomes=${genomes.join(',')}`;
+      ReactGA.event({
+        category: "Gene Search",
+        action: "filter finished",
+        label: url.search
+      });
       return {
         type: 'BATCH_ACTIONS', actions: [
           {type: 'URL_UPDATED', payload: {url: url.href, replace:false}},
