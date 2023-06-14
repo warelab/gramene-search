@@ -131,7 +131,7 @@ const curatedGenes = createAsyncResourceBundle( {
   actionBaseType: 'CURATED_GENES',
   persist: true,
   getPromise: ({store}) => {
-    return fetch(`https://devdata.gramene.org/curation/curations?rows=0&minFlagged=2`)
+    return fetch(`https://devdata.gramene.org/curation/curations?rows=0&minFlagged=2&since=12-12-2029`)
       .then(res => res.json())
       .then(curation => _.keyBy(curation.genes, 'gene_id'))
   }
