@@ -133,7 +133,7 @@ const grameneDocs = {
       fetch(`${store.selectGrameneAPI()}/search?q=homology__within_species_paralog:${id}&fl=id,name,*__expr&rows=100`)
         .then(res => res.json())
         .then(res => {
-          const assay_re = /(.+)_tpms_g(\d+)/;
+          const assay_re = /(.+)_g(\d+)/;
           const paralogs = res.response.docs.map(d => {
             let p = {
               id: d.id,
@@ -146,7 +146,7 @@ const grameneDocs = {
             delete d.name;
             Object.entries(d).forEach(assay => {
               const parsed = assay[0].match(assay_re);
-              const expr = parsed[1].replace('_','-');
+              const expr = parsed[1].replace('_','-').replace('-tpms','');
               if (! p.experiments.hasOwnProperty(expr)) {
                 p.experiments[expr] = [];
               }
