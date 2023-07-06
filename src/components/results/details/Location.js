@@ -159,7 +159,7 @@ class Location extends React.Component {
       {name: 'Ensembl Browser', url: `${this.props.ensemblURL}/${gene.system_name}/Gene/Summary?g=${gene._id}`}
     ];
     if (gene.annotations.taxonomy.ancestors.includes(4557))
-      links.push({name: 'Phytozome', url: `https://phytozome.jgi.doe.gov/phytomine/keywordSearchResults.do?searchTerm=${jgiify(gene._id)}&searchSubmit=Search`})
+      links.push({name: 'Phytozome', url: `https://phytozome-next.jgi.doe.gov/report/gene/Sbicolor_v5_1/${jgiify(gene._id)}`})
     if (gene.taxon_id === 3702)
       links.push(
         {name: 'tair', url: `https://www.arabidopsis.org/servlets/TairObject?name=${gene._id}&type=locus`},
