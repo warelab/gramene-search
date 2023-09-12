@@ -165,10 +165,11 @@ class Gene extends React.Component {
   }
   getDetailStatus(d) {
     if (this.state.expandedDetail === d.id) return 'expanded';
-    return d.available ? 'closed' : 'disabled';
+    if (d.available) return 'closed'
+    return d.id === "pubs" ? 'empty' : 'disabled';
   }
   setExpanded(d) {
-    if (d.available) {
+    if (d.available || d.id === "pubs") {
       if (this.state.expandedDetail === d.id) {
         this.setState({expandedDetail: null})
       }

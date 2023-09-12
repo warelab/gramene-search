@@ -88,6 +88,15 @@
     color: lightgray;
     cursor: not-allowed;
 }
+.gene-detail-tab-empty {
+    color: darkgreen;
+    cursor: pointer;
+    font-style: oblique;
+    /*background-color: lightgray;*/
+}
+.gene-detail-tab-empty::before {
+    content: "Add ";
+}
 .gene-detail-tab-expanded {
     color: white;
     background-color: #557B74;

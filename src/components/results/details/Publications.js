@@ -90,9 +90,11 @@ function formatPubsForGene(gene) {
   if(!gene || !_.isArray(gene.xrefs)) {
     throw new Error("No xrefs for " + _.get(gene._id));
   }
-  return gene.xrefs
-    .filter(xr => xr.db === "PUBMED") //dbxrefs.isKnown(xr.db))
-    .sort((a,b) => {
+  let pubs = gene.xrefs.filter(xr => xr.db === "PUBMED");
+  if (pubs.length === 0) {
+    return <tr><td colSpan={3}>No publications found.</td></tr>
+  }
+  return pubs.sort((a,b) => {
       if (a.source) {
         if (b.source) {
           if (a.source < b.source) {
@@ -124,11 +126,11 @@ function formatPubsForGene(gene) {
       )
     })
 }
-
+const formURL = 'https://docs.google.com/forms/d/e/1FAIpQLSey-xPyTysdd9c2phXT6kcbjEDeCppG4dLG7LjZCeLpx_KGog/viewform?usp=pp_url&entry.1266455249=';
 const Publications = ({searchResult, geneDocs}) => (
   <Detail>
     <Title key="title">Curated publications</Title>
-    <Description key="description">This gene has been described in the literature:</Description>
+    <Description key="description">Functions described in the literature:</Description>
     <Content key="content">
       <table className="xrefs table">
         <thead>
@@ -141,6 +143,11 @@ const Publications = ({searchResult, geneDocs}) => (
         <tbody>
         {formatPubsForGene(geneDocs[searchResult.id])}
         </tbody>
+        <tfoot>
+          <tr>
+            <th colSpan={3}>Submit a gene function <a target="_blank" href={formURL + searchResult.id}>here</a></th>
+          </tr>
+        </tfoot>
       </table>
     </Content>
   </Detail>
