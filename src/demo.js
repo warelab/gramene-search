@@ -45,7 +45,8 @@ const panSites = [
     ensemblURL: 'https://ensembl.gramene.org',
     ensemblSite: 'https://ensembl.gramene.org',
     ensemblRest: 'https://data.gramene.org/ensembl66',
-    grameneData: 'https://data.gramene.org/v66',
+    grameneData: 'https://data.gramene.org/v68',
+    ga: 'G-ZTEQBFCRXZ',
     targetTaxonId: 3702,
     alertText: 'Main site'
   },
@@ -77,7 +78,7 @@ const panSites = [
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
     grameneData: 'https://data.sorghumbase.org/sorghum_v6',
     ga: 'G-L5KXDCCZ16',
-    targetTaxonId: 4588,
+    targetTaxonId: 4558,
     alertText: 'Click the search icon in the menu bar or type / to search'
   },
   {
