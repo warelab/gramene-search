@@ -130,7 +130,7 @@ const grameneDocs = {
     const expr = store.selectParalogExpression();
     if (!expr.hasOwnProperty(id)) {
       dispatch({type: 'PARALOG_EXPRESSION_REQUESTED', payload: id});
-      fetch(`${store.selectGrameneAPI()}/search?q=homology__within_species_paralog:${id}&fl=id,name,*__expr&rows=100`)
+      fetch(`${store.selectGrameneAPI()}/search?q=homology__within_species_paralog:${id}&fl=id,atlas_id,name,*__expr&rows=100`)
         .then(res => res.json())
         .then(res => {
           const assay_re = /(.+)_g(\d+)/;
@@ -142,6 +142,10 @@ const grameneDocs = {
               min:1000,
               max:0
             };
+            if (d.atlas_id) {
+              p.atlas_id = d.atlas_id;
+              delete d.atlas_id;
+            }
             delete d.id;
             delete d.name;
             Object.entries(d).forEach(assay => {
