@@ -25,7 +25,7 @@ let inventory = {
 
 function renderTairSummary(searchResult) {
   const summary = searchResult.summary;
-  if(summary && summary !== "NULL" && searchResult.taxon_id === 3702) {
+  if(summary && summary !== "NULL" && searchResult.system_name === "arabidopsis_thaliana") {
     return (
       <div className="gene-summary-tair">
         {trimSummary(summary)}
