@@ -44,6 +44,15 @@ function trimSummary(summary) {
     return <p>{summary}</p>
   }
 }
+const PanLink = (props) => {
+  const gene = props.gene;
+  const pan = props.pan;
+  return <div className="gene-panlink">
+    <a target="_blank" href={pan.url + gene.id}>
+      <img src={pan.svg} title={`View this gene at ${pan.name}`}/>
+    </a>
+  </div>;
+};
 
 const ClosestOrthologCmp = (props) =>
 {
@@ -205,7 +214,7 @@ class Gene extends React.Component {
     return renderTairSummary(gene) || renderClosestOrtholog(gene);
   }
   render() {
-    const ensemblURL = this.props.ensemblURL;
+    const panSite = this.props.panSite;
     const searchResult = this.props.searchResult;
     const taxName = this.props.taxName;
     // let orthologs='';
@@ -217,6 +226,7 @@ class Gene extends React.Component {
       <div className="result-gene">
         <div className="result-gene-summary">
           <div className="result-gene-title-body">
+            {panSite.hasOwnProperty(searchResult.system_name) && <PanLink pan={panSite[searchResult.system_name]} gene={searchResult}/>}
             <div className="gene-title">
               <div className="gene-species">{taxName}</div>
               <h3 className="gene-name">{searchResult.name}
@@ -273,6 +283,7 @@ const GeneList = props => {
               searchResult={g}
               ensemblURL={props.configuration.ensemblURL}
               ensemblRest={props.configuration.ensemblRest}
+              panSite={props.configuration.panSite}
               taxName={props.grameneTaxonomy[g.taxon_id].name}
               geneDocs={props.grameneGenes}
               requestGene={props.doRequestGrameneGene}

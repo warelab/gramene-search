@@ -71,6 +71,14 @@
     float: right;
     border: dashed 1px blue;
 }
+.gene-panlink {
+    float:right;
+}
+.gene-panlink img {
+    height: 60px;
+    width: auto;
+    vertical-align: top;
+}
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;

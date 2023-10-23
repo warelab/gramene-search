@@ -48,7 +48,29 @@ const panSites = [
     grameneData: 'https://data.gramene.org/v68',
     ga: 'G-ZTEQBFCRXZ',
     targetTaxonId: 3702,
-    alertText: 'Main site'
+    alertText: 'Main site',
+    panSite : {
+      sorghum_bicolor : {
+        url: "https://sorghumbase.org/genes?idList=",
+        name: "SorghumBase",
+        svg: "./static/images/sorghum_logo.svg"
+      },
+      vitis_vinifera : {
+        url: "https://vitis.gramene.org?idList=",
+        name: "Gramene Grapevine",
+        svg: "./static/images/grapevine_logo.svg"
+      },
+      oryza_sativa : {
+        url: "https://oryza.gramene.org?idList=",
+        name: "Gramene Oryza",
+        svg: "./static/images/oryza_logo.svg"
+      },
+      zea_mays : {
+        url: "https://maize-pangenome.gramene.org?idList=",
+        name: "Gramene Maize",
+        svg: "./static/images/maize_logo.svg"
+      }
+    }
   },
   {
     id: 'maize',
