@@ -74,6 +74,7 @@
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;
+    white-space: nowrap;
     width: 80em;
 }
 .gene-detail-tab-closed {
