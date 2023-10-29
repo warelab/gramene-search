@@ -76,6 +76,26 @@ grameneSuggestions.doFocusFirstGrameneSuggestion = arg => ({dispatch, getState})
   console.log('inside doFocusFirstGrameneSuggestion');
 };
 
+function compressLongTaxonName(node) {
+  const fullName = node.name;
+  const removedExtraineousWords = fullName.replace(/( Group$| subsp\.| ssp\.| var\.| strain)/, '');
+  let finalVersion;
+  if (removedExtraineousWords.length > 20) {
+    let words = removedExtraineousWords.split(' ');
+    if (words.length === 2) {
+      // abrreviate first word.
+      finalVersion = removedExtraineousWords.replace(/^([A-Z])[a-z]+/, '$1.')
+    }
+    if (words.length > 2) {
+      finalVersion = removedExtraineousWords.replace(/^([A-Z])[a-z]+\s([a-z])[a-z]+/, '$1$2.')
+    }
+  }
+  else {
+    finalVersion = removedExtraineousWords;
+  }
+  node.short_name = finalVersion;
+}
+
 const grameneTaxonomy = createAsyncResourceBundle({
   name: 'grameneTaxonomy',
   actionBaseType: 'GRAMENE_TAXONOMY',
@@ -87,6 +107,7 @@ const grameneTaxonomy = createAsyncResourceBundle({
         let taxonomy = _.keyBy(taxNodes, '_id');
         taxNodes.forEach(t => {
           t._id = +t._id; // ensure taxonomy id is a number
+          compressLongTaxonName(t);
           if (t.hasOwnProperty("is_a")) {
             t.is_a.forEach(p_id => {
               const p = taxonomy[p_id];

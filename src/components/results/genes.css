@@ -123,7 +123,7 @@
     flex: 1 1 auto;
     width: 1036px;
 }
-.closest-ortholog, .gene-summary-tair {
+.model-ortholog, .closest-ortholog, .gene-summary-tair {
     cursor: pointer;
     flex: 1 1 auto;
     width: 500px;
@@ -134,12 +134,15 @@
     border: 1px solid darkorange;
 }
 
-.closest-ortholog {
+.model-ortholog {
     border: 1px dotted darkorange;
+}
+.closest-ortholog {
+    border: 1px dotted darkgreen;
 }
 
 .gene-summary-tair {
-    border: 1px dotted darkgreen;
+    border: 1px dotted darkblue;
 }
 .gene-summary-tair .rest {
     display: none;
@@ -160,6 +163,7 @@
 
 /* this is the "title" of the closest ortholog box */
 .closest-ortholog::before,
+.model-ortholog::before,
 .gene-summary-tair::before {
     position: relative;
     float: right;
@@ -170,15 +174,19 @@
     background: #fff;
 }
 
-.closest-ortholog::before {
+.model-ortholog::before {
     content: "Model Species Homolog";
     color: orange;
+}
+.closest-ortholog::before {
+    content: "Closest Annotated Homolog";
+    color: darkgreen;
 }
 
 /* this is the "title" of the closest ortholog box */
 .gene-summary-tair::before {
     content: "TAIR Curated Description";
-    color: darkgreen;
+    color: darkblue;
 }
 
 .gene-search-pic-sugg {

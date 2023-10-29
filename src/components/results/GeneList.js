@@ -56,27 +56,29 @@ const PanLink = (props) => {
 
 const ClosestOrthologCmp = (props) =>
 {
-  let id, taxon_id, name, desc, species;
+  let id, taxon_id, name, desc, species, className;
   const gene = props.gene;
 
-  if (gene.model_rep_id) {
-    name = gene.model_rep_name || gene.model_rep_id;
-    desc = gene.model_rep_description;
-    species = gene.model_rep_species_name;
-    id = gene.model_rep_id;
-    taxon_id = gene.model_rep_taxon_id;
-  }
-
-  else if (gene.closest_rep_id) {
+  if (gene.closest_rep_id) {
     name = gene.closest_rep_name || gene.closest_rep_id;
     desc = gene.closest_rep_description;
     species = gene.closest_rep_species_name;
     id = gene.closest_rep_id;
     taxon_id = gene.closest_rep_taxon_id;
+    className = "closest-ortholog";
+  }
+  else if (gene.model_rep_id) {
+    name = gene.model_rep_name || gene.model_rep_id;
+    desc = gene.model_rep_description;
+    species = gene.model_rep_species_name;
+    id = gene.model_rep_id;
+    taxon_id = gene.model_rep_taxon_id;
+    className = "model-ortholog";
   }
 
+
   return (
-    <div className="closest-ortholog" onClick={() => {
+    <div className={className} onClick={() => {
       props.doEnsureGrameneGenome(taxon_id);
       props.doReplaceGrameneFilters(suggestionToFilters({
         category: 'Gene',
@@ -85,10 +87,8 @@ const ClosestOrthologCmp = (props) =>
         name: name
       }))
     }}>
-      <h4>
-        <span className="gene-id">{name}</span>
-        <small className="species-name"> {species}</small>
-      </h4>
+      <div className="gene-species">{species}</div>
+      <h3 className="gene-id">{name}</h3>
       <p>{desc}</p>
     </div>
   );
@@ -206,10 +206,10 @@ class Gene extends React.Component {
   renderMetadata() {
     let gene = this.props.searchResult;
     if (gene.model_rep_taxon_id) {
-      gene.model_rep_species_name = this.props.taxLut[gene.model_rep_taxon_id].name;
+      gene.model_rep_species_name = this.props.taxLut[gene.model_rep_taxon_id].short_name;
     }
     if (gene.closest_rep_taxon_id) {
-      gene.closest_rep_species_name = this.props.taxLut[gene.closest_rep_taxon_id].name;
+      gene.closest_rep_species_name = this.props.taxLut[gene.closest_rep_taxon_id].short_name;
     }
     return renderTairSummary(gene) || renderClosestOrtholog(gene);
   }
