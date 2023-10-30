@@ -1,6 +1,25 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {connect} from "redux-bundler-react";
 import {Tabs, Tab} from 'react-bootstrap';
+
+const ImageLoader = props => {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const image = new Image();
+    image.src = props.url;
+    image.onload = () => {
+      setLoading(false);
+    };
+  }, []);
+
+  return (
+    <div className="BAR-container">
+      {loading && <img src="https://www.sorghumbase.org/static/images/dna_spinner.svg" alt="Loading..." />}
+      {!loading && <img style={{'max-width':'100%'}} src={props.url} />}
+    </div>
+  );
+}
 
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
@@ -37,7 +56,7 @@ const Detail = props => {
         <select value={selectedStudy} onChange={handleSelectChange}>
           {efp_browser.options.map(o => <option value={o.value}>{o.label}</option>)}
         </select><br/>
-        <img style={{'max-width':'100%'}} src={`${efp_browser.path}/${selectedStudy}/Absolute/${efp_browser.gene}`}/><br/>
+        <ImageLoader url={`${efp_browser.path}/${selectedStudy}/Absolute/${efp_browser.gene}`}/>
         <a href={`${efp_browser.bar}?dataSource=${selectedStudy}&mode=Absolute&primaryGene=${efp_browser.gene}`}>Powered by <img src="https://bar.utoronto.ca/bbc_logo_small.gif"/> BAR Webservices</a>
       </div>
     )
