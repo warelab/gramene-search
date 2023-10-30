@@ -75,7 +75,10 @@ const ClosestOrthologCmp = (props) =>
     taxon_id = gene.model_rep_taxon_id;
     className = "model-ortholog";
   }
-
+  var isZm = new RegExp(/^Zm00001e/);
+  if (isZm.test(desc)) {
+    desc='';
+  }
 
   return (
     <div className={className} onClick={() => {
