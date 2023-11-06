@@ -56,7 +56,7 @@ const PanLink = (props) => {
 
 const ClosestOrthologCmp = (props) =>
 {
-  let id, taxon_id, name, desc, species, className;
+  let id, taxon_id, name, desc, species, className, identity;
   const gene = props.gene;
 
   if (gene.closest_rep_id) {
@@ -66,6 +66,7 @@ const ClosestOrthologCmp = (props) =>
     id = gene.closest_rep_id;
     taxon_id = gene.closest_rep_taxon_id;
     className = "closest-ortholog";
+    identity = gene.closest_rep_identity || 0;
   }
   else if (gene.model_rep_id) {
     name = gene.model_rep_name || gene.model_rep_id;
@@ -74,6 +75,7 @@ const ClosestOrthologCmp = (props) =>
     id = gene.model_rep_id;
     taxon_id = gene.model_rep_taxon_id;
     className = "model-ortholog";
+    identity = gene.model_rep_identity || 0;
   }
   var isZm = new RegExp(/^Zm00001e/);
   if (isZm.test(desc)) {
@@ -91,6 +93,7 @@ const ClosestOrthologCmp = (props) =>
       }))
     }}>
       <div className="gene-species">{species}</div>
+      {identity > 0 && <div className="rep-identity">{Math.round(identity*100)}</div>}
       <h3 className="gene-id">{name}</h3>
       <p>{desc}</p>
     </div>
