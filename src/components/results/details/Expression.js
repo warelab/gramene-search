@@ -18,7 +18,7 @@ const Detail = props => {
     props.doRequestParalogExpression(gene._id)
   }
   return <Tabs>
-    {haveBAR(gene) && <Tab tabClassName="eFP" eventKey="eFP" title="eFP browser"><BAR gene={gene}/></Tab>}
+    {haveBAR(gene) && <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser"><BAR gene={gene}/></Tab>}
     <Tab tabClassName="gxa" eventKey="gene" title="All Studies">
       <iframe src={gene_url} frameBorder="0" width="100%" height="500px"></iframe>
     </Tab>
