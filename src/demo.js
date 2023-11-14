@@ -106,19 +106,37 @@ const panSites = [
   {
     id: 'grapevine',
     name: 'Grapevine',
+    ga: 'G-ZTEQBFCRXZ',
     url: 'https://vitis.gramene.org',
     ensemblURL: 'https://vitis-ensembl.gramene.org',
     ensemblSite: 'https://vitis-ensembl.gramene.org/genome_browser/index.html',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl',
-    grameneData: 'https://data.gramene.org/grapevine_v3',
+    grameneData: 'https://data.gramene.org/grapevine_v4',
     curation: {
       url: 'http://curate.gramene.org/grapevine?gene=',
       taxa: {
-        29760: 1
+        29760020: 1
       }
     },
-    targetTaxonId: 29760,
-    alertText: 'Grapevine site'
+    targetTaxonId: 29760020,
+    alertText: 'Grapevine site',
+    panSite : {
+      sorghum_bicolor : {
+        url: "https://sorghumbase.org/genes?idList=",
+        name: "SorghumBase",
+        svg: "./static/images/sorghum_logo.svg"
+      },
+      oryza_sativa : {
+        url: "https://oryza.gramene.org?idList=",
+        name: "Gramene Oryza",
+        svg: "./static/images/oryza_logo.svg"
+      },
+      zea_maysb73 : {
+        url: "https://maize-pangenome.gramene.org?idList=",
+        name: "Gramene Maize",
+        svg: "./static/images/maize_logo.svg"
+      }
+    }
   },
   {
     id: 'rice',
