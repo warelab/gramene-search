@@ -115,6 +115,7 @@ const grameneDocs = {
     let newIds = ids.filter(id => !pathways.hasOwnProperty(id));
     if (newIds) {
       dispatch({type: 'GRAMENE_PATHWAYS_REQUESTED', payload: newIds});
+      if (newIds.length === 1) newIds.push(0);
       fetch(`${store.selectGrameneAPI()}/pathways?idList=${newIds.join(',')}`)
         .then(res => res.json())
         .then(res => {
