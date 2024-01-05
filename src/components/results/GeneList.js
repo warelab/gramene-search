@@ -8,6 +8,7 @@ import Location from './details/Location'
 import Pathways from "./details/Pathways"
 import Xrefs from "./details/Xrefs"
 import Publications from "./details/Publications"
+import Sequences from "./details/Sequences"
 import {suggestionToFilters} from "../utils";
 import {GrFormPrevious, GrFormNextLink, GrFormNext, GrHpe} from 'react-icons/gr'
 import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap'
@@ -15,6 +16,7 @@ import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap'
 let external = <small title="This link opens a page from an external site"> <i className="fa fa-external-link"/></small>;
 
 let inventory = {
+  sequences: Sequences,
   location: Location,
   expression: Expression,
   homology: Homology,
@@ -136,6 +138,12 @@ class Gene extends React.Component {
     this.state = {
       details: [
         {
+          id: 'sequences',
+          label: 'Sequences',
+          popup: 'Gene/cDNA/protein fasta',
+          available: true
+        },
+        {
           id: 'location',
           label: 'Location',
           popup: 'Genome Browser',
@@ -176,7 +184,7 @@ class Gene extends React.Component {
     };
     let hasData = {};
     props.searchResult.capabilities.forEach(c => hasData[c]=true);
-    this.state.details.forEach(d => d.available = hasData.hasOwnProperty(d.id));
+    this.state.details.forEach(d => d.available |= hasData.hasOwnProperty(d.id));
   }
   getDetailStatus(d) {
     if (this.state.expandedDetail === d.id) return 'expanded';
@@ -253,10 +261,10 @@ class Gene extends React.Component {
                 <Tooltip id={`tooltip`}>{d.popup}</Tooltip>
               }
             >
-            <div key={idx}
+              <div key={idx}
                  className={`col-md-1 text-center gene-detail-tab-${this.getDetailStatus(d)}`}
                  onClick={()=>this.setExpanded(d)}
-            >{d.label}</div>
+              >{d.label}</div>
             </OverlayTrigger>
           ))}
         </div>

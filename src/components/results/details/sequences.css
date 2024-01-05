@@ -1,0 +1,70 @@
+/* styles.css */
+.fasta-container {
+    position: relative;
+    padding: 2ch;
+    background-color: #fcfffd;
+    border-color: #557b74;
+    border-style: dashed;
+    line-height: 0.925em;
+    /*margin: auto; !* Center the container *!*/
+}
+
+code.fasta {
+    white-space: pre-wrap;
+    color: #595959;
+}
+.header {
+    color: black;
+}
+.upstream {
+    color: #80a0a0;
+}
+.downstream {
+    color: #80a0a0;
+}
+.intron {
+    color: #aaaaaa;
+}
+.utr5 {
+    background-color: #aaccaf;
+}
+.utr5-other {
+    background-color: #cfe1d2;
+}
+.cds {
+    background-color: #a7b4d3;
+}
+.cds-other {
+    background-color: #d0d8e6;
+}
+.utr3 {
+    background-color: #c5a3bf;
+}
+.utr3-other {
+    background-color: #dcc9d9;
+}
+.reverse-slide {
+    direction: rtl;
+}
+.copy-button {
+    position: absolute;
+    top: 3px;
+    right: -5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #555;
+}
+.notification {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #050505;
+    color: #fff;
+    padding: 5px;
+    z-index: 999;
+    font-weight: bold;
+    font-style: italic;
+    font-size: smaller;
+}

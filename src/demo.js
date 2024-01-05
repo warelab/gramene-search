@@ -101,7 +101,24 @@ const panSites = [
     grameneData: 'https://data.sorghumbase.org/sorghum_v6',
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558,
-    alertText: 'Click the search icon in the menu bar or type / to search'
+    alertText: 'Click the search icon in the menu bar or type / to search',
+    panSite : {
+      vitis_vinifera : {
+        url: "https://vitis.gramene.org?idList=",
+        name: "Gramene Grapevine",
+        svg: "./static/images/grapevine_logo.svg"
+      },
+      oryza_sativa : {
+        url: "https://oryza.gramene.org?idList=",
+        name: "Gramene Oryza",
+        svg: "./static/images/oryza_logo.svg"
+      },
+      zea_mays : {
+        url: "https://maize-pangenome.gramene.org?idList=",
+        name: "Gramene Maize",
+        svg: "./static/images/maize_logo.svg"
+      }
+    }
   },
   {
     id: 'grapevine',
@@ -170,6 +187,7 @@ const config = {
     dispatch({type: 'GRAMENE_HELP_TOGGLED', payload: null})
   },
   selectGrameneAPI: state => state.config.grameneData,
+  selectEnsemblAPI: state => state.config.ensemblRest,
   selectTargetTaxonId: state => state.config.targetTaxonId,
   selectCuration: state => state.config.curation,
   selectConfiguration: state => state.config

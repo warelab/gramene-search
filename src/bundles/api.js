@@ -135,7 +135,15 @@ const grameneMaps = createAsyncResourceBundle({
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/maps?rows=-1`)
       .then(res => res.json())
-      .then(maps => _.keyBy(maps, 'taxon_id'))
+      .then(maps => {
+        maps.forEach(m => {
+          m.regionLength = {};
+          m.regions.names.forEach((rname,idx) => {
+            m.regionLength[rname] = m.regions.lengths[idx]
+          })
+        })
+        return _.keyBy(maps, 'taxon_id');
+      })
   }
 });
 grameneMaps.reactGrameneMaps = createSelector(

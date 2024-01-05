@@ -6,7 +6,9 @@ const grameneDocs = {
       trees: {},
       domains: {},
       pathways: {},
-      expression: {}
+      expression: {},
+      sequences: {},
+      studies: {}
     };
     return (state = initialState, {type, payload}) => {
       let newState;
@@ -44,6 +46,33 @@ const grameneDocs = {
         case 'GRAMENE_PATHWAYS_RECEIVED':
           newState = Object.assign({}, state);
           newState.pathways = Object.assign({}, state.pathways, payload);
+          return newState;
+        case 'ATLAS_STUDIES_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.studies = Object.assign({}, state.studies, payload);
+          return newState;
+        case 'ATLAS_SAMPLES_REQUESTED':
+          if (!state.studies[payload].hasOwnProperty('samples')) {
+            newState = Object.assign({},state);
+            newState.studies[payload].samples = [];
+            return newState;
+          }
+          break;
+        case 'ATLAS_SAMPLES_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.studies[payload.id].samples = payload.samples;
+          return newState;
+        case 'GENE_SEQUENCE_REQUESTED':
+          if (!state.sequences.hasOwnProperty(payload)) {
+            newState = Object.assign({}, state);
+            newState.sequences[payload] = {};
+            return newState;
+          }
+          break;
+        case 'GENE_SEQUENCE_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.sequences = Object.assign({}, state.sequences);
+          newState.sequences[payload.id] = payload.geneSeq;
           return newState;
         case 'PARALOG_EXPRESSION_REQUESTED':
           if (!state.expression.hasOwnProperty(payload)) {
@@ -127,6 +156,53 @@ const grameneDocs = {
         })
     }
   },
+  doRequestExpressionStudies: id => ({dispatch, store}) => {
+    fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
+      .then(res => res.json())
+      .then(res => {
+        let studies = {};
+        res.forEach(s => {
+          studies[s._id] = s;
+          if (! studies.hasOwnProperty('taxon_id')) {
+            studies[s.taxon_id] = []
+          }
+          studies[s.taxon_id].push(s._id)
+        })
+        dispatch({type: 'ATLAS_STUDIES_RECEIVED', payload: studies})
+      })
+  },
+  doRequestStudyMetadata: id => ({dispatch, store}) => {
+    const studies = store.selectAtlasStudies();
+    if (!studies[id].hasOwnProperty('samples')) {
+      dispatch({type: 'ATLAS_SAMPLES_REQUESTED', payload: id});
+      fetch(`${store.selectGrameneAPI()}/assays?experiment=${id}&rows=-1`)
+        .then(res => res.json())
+        .then(samples => {
+          dispatch({type: 'ATLAS_SAMPLES_RECEIVED', payload: {id, samples}})
+        })
+    }
+  },
+  doRequestGeneSequence: gene => ({dispatch, store}) => {
+    const maps = store.selectGrameneMaps();
+    const seqs = store.selectGeneSequences();
+    const id = gene._id;
+    const MAX_FLANK = 2000;
+    if (!seqs.hasOwnProperty(id)) {
+      dispatch({type: 'GENE_SEQUENCE_REQUESTED', payload: id});
+      const start = gene.location.start > MAX_FLANK ? gene.location.start - MAX_FLANK : 1;
+      const dnaLength = maps[gene.taxon_id].regionLength[gene.location.region];
+      const end = gene.location.end + MAX_FLANK > dnaLength ? dnaLength : gene.location.end + MAX_FLANK;
+      fetch(`${store.selectEnsemblAPI()}/sequence/region/${gene.system_name}/${gene.location.region}:${start}..${end}:${gene.location.strand}?content-type=application/json`)
+        .then(res => res.json())
+        .then(geneSeq => {
+          const x = geneSeq.id.split(':');
+          geneSeq.genome = x[1];
+          geneSeq.start = +x[3];
+          geneSeq.end = +x[4];
+          dispatch({type: 'GENE_SEQUENCE_RECEIVED', payload: {id, geneSeq}});
+        })
+    }
+  },
   doRequestParalogExpression: id => ({dispatch, store}) => {
     const expr = store.selectParalogExpression();
     if (!expr.hasOwnProperty(id)) {
@@ -175,7 +251,9 @@ const grameneDocs = {
   selectGrameneGenes: state => state.grameneDocs.genes,
   selectGrameneTrees: state => state.grameneDocs.trees,
   selectGramenePathways: state => state.grameneDocs.pathways,
-  selectParalogExpression: state => state.grameneDocs.expression
+  selectParalogExpression: state => state.grameneDocs.expression,
+  selectGeneSequences: state => state.grameneDocs.sequences,
+  selectAtlasStudies: state => state.grameneDocs.studies
 };
 
 export default grameneDocs;
