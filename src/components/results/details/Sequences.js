@@ -33,6 +33,16 @@ const CodeBlock = props => {
 
   return (
     <div className="fasta-container">
+      <code className="fasta"><b>Key:</b>
+        <span className="upstream">--upstream--</span>
+        <span className="utr5">--5'UTR--</span>
+        <span className="cds">--Coding exon--</span>
+        <span className="intron">--intron--</span>
+        <span className="cds">--Coding exon--</span>
+        <span className="utr3">--3'UTR--</span>
+        <span className="downstream">--downstream--</span>
+        <br/><br/>
+      </code>
       <code className="fasta"><span className="header">&gt;{props.id}</span><br/>{
         props.blocks.map((block,idx) =>
           <span key={idx} className={block.kind}>{block.seq}</span>
@@ -47,17 +57,18 @@ const CodeBlock = props => {
 const decorateDNA = (geneSeq, gene, up, down, tid) => {
   // return a list of blocks with kind and seq properties
   let blocks = [];
+  const transcript = gene.gene_structure.transcripts.find(tr => tr.id === tid);
   const offset = gene.location.strand === 1
     ? gene.location.start - geneSeq.start
     : geneSeq.end - gene.location.end
   if (up > 0) {
+    const TSS = gene.gene_structure.exons.find(exon => exon.id === transcript.exons[0]).start;
     blocks.push({
       kind:'upstream',
-      seq: geneSeq.seq.substring(offset - up, offset).toLowerCase()
+      seq: geneSeq.seq.substring(offset - up + TSS - 1, offset + TSS - 1).toLowerCase()
     })
   }
   // add exons and introns based on tid
-  const transcript = gene.gene_structure.transcripts.find(tr => tr.id === tid);
   let pos_in_transcript = 0;
   let pos_in_gene = 0;
   let blockType = 'utr5';
@@ -68,7 +79,7 @@ const decorateDNA = (geneSeq, gene, up, down, tid) => {
         kind: 'intron',
         seq: geneSeq.seq.substring(offset + pos_in_gene, offset + exon.start - 1).toLowerCase()
       };
-      blocks.push(intronBlock);
+      // actually, don't do this blocks.push(intronBlock);
       pos_in_gene = exon.start-1;
     }
     let exon_length = exon.end - exon.start + 1;
@@ -150,14 +161,14 @@ const Detail = props => {
   const [downstream, setDownstream] = useState(0);
   const [tid, setTid] = useState(gene.gene_structure.canonical_transcript);
   return <Tabs>
-    <Tab tabClassName="dna" eventKey="dna" title="DNA">
-      <Container style={{ width: '60ch', marginLeft: 0}}>
+    <Tab tabClassName="dna" eventKey="dna" title="Genomic sequence">
+      <Container style={{ width: '100ch', marginLeft: 0}}>
         <Row>
           <Col><b><i>Show flanking sequence</i></b></Col>
         </Row>
         <Row>
           <Col style={{ maxWidth: '5ch', textAlign: 'right'}}>{upstream}</Col>
-          <Col>
+          <Col style={{maxWidth: '20ch'}}>
             <Form.Range
               className="reverse-slide"
               value={upstream}
@@ -167,8 +178,17 @@ const Detail = props => {
               step={10}
             /><div style={{textAlign:'right'}}>Upstream</div>
           </Col>
-          <Col style={{ textWrap:'nowrap', textAlign: 'center'}}>|----Gene Body----|</Col>
-          <Col>
+          <Col style={{maxWidth: '30ch'}}>
+            <div className="styled-span">
+              <div className="vertical-line"/>
+              <div className="horizontal-line"/>
+              <span>Transcript (unspliced)</span>
+              <div className="horizontal-line"/>
+              <div className="vertical-line"/>
+            </div>
+          </Col>
+          {/*<Col style={{ textWrap:'nowrap', textAlign: 'center', maxWidth: '30ch'}}><span className="gene-body-thing">Transcript (unspliced)</span></Col>*/}
+          <Col style={{maxWidth: '20ch'}}>
             <Form.Range
               value={downstream}
               onChange={(e) => setDownstream(e.target.value)}
@@ -204,9 +224,9 @@ const Detail = props => {
       </Container>
       {geneSeq && <CodeBlock id={buildId(gene,geneSeq,+upstream,+downstream)} seq={geneSeq.seq.substring(maxUp - +upstream, maxUp + gene.location.end - gene.location.start + 1 + +downstream)} blocks={decorateDNA(geneSeq,gene,+upstream,+downstream,tid)}/>}
     </Tab>
-    <Tab tabClassName="cdna" eventKey="cdna" title="cDNA"></Tab>
+    <Tab tabClassName="cdna" eventKey="cdna" title="Transcript sequence"></Tab>
     {gene.biotype === "protein_coding" &&
-      <Tab tabClassName="pep" eventKey="pep" title="protein"></Tab>}
+      <Tab tabClassName="pep" eventKey="pep" title="Peptide sequence"></Tab>}
   </Tabs>
 };
 

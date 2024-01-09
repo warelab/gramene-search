@@ -8,7 +8,22 @@
     line-height: 0.925em;
     /*margin: auto; !* Center the container *!*/
 }
-
+.styled-span {
+    display: flex;
+    align-items: center;
+    text-align: center;
+}
+.vertical-line {
+    flex-grow: 1;
+    height: 20px;
+    background-color: black;
+}
+.horizontal-line {
+    width: 57px;
+    height: 3px;
+    background-color: black;
+    margin: 0 0px;
+}
 code.fasta {
     white-space: pre-wrap;
     color: #595959;
