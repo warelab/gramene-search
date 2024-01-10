@@ -33,7 +33,7 @@ const CodeBlock = props => {
 
   return (
     <div className="fasta-container">
-      <code className="fasta"><b>Key:</b>
+      {props.mode === "dna" && <code className="fasta"><b>Key:</b>
         <span className="upstream">--upstream--</span>
         <span className="utr5">--5'UTR--</span>
         <span className="cds">--Coding exon--</span>
@@ -43,6 +43,17 @@ const CodeBlock = props => {
         <span className="downstream">--downstream--</span>
         <br/><br/>
       </code>
+      }
+      {props.mode === "rna" && <code className="fasta"><b>Key:</b>
+        <span className="utr5">--5'UTR exon 1--</span>
+        <span className="utr5-other">--5'UTR exon 2--</span>
+        <span className="cds">--Coding exon 1--</span>
+        <span className="cds-other">--Coding exon 2--</span>
+        <span className="utr3">--3'UTR exon 1--</span>
+        <span className="utr3-other">--3'UTR exon 2--</span>
+        <br/><br/>
+    </code>
+      }
       <code className="fasta"><span className="header">&gt;{props.id}</span><br/>{
         props.blocks.map((block,idx) =>
           <span key={idx} className={block.kind}>{block.seq}</span>
@@ -54,7 +65,7 @@ const CodeBlock = props => {
   );
 };
 
-const decorateDNA = (geneSeq, gene, up, down, tid) => {
+const decorateSeq = (geneSeq, gene, up, down, tid, mode) => {
   // return a list of blocks with kind and seq properties
   let blocks = [];
   const transcript = gene.gene_structure.transcripts.find(tr => tr.id === tid);
@@ -72,15 +83,18 @@ const decorateDNA = (geneSeq, gene, up, down, tid) => {
   let pos_in_transcript = 0;
   let pos_in_gene = 0;
   let blockType = 'utr5';
+  let extra = '';
   transcript.exons.forEach((eid, e_idx) => {
     const exon = gene.gene_structure.exons.find(exon => exon.id === eid);
-    if (exon.start > 1) { // for transcripts with a later TSS treat it as an intron
-      let intronBlock = {
+    if (e_idx > 0 && mode === "dna") {
+      blocks.push({
         kind: 'intron',
         seq: geneSeq.seq.substring(offset + pos_in_gene, offset + exon.start - 1).toLowerCase()
-      };
-      // actually, don't do this blocks.push(intronBlock);
+      });
       pos_in_gene = exon.start-1;
+    }
+    if (mode === "rna") {
+      extra = e_idx % 2 === 1 ? '-other' : '';
     }
     let exon_length = exon.end - exon.start + 1;
     if (transcript.cds && pos_in_transcript < transcript.cds.start && pos_in_transcript + exon_length >= transcript.cds.start) {
@@ -88,7 +102,7 @@ const decorateDNA = (geneSeq, gene, up, down, tid) => {
       const utr5_len = transcript.cds.start - pos_in_transcript - 1;
       if (utr5_len > 0) {
         blocks.push({
-          kind: blockType,
+          kind: blockType + extra,
           seq: geneSeq.seq.substring(offset + pos_in_gene, offset + pos_in_gene + utr5_len)
         });
         exon_length -= utr5_len;
@@ -102,7 +116,7 @@ const decorateDNA = (geneSeq, gene, up, down, tid) => {
       const cds_len = transcript.cds.end - pos_in_transcript;
       if (cds_len > 0) {
         blocks.push({
-          kind: blockType,
+          kind: blockType + extra,
           seq: geneSeq.seq.substring(offset + pos_in_gene, offset + pos_in_gene + cds_len)
         });
         exon_length -= cds_len;
@@ -113,7 +127,7 @@ const decorateDNA = (geneSeq, gene, up, down, tid) => {
     }
     if (exon_length > 0) {
       blocks.push({
-        kind: blockType,
+        kind: blockType + extra,
         seq: geneSeq.seq.substring(offset + pos_in_gene, offset + pos_in_gene + exon_length)
       })
     }
@@ -147,7 +161,13 @@ const buildId = (gene, geneSeq, up, down) => {
 };
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
+  const [tab, setTab] = useState('dna');
+  const [upstream, setUpstream] = useState(0);
+  const [downstream, setDownstream] = useState(0);
+  const [tid, setTid] = useState(gene.gene_structure.canonical_transcript);
   let geneSeq;
+  let rnaSeq;
+  let pepSeq;
   if (props.geneSequences && props.geneSequences[gene._id]) {
     geneSeq = props.geneSequences[gene._id];
   }
@@ -155,12 +175,30 @@ const Detail = props => {
     props.doRequestGeneSequence(gene)
     return <pre>loading</pre>;
   }
+  if (props.rnaSequences && props.rnaSequences[tid]) {
+    rnaSeq = props.rnaSequences[tid]
+  }
+  else {
+    props.doRequestRnaSequence(tid)
+    return <pre>loading</pre>;
+  }
   const maxUp = gene.location.strand === 1 ? gene.location.start - geneSeq.start : geneSeq.end - gene.location.end;
   const maxDown = gene.location.strand === -1 ? gene.location.start - geneSeq.start : geneSeq.end - gene.location.end;
-  const [upstream, setUpstream] = useState(0);
-  const [downstream, setDownstream] = useState(0);
-  const [tid, setTid] = useState(gene.gene_structure.canonical_transcript);
-  return <Tabs>
+  const transcript = gene.gene_structure.transcripts.find(tr => tr.id === tid);
+  let tl_id;
+  if (transcript.translation) {
+    tl_id = transcript.translation.id;
+    if (props.pepSequences && props.pepSequences[tl_id]) {
+      pepSeq = props.pepSequences[tl_id];
+    }
+    else {
+      props.doRequestPepSequence(tl_id);
+      return <pre>loading</pre>;
+    }
+  }
+  return <Tabs activeKey={tab}
+    onSelect={(k) => setTab(k)}
+    >
     <Tab tabClassName="dna" eventKey="dna" title="Genomic sequence">
       <Container style={{ width: '100ch', marginLeft: 0}}>
         <Row>
@@ -187,7 +225,6 @@ const Detail = props => {
               <div className="vertical-line"/>
             </div>
           </Col>
-          {/*<Col style={{ textWrap:'nowrap', textAlign: 'center', maxWidth: '30ch'}}><span className="gene-body-thing">Transcript (unspliced)</span></Col>*/}
           <Col style={{maxWidth: '20ch'}}>
             <Form.Range
               value={downstream}
@@ -222,18 +259,74 @@ const Detail = props => {
         </Row>
       }
       </Container>
-      {geneSeq && <CodeBlock id={buildId(gene,geneSeq,+upstream,+downstream)} seq={geneSeq.seq.substring(maxUp - +upstream, maxUp + gene.location.end - gene.location.start + 1 + +downstream)} blocks={decorateDNA(geneSeq,gene,+upstream,+downstream,tid)}/>}
+      {geneSeq && <CodeBlock mode="dna" id={buildId(gene,geneSeq,+upstream,+downstream)} seq={geneSeq.seq.substring(maxUp - +upstream, maxUp + gene.location.end - gene.location.start + 1 + +downstream)} blocks={decorateSeq(geneSeq,gene,+upstream,+downstream,tid,"dna")}/>}
     </Tab>
-    <Tab tabClassName="cdna" eventKey="cdna" title="Transcript sequence"></Tab>
+    <Tab tabClassName="rna" eventKey="rna" title="Transcript sequence">
+      <Container style={{ width: '100ch', marginLeft: 0}}>
+        {gene.gene_structure.transcripts.length > 1 &&
+        <Row>
+          <Col><b><i>Select transcript</i></b><br/>
+            <ButtonGroup>{gene.gene_structure.transcripts.sort((a,b) => a.id.localeCompare(b.id)).map((tr, idx) => {
+              let v = tr.id === gene.gene_structure.canonical_transcript ? 'primary' : 'secondary';
+              if (tr.id !== tid) {
+                v = `outline-${v}`
+              }
+              return <ToggleButton
+                variant={v}
+                key={idx}
+                id={`radio-${idx}`}
+                type="radio"
+                name={tr.id}
+                value={tr.id}
+                checked={tr.id === tid}
+                onChange={e => setTid(e.currentTarget.value)}
+                >{tr.id}</ToggleButton>
+            })}</ButtonGroup>
+          </Col>
+        </Row>
+      }
+      </Container>
+      {geneSeq && <CodeBlock mode="rna" id={tid} seq={rnaSeq.seq} blocks={decorateSeq(geneSeq,gene,0,0,tid,"rna")}/>}
+    </Tab>
     {gene.biotype === "protein_coding" &&
-      <Tab tabClassName="pep" eventKey="pep" title="Peptide sequence"></Tab>}
+      <Tab tabClassName="pep" eventKey="pep" title="Peptide sequence">
+        <Container style={{ width: '100ch', marginLeft: 0}}>
+          {gene.gene_structure.transcripts.length > 1 &&
+        <Row>
+          <Col><b><i>Select transcript</i></b><br/>
+            <ButtonGroup>{gene.gene_structure.transcripts.sort((a,b) => a.id.localeCompare(b.id)).map((tr, idx) => {
+              let v = tr.id === gene.gene_structure.canonical_transcript ? 'primary' : 'secondary';
+              if (tr.id !== tid) {
+                v = `outline-${v}`
+              }
+              return <ToggleButton
+                variant={v}
+                key={idx}
+                id={`radio-${idx}`}
+                type="radio"
+                name={tr.id}
+                value={tr.id}
+                checked={tr.id === tid}
+                onChange={e => setTid(e.currentTarget.value)}
+                >{tr.id}</ToggleButton>
+            })}</ButtonGroup>
+          </Col>
+        </Row>
+      }
+        </Container>
+        {geneSeq && <CodeBlock mode="pep" id={tl_id} seq={pepSeq.seq} blocks={[{type:'pep',seq:pepSeq.seq}]}/>}
+      </Tab>}
   </Tabs>
 };
 
 export default connect(
   'selectConfiguration',
   'selectGeneSequences',
+  'selectRnaSequences',
+  'selectPepSequences',
   'doRequestGeneSequence',
+  'doRequestRnaSequence',
+  'doRequestPepSequence',
   Detail
 );
 

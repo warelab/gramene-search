@@ -8,6 +8,8 @@ const grameneDocs = {
       pathways: {},
       expression: {},
       sequences: {},
+      rnaSequences: {},
+      pepSequences: {},
       studies: {}
     };
     return (state = initialState, {type, payload}) => {
@@ -69,10 +71,34 @@ const grameneDocs = {
             return newState;
           }
           break;
+        case 'RNA_SEQUENCE_REQUESTED':
+          if (!state.rnaSequences.hasOwnProperty(payload)) {
+            newState = Object.assign({}, state);
+            newState.rnaSequences[payload] = {};
+            return newState;
+          }
+          break;
+        case 'PEP_SEQUENCE_REQUESTED':
+          if (!state.rnaSequences.hasOwnProperty(payload)) {
+            newState = Object.assign({}, state);
+            newState.pepSequences[payload] = {};
+            return newState;
+          }
+          break;
         case 'GENE_SEQUENCE_RECEIVED':
           newState = Object.assign({}, state);
           newState.sequences = Object.assign({}, state.sequences);
           newState.sequences[payload.id] = payload.geneSeq;
+          return newState;
+        case 'RNA_SEQUENCE_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.rnaSequences = Object.assign({}, state.rnaSequences);
+          newState.rnaSequences[payload.id] = payload.RnaSeq;
+          return newState;
+        case 'PEP_SEQUENCE_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.pepSequences = Object.assign({}, state.pepSequences);
+          newState.pepSequences[payload.id] = payload.PepSeq;
           return newState;
         case 'PARALOG_EXPRESSION_REQUESTED':
           if (!state.expression.hasOwnProperty(payload)) {
@@ -203,6 +229,30 @@ const grameneDocs = {
         })
     }
   },
+  doRequestRnaSequence: id => ({dispatch, store}) => {
+    const maps = store.selectGrameneMaps();
+    const seqs = store.selectRnaSequences();
+    if (!seqs.hasOwnProperty(id)) {
+      dispatch({type: 'RNA_SEQUENCE_REQUESTED', payload: id});
+      fetch(`${store.selectEnsemblAPI()}/sequence/id/${id}?type=cdna&content-type=application/json`)
+        .then(res => res.json())
+        .then(RnaSeq => {
+          dispatch({type: 'RNA_SEQUENCE_RECEIVED', payload: {id, RnaSeq}});
+        })
+    }
+  },
+  doRequestPepSequence: id => ({dispatch, store}) => {
+    const maps = store.selectGrameneMaps();
+    const seqs = store.selectPepSequences();
+    if (!seqs.hasOwnProperty(id)) {
+      dispatch({type: 'PEP_SEQUENCE_REQUESTED', payload: id});
+      fetch(`${store.selectEnsemblAPI()}/sequence/id/${id}?type=protein&content-type=application/json`)
+        .then(res => res.json())
+        .then(PepSeq => {
+          dispatch({type: 'PEP_SEQUENCE_RECEIVED', payload: {id, PepSeq}});
+        })
+    }
+  },
   doRequestParalogExpression: id => ({dispatch, store}) => {
     const expr = store.selectParalogExpression();
     if (!expr.hasOwnProperty(id)) {
@@ -253,6 +303,8 @@ const grameneDocs = {
   selectGramenePathways: state => state.grameneDocs.pathways,
   selectParalogExpression: state => state.grameneDocs.expression,
   selectGeneSequences: state => state.grameneDocs.sequences,
+  selectRnaSequences: state => state.grameneDocs.rnaSequences,
+  selectPepSequences: state => state.grameneDocs.pepSequences,
   selectAtlasStudies: state => state.grameneDocs.studies
 };
 
