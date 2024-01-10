@@ -61,6 +61,17 @@ code.fasta {
 .reverse-slide {
     direction: rtl;
 }
+.fasta-key {
+    position: absolute;
+    top: 9px;
+    right: 30px;
+    background: none;
+    border: none;
+    cursor: default;
+    font-family: monospace;
+    font-size: 10pt;
+    color: #555;
+}
 .copy-button {
     position: absolute;
     top: 3px;

@@ -33,38 +33,48 @@ const CodeBlock = props => {
 
   return (
     <div className="fasta-container">
-      {props.mode === "dna" && <code className="fasta"><b>Key:</b>
-        <span className="upstream">--upstream--</span>
-        <span className="utr5">--5'UTR--</span>
-        <span className="cds">--Coding exon--</span>
-        <span className="intron">--intron--</span>
-        <span className="cds">--Coding exon--</span>
-        <span className="utr3">--3'UTR--</span>
-        <span className="downstream">--downstream--</span>
-        <br/><br/>
-      </code>
-      }
-      {props.mode === "rna" && <code className="fasta"><b>Key:</b>
-        <span className="utr5">--5'UTR exon 1--</span>
-        <span className="utr5-other">--5'UTR exon 2--</span>
-        <span className="cds">--Coding exon 1--</span>
-        <span className="cds-other">--Coding exon 2--</span>
-        <span className="utr3">--3'UTR exon 1--</span>
-        <span className="utr3-other">--3'UTR exon 2--</span>
-        <br/><br/>
-    </code>
-      }
       <code className="fasta"><span className="header">&gt;{props.id}</span><br/>{
         props.blocks.map((block,idx) =>
           <span key={idx} className={block.kind}>{block.seq}</span>
         )
       }</code>
+      <p className="fasta-key">
+        <b>Key:</b>&nbsp;5'UTR&nbsp;
+        <span className="utr5">&nbsp;&nbsp;</span>
+        <span className="utr5-other">&nbsp;&nbsp;</span>
+        &nbsp;CDS&nbsp;
+        <span className="cds">&nbsp;&nbsp;</span>
+        <span className="cds-other">&nbsp;&nbsp;</span>
+        &nbsp;3'UTR&nbsp;
+        <span className="utr3">&nbsp;&nbsp;</span>
+        <span className="utr3-other">&nbsp;&nbsp;</span>
+      </p>
       <button className="copy-button" onClick={copyCode}><AiOutlineCopy /></button>
       {showNotification && <div className="notification">Sequence copied</div>}
     </div>
   );
 };
 
+const decoratePeptide = (seq, transcript) => {
+  let junctions = [];
+  transcript.exon_junctions.forEach((ej, idx) => {
+    if (ej > transcript.cds.start && ej <= transcript.cds.end) {
+      junctions.push(Math.floor((ej - transcript.cds.start) / 3));
+    }
+  });
+  if (junctions.length === 0) {
+    return [{kind:'cds', seq:seq}];
+  }
+  let offset = 0;
+  let blocks = [];
+  junctions.forEach((j, idx) => {
+    let kind = idx % 2 === 0 ? "cds" : "cds-other";
+    blocks.push({kind: kind, seq: seq.substring(offset, j)});
+    offset = j;
+  });
+  blocks.push({kind: junctions.length % 2 === 0 ? "cds" : "cds-other", seq: seq.substring(junctions.pop())});
+  return blocks;
+}
 const decorateSeq = (geneSeq, gene, up, down, tid, mode) => {
   // return a list of blocks with kind and seq properties
   let blocks = [];
@@ -179,7 +189,7 @@ const Detail = props => {
     rnaSeq = props.rnaSequences[tid]
   }
   else {
-    props.doRequestRnaSequence(tid)
+    props.doRequestRnaSequence(tid, gene)
     return <pre>loading</pre>;
   }
   const maxUp = gene.location.strand === 1 ? gene.location.start - geneSeq.start : geneSeq.end - gene.location.end;
@@ -192,7 +202,7 @@ const Detail = props => {
       pepSeq = props.pepSequences[tl_id];
     }
     else {
-      props.doRequestPepSequence(tl_id);
+      props.doRequestPepSequence(tl_id, gene);
       return <pre>loading</pre>;
     }
   }
@@ -259,7 +269,7 @@ const Detail = props => {
         </Row>
       }
       </Container>
-      {geneSeq && <CodeBlock mode="dna" id={buildId(gene,geneSeq,+upstream,+downstream)} seq={geneSeq.seq.substring(maxUp - +upstream, maxUp + gene.location.end - gene.location.start + 1 + +downstream)} blocks={decorateSeq(geneSeq,gene,+upstream,+downstream,tid,"dna")}/>}
+      {geneSeq && <CodeBlock id={buildId(gene,geneSeq,+upstream,+downstream)} seq={geneSeq.seq.substring(maxUp - +upstream, maxUp + gene.location.end - gene.location.start + 1 + +downstream)} blocks={decorateSeq(geneSeq,gene,+upstream,+downstream,tid,"dna")}/>}
     </Tab>
     <Tab tabClassName="rna" eventKey="rna" title="Transcript sequence">
       <Container style={{ width: '100ch', marginLeft: 0}}>
@@ -286,7 +296,7 @@ const Detail = props => {
         </Row>
       }
       </Container>
-      {geneSeq && <CodeBlock mode="rna" id={tid} seq={rnaSeq.seq} blocks={decorateSeq(geneSeq,gene,0,0,tid,"rna")}/>}
+      {geneSeq && <CodeBlock id={tid} seq={rnaSeq.seq} blocks={decorateSeq(geneSeq,gene,0,0,tid,"rna")}/>}
     </Tab>
     {gene.biotype === "protein_coding" &&
       <Tab tabClassName="pep" eventKey="pep" title="Peptide sequence">
@@ -314,7 +324,7 @@ const Detail = props => {
         </Row>
       }
         </Container>
-        {geneSeq && <CodeBlock mode="pep" id={tl_id} seq={pepSeq.seq} blocks={[{type:'pep',seq:pepSeq.seq}]}/>}
+        {geneSeq && <CodeBlock id={tl_id} seq={pepSeq.seq} blocks={decoratePeptide(pepSeq.seq,transcript)}/>}
       </Tab>}
   </Tabs>
 };

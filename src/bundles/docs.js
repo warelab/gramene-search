@@ -229,24 +229,22 @@ const grameneDocs = {
         })
     }
   },
-  doRequestRnaSequence: id => ({dispatch, store}) => {
-    const maps = store.selectGrameneMaps();
+  doRequestRnaSequence: (id,gene) => ({dispatch, store}) => {
     const seqs = store.selectRnaSequences();
     if (!seqs.hasOwnProperty(id)) {
       dispatch({type: 'RNA_SEQUENCE_REQUESTED', payload: id});
-      fetch(`${store.selectEnsemblAPI()}/sequence/id/${id}?type=cdna&content-type=application/json`)
+      fetch(`${store.selectEnsemblAPI()}/sequence/id/${id}?species=${gene.system_name}&type=cdna&content-type=application/json`)
         .then(res => res.json())
         .then(RnaSeq => {
           dispatch({type: 'RNA_SEQUENCE_RECEIVED', payload: {id, RnaSeq}});
         })
     }
   },
-  doRequestPepSequence: id => ({dispatch, store}) => {
-    const maps = store.selectGrameneMaps();
+  doRequestPepSequence: (id,gene) => ({dispatch, store}) => {
     const seqs = store.selectPepSequences();
     if (!seqs.hasOwnProperty(id)) {
       dispatch({type: 'PEP_SEQUENCE_REQUESTED', payload: id});
-      fetch(`${store.selectEnsemblAPI()}/sequence/id/${id}?type=protein&content-type=application/json`)
+      fetch(`${store.selectEnsemblAPI()}/sequence/id/${id}?species=${gene.system_name}&type=protein&content-type=application/json`)
         .then(res => res.json())
         .then(PepSeq => {
           dispatch({type: 'PEP_SEQUENCE_RECEIVED', payload: {id, PepSeq}});
