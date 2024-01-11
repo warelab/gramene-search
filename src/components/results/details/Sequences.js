@@ -54,11 +54,13 @@ const CodeBlock = props => {
 
 const decoratePeptide = (seq, transcript) => {
   let junctions = [];
-  transcript.exon_junctions.forEach((ej, idx) => {
-    if (ej > transcript.cds.start && ej <= transcript.cds.end) {
-      junctions.push(Math.floor((ej - transcript.cds.start) / 3));
-    }
-  });
+  if (transcript.exon_junctions) {
+    transcript.exon_junctions.forEach((ej, idx) => {
+      if (ej > transcript.cds.start && ej <= transcript.cds.end) {
+        junctions.push(Math.floor((ej - transcript.cds.start) / 3));
+      }
+    });
+  }
   if (junctions.length === 0) {
     return [{kind:'cds', seq:seq}];
   }
