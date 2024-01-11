@@ -40,14 +40,11 @@ const CodeBlock = props => {
       }</code>
       <p className="fasta-key">
         <b>Key:</b>&nbsp;5'UTR&nbsp;
-        <span className="utr5">&nbsp;&nbsp;</span>
-        <span className="utr5-other">&nbsp;&nbsp;</span>
+        <span className="square-utr5">&nbsp;&nbsp;</span>
         &nbsp;CDS&nbsp;
-        <span className="cds">&nbsp;&nbsp;</span>
-        <span className="cds-other">&nbsp;&nbsp;</span>
+        <span className="square-cds">&nbsp;&nbsp;</span>
         &nbsp;3'UTR&nbsp;
-        <span className="utr3">&nbsp;&nbsp;</span>
-        <span className="utr3-other">&nbsp;&nbsp;</span>
+        <span className="square-utr3">&nbsp;&nbsp;</span>
       </p>
       <button className="copy-button" onClick={copyCode}><AiOutlineCopy /></button>
       {showNotification && <div className="notification">Sequence copied</div>}

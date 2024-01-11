@@ -58,18 +58,34 @@ code.fasta {
 .utr3-other {
     background-color: #dcc9d9;
 }
+.square-utr5 {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(to bottom right, #aaccaf 0%, #aaccaf 50%, #cfe1d2 50%, #cfe1d2 100%);
+}
+.square-cds {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(to bottom right, #a7b4d3 0%, #a7b4d3 50%, #d0d8e6 50%, #d0d8e6 100%);
+}
+.square-utr3 {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(to bottom right, #c5a3bf 0%, #c5a3bf 50%, #dcc9d9 50%, #dcc9d9 100%);
+}
+
 .reverse-slide {
     direction: rtl;
 }
 .fasta-key {
     position: absolute;
     top: 9px;
-    right: 30px;
+    right: 40px;
     background: none;
     border: none;
     cursor: default;
     font-family: monospace;
-    font-size: 10pt;
+    font-size: 11pt;
     color: #555;
 }
 .copy-button {
