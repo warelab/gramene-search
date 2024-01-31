@@ -10,27 +10,29 @@ class TaxonomyModal extends React.Component {
     };
     if (Object.keys(props.grameneGenomes.active).length === 0) {
       this.state.genomes.forEach(g => {
-        g.selected = true;
+        g.selected = !g.hidden;
       })
     }
     else {
       this.state.genomes.forEach(g => {
-        g.selected = props.grameneGenomes.active[g.taxon_id];
+        g.selected = !g.hidden && props.grameneGenomes.active[g.taxon_id];
       })
     }
   }
   getSelectedGenomes() {
     let selected = {};
-    let notAll = false;
+    let notHidden = {};
+    let somethingWasSelected = false;
     this.state.genomes.forEach(g => {
-      if (g.selected) {
-        selected[g.taxon_id] = true;
-      }
-      else {
-        notAll = true;
+      if (!g.hidden) {
+        notHidden[g.taxon_id] = true;
+        if (g.selected) {
+          selected[g.taxon_id] = true;
+          somethingWasSelected = true;
+        }
       }
     });
-    return notAll ? selected : {};
+    return somethingWasSelected ? selected : notHidden;
   }
   handleChange(e) {
     const idx = +e.target.value;
@@ -53,6 +55,7 @@ class TaxonomyModal extends React.Component {
     return (
       <div>
         {this.state.genomes.map((m,idx) => {
+          if(m.hidden) return <></>
           return (
             <div key={idx}>
               <input checked={m.selected}

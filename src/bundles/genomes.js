@@ -17,6 +17,9 @@ const grameneGenomes = {
           newState = Object.assign({}, state);
           newState.active = payload;
           return newState;
+        case 'GRAMENE_MAPS_FETCH_FINISHED':
+          newState = Object.assign({}, state);
+          newState.active = payload;
         default:
           return state;
       }
@@ -24,6 +27,11 @@ const grameneGenomes = {
   },
   doShowGrameneGenomes: () => ({dispatch, getState}) => {
     dispatch({type: 'GRAMENE_GENOMES_TOGGLED'})
+  },
+  doInitializeGrameneGenomes: genomes => ({dispatch, getState}) => {
+    dispatch({type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_GENOMES_UPDATED', payload: genomes}]})
   },
   doUpdateGrameneGenomes: genomes => ({dispatch, getState}) => {
     dispatch({type: 'BATCH_ACTIONS', actions: [

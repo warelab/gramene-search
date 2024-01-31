@@ -28,7 +28,7 @@ const grameneSuggestions = createAsyncResourceBundle( {
             group.doclist.docs.forEach(sugg => {
               sugg.num_genes = 0;
               sugg.taxon_id.forEach((id,idx) => {
-                if (g.active[id]) {
+                if (g.active[id] && !g.active[id].hidden) {
                   sugg.num_genes += sugg.taxon_freq[idx]
                 }
               })
@@ -174,62 +174,62 @@ curatedGenes.reactCuratedGenes = createSelector(
   }
 );
 
-const grameneExpressionStudies = createAsyncResourceBundle( {
-  name: 'grameneExpressionStudies',
-  actionBaseType: 'GRAMENE_EXPRESSION_STUDIES',
-  persist: true,
-  getPromise: ({store}) => {
-    return fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
-      .then(res => res.json())
-      .then(res => _.keyBy(res, '_id'))
-  }
-});
-grameneExpressionStudies.reactGrameneExpressionStudies = createSelector(
-  'selectGrameneExpressionStudiesShouldUpdate',
-  (shouldUpdate) => {
-    if (shouldUpdate) {
-      return { actionCreator: 'doFetchGrameneExpressionStudies' }
-    }
-  }
-);
-
-const grameneExpressionAssays = createAsyncResourceBundle( {
-  name: 'grameneExpressionAssays',
-  actionBaseType: 'GRAMENE_EXPRESSION_ASSAYS',
-  persist: true,
-  getPromise: ({store}) => {
-    return fetch(`${store.selectGrameneAPI()}/assays?rows=-1`)
-      .then(res => res.json())
-      .then(res => {
-        let expr={};
-        res.forEach(assay => {
-          if (!expr.hasOwnProperty(assay.taxon_id)) {
-            expr[assay.taxon_id] = {};
-          }
-          if (!expr[assay.taxon_id].hasOwnProperty(assay.experiment)) {
-            expr[assay.taxon_id][assay.experiment] = [];
-          }
-          assay.order = +assay.group.replace('g','');
-          expr[assay.taxon_id][assay.experiment].push(assay);
-        });
-        // sort each experiment
-        for (const tid in expr) {
-          for (const exp in expr[tid]) {
-            expr[tid][exp].sort((a,b) => a.order - b.order);
-          }
-        }
-        return expr;
-      })
-  }
-});
-grameneExpressionAssays.reactGrameneExpressionAssays = createSelector(
-  'selectGrameneExpressionAssaysShouldUpdate',
-  (shouldUpdate) => {
-    if (shouldUpdate) {
-      return { actionCreator: 'doFetchGrameneExpressionAssays' }
-    }
-  }
-);
+// const grameneExpressionStudies = createAsyncResourceBundle( {
+//   name: 'grameneExpressionStudies',
+//   actionBaseType: 'GRAMENE_EXPRESSION_STUDIES',
+//   persist: true,
+//   getPromise: ({store}) => {
+//     return fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
+//       .then(res => res.json())
+//       .then(res => _.keyBy(res, '_id'))
+//   }
+// });
+// grameneExpressionStudies.reactGrameneExpressionStudies = createSelector(
+//   'selectGrameneExpressionStudiesShouldUpdate',
+//   (shouldUpdate) => {
+//     if (shouldUpdate) {
+//       return { actionCreator: 'doFetchGrameneExpressionStudies' }
+//     }
+//   }
+// );
+//
+// const grameneExpressionAssays = createAsyncResourceBundle( {
+//   name: 'grameneExpressionAssays',
+//   actionBaseType: 'GRAMENE_EXPRESSION_ASSAYS',
+//   persist: true,
+//   getPromise: ({store}) => {
+//     return fetch(`${store.selectGrameneAPI()}/assays?rows=-1`)
+//       .then(res => res.json())
+//       .then(res => {
+//         let expr={};
+//         res.forEach(assay => {
+//           if (!expr.hasOwnProperty(assay.taxon_id)) {
+//             expr[assay.taxon_id] = {};
+//           }
+//           if (!expr[assay.taxon_id].hasOwnProperty(assay.experiment)) {
+//             expr[assay.taxon_id][assay.experiment] = [];
+//           }
+//           assay.order = +assay.group.replace('g','');
+//           expr[assay.taxon_id][assay.experiment].push(assay);
+//         });
+//         // sort each experiment
+//         for (const tid in expr) {
+//           for (const exp in expr[tid]) {
+//             expr[tid][exp].sort((a,b) => a.order - b.order);
+//           }
+//         }
+//         return expr;
+//       })
+//   }
+// });
+// grameneExpressionAssays.reactGrameneExpressionAssays = createSelector(
+//   'selectGrameneExpressionAssaysShouldUpdate',
+//   (shouldUpdate) => {
+//     if (shouldUpdate) {
+//       return { actionCreator: 'doFetchGrameneExpressionAssays' }
+//     }
+//   }
+// );
 
 const attribFacetFields = [
   "{!facet.limit='10' facet.mincount='1' key='age'}panset_age_attr_s",
@@ -303,7 +303,7 @@ const grameneSearch = createAsyncResourceBundle({
     const offset = store.selectGrameneSearchOffset();
     const rows = store.selectGrameneSearchRows();
     const g = store.selectGrameneGenomes();
-    const taxa = Object.keys(g.active);
+    const taxa = Object.keys(g.active).filter(tid => !g.active[tid].hidden);
     let fq='';
     if (taxa.length) {
       console.log('search add a fq for ',taxa);
@@ -325,8 +325,9 @@ const grameneSearch = createAsyncResourceBundle({
 grameneSearch.reactGrameneSearch = createSelector(
   'selectGrameneSearchShouldUpdate',
   'selectGrameneFiltersStatus',
-  (shouldUpdate, status) => {
-    if (shouldUpdate && status === 'search') {
+  'selectGrameneGenomes','selectGrameneMaps',
+  (shouldUpdate, status, genomes, maps) => {
+    if (shouldUpdate && status === 'search' && genomes && maps) {
       return { actionCreator: 'doFetchGrameneSearch' }
     }
   }

@@ -8,6 +8,7 @@ import TaxDist from './results/TaxDist'
 import HelpDemo from './results/HelpDemo'
 import GeneAttribs from './results/GeneAttribs'
 import TaxonomyModal from './TaxonomyModal'
+import Expression from './results/Expression'
 import ReactGA from 'react-ga4'
 import './styles.css';
 
@@ -15,7 +16,8 @@ const inventory = {
   help: HelpDemo,
   list: GeneList,
   taxonomy: TaxDist,
-  attribs: GeneAttribs
+  attribs: GeneAttribs,
+  expression: Expression
 };
 
 const StatusCmp = props => {

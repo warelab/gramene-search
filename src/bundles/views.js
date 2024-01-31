@@ -22,6 +22,11 @@ const grameneViews = {
           id: 'attribs',
           name: 'Gene attributes',
           show: 'off'
+        },
+        {
+          id: 'expression',
+          name: 'Gene expression',
+          show: 'off'
         }
         // {
         //   id: 'domains',

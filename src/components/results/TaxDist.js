@@ -31,7 +31,7 @@ class TaxDist extends React.Component {
       })
     }
     else {
-      selectedTaxa = this.props.grameneGenomes.active;
+      selectedTaxa = this.props.grameneGenomes.active
     }
     return (
       <div className="results-vis big-vis">

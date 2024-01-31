@@ -135,6 +135,10 @@ const panSites = [
         29760020: 1
       }
     },
+    hideGenomes: {
+      3702:'arabidopsis',
+      4558:'sorghum'
+    },
     targetTaxonId: 29760020,
     alertText: 'Grapevine site',
     panSite : {
@@ -423,7 +427,22 @@ cache.getAll().then(initialData => {
   const store = getStore(initialData);
   const config = store.selectConfiguration();
   ReactGA.initialize(config.ga);
-
+  if (initialData.hasOwnProperty('grameneMaps')) {
+    // check for hidden genomes
+    let notHidden = {};
+    let haveHidden = false;
+    Object.values(initialData.grameneMaps.data).forEach(m => {
+      if (m.hidden) {
+        haveHidden=true;
+      }
+      else {
+        notHidden[m.taxon_id]=true;
+      }
+    })
+    if (haveHidden) {
+      store.doInitializeGrameneGenomes(notHidden)
+    }
+  }
   let element = document.getElementById('demo');
   element && render(demo(store), element);
 

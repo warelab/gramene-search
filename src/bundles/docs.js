@@ -54,15 +54,15 @@ const grameneDocs = {
           newState.studies = Object.assign({}, state.studies, payload);
           return newState;
         case 'ATLAS_SAMPLES_REQUESTED':
-          if (!state.studies[payload].hasOwnProperty('samples')) {
+          if (!state.studies.byID[payload].hasOwnProperty('samples')) {
             newState = Object.assign({},state);
-            newState.studies[payload].samples = [];
+            newState.studies.byID[payload].samples = [];
             return newState;
           }
           break;
         case 'ATLAS_SAMPLES_RECEIVED':
           newState = Object.assign({}, state);
-          newState.studies[payload.id].samples = payload.samples;
+          newState.studies.byID[payload.id].samples = payload.samples;
           return newState;
         case 'GENE_SEQUENCE_REQUESTED':
           if (!state.sequences.hasOwnProperty(payload)) {
@@ -186,20 +186,20 @@ const grameneDocs = {
     fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
       .then(res => res.json())
       .then(res => {
-        let studies = {};
+        let studies = {byID:{},byTaxon:{}};
         res.forEach(s => {
-          studies[s._id] = s;
-          if (! studies.hasOwnProperty('taxon_id')) {
-            studies[s.taxon_id] = []
+          studies.byID[s._id] = s;
+          if (! studies.byTaxon.hasOwnProperty(s.taxon_id)) {
+            studies.byTaxon[s.taxon_id] = []
           }
-          studies[s.taxon_id].push(s._id)
+          studies.byTaxon[s.taxon_id].push(s._id)
         })
         dispatch({type: 'ATLAS_STUDIES_RECEIVED', payload: studies})
       })
   },
   doRequestStudyMetadata: id => ({dispatch, store}) => {
     const studies = store.selectAtlasStudies();
-    if (!studies[id].hasOwnProperty('samples')) {
+    if (!studies.byID[id].hasOwnProperty('samples')) {
       dispatch({type: 'ATLAS_SAMPLES_REQUESTED', payload: id});
       fetch(`${store.selectGrameneAPI()}/assays?experiment=${id}&rows=-1`)
         .then(res => res.json())
