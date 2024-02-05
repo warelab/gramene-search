@@ -155,6 +155,53 @@ grameneMaps.reactGrameneMaps = createSelector(
   }
 );
 
+const expressionStudies = createAsyncResourceBundle( {
+  name: 'expressionStudies',
+  actionBaseType: 'EXPRESSION_STUDIES',
+  persist: true,
+  getPromise: ({store}) => {
+    return fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
+      .then(res => res.json())
+      .then(res => _.groupBy(res, 'taxon_id'))
+  }
+});
+expressionStudies.reactExpressionStudies = createSelector(
+  'selectExpressionStudiesShouldUpdate',
+  (shouldUpdate) => {
+    if (shouldUpdate) {
+      return { actionCreator: 'doFetchExpressionStudies' }
+    }
+  }
+);
+
+const expressionSamples = createAsyncResourceBundle( {
+  name: 'expressionSamples',
+  actionBaseType: 'EXPRESSION_SAMPLES',
+  persist: true,
+  getPromise: ({store}) => {
+    return fetch(`${store.selectGrameneAPI()}/assays?rows=-1`)
+      .then(res => res.json())
+      .then(samples => _.groupBy(samples, 'experiment'))
+      .then(studies => {
+        Object.keys(studies).forEach(study => {
+          studies[study].forEach(sample => {
+            sample.order = +sample.group.replace('g','')
+          });
+          studies[study].sort((a,b) => a.order - b.order);
+        })
+        return studies
+      })
+  }
+});
+expressionSamples.reactExpressionSamples = createSelector(
+  'selectExpressionSamplesShouldUpdate',
+  (shouldUpdate) => {
+    if (shouldUpdate) {
+      return { actionCreator: 'doFetchExpressionSamples' }
+    }
+  }
+);
+
 const curatedGenes = createAsyncResourceBundle( {
   name: 'curatedGenes',
   actionBaseType: 'CURATED_GENES',
@@ -174,24 +221,6 @@ curatedGenes.reactCuratedGenes = createSelector(
   }
 );
 
-// const grameneExpressionStudies = createAsyncResourceBundle( {
-//   name: 'grameneExpressionStudies',
-//   actionBaseType: 'GRAMENE_EXPRESSION_STUDIES',
-//   persist: true,
-//   getPromise: ({store}) => {
-//     return fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
-//       .then(res => res.json())
-//       .then(res => _.keyBy(res, '_id'))
-//   }
-// });
-// grameneExpressionStudies.reactGrameneExpressionStudies = createSelector(
-//   'selectGrameneExpressionStudiesShouldUpdate',
-//   (shouldUpdate) => {
-//     if (shouldUpdate) {
-//       return { actionCreator: 'doFetchGrameneExpressionStudies' }
-//     }
-//   }
-// );
 //
 // const grameneExpressionAssays = createAsyncResourceBundle( {
 //   name: 'grameneExpressionAssays',
@@ -481,4 +510,4 @@ const grameneOrthologs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes, grameneGeneAttribs];//, grameneExpressionStudies, grameneExpressionAssays];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes, grameneGeneAttribs, expressionSamples, expressionStudies];

@@ -1,71 +1,88 @@
 import React, { useState, useEffect } from 'react'
 import {connect} from "redux-bundler-react";
-
+import { Accordion } from 'react-bootstrap';
+import { AgGridReact } from "ag-grid-react";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-quartz.css";
 const StudyCmp = props => {
-  const study = props.atlasStudies.byID[props.sid];
-  if (!study.samples) {
-    props.doRequestStudyMetadata(props.sid);
-    return <p>loading</p>
-  }
-  else {
-    return <div>got eem!</div>
-  }
+  let samples = props.expressionSamples[props.id];
+  let sampleMetadata = [];
+  let metadataFields = [{ field: "sampleId" }];
+  let isFactor={};
+  samples.forEach((sample, idx) => {
+    if (idx === 0) {
+      sample.factor.forEach(factor => {
+        metadataFields.push({field: factor.type})
+        isFactor[factor.type] = true;
+      });
+      sample.characteristic.forEach(ch => {
+        if (!isFactor[ch.type]) {
+          metadataFields.push({field: ch.type})
+          }
+      })
+    }
+    let s_info = {sampleId: sample._id}
+    sample.factor.forEach(factor => {
+      s_info[factor.type] = factor.label;
+    })
+    sample.characteristic.forEach(ch => {
+      s_info[ch.type] = ch.label;
+    })
+    sampleMetadata.push(s_info)
+  })
+  const [rowData, setRowData] = useState(sampleMetadata);
+  const [colDefs, setColDefs] = useState(metadataFields);
+  return (
+    <div className="ag-theme-quartz" style={{height:250}}>
+      <AgGridReact rowData={rowData} columnDefs={colDefs} />
+    </div>
+  );
 };
 const Study = connect(
-  'selectGrameneSearch',
-  'selectAtlasStudies',
-  'doRequestStudyMetadata',
+  'selectExpressionSamples',
   StudyCmp
 );
+const StudyList = props => {
+  return <Accordion flush alwaysOpen defaultActiveKey={props.studies.length === 1 ? "study_0" : undefined}>
+    {props.studies.map((study, idx) => {
+      return (
+        <Accordion.Item key={idx} eventKey={'study_'+idx}>
+          <Accordion.Header>{study.description}</Accordion.Header>
+          <Accordion.Body>
+            <Study id={study._id} />
+          </Accordion.Body>
+        </Accordion.Item>
+      )
+    })}
+  </Accordion>
+};
+
 const Expression = props => {
-  const [taxon, setTaxon] = useState(0);
-  const [study, setStudy] = useState(0);
   let searchTaxa = {};
-  let availableTaxa = [];
   if (props.grameneSearch) {
     const taxon_id_facet = props.grameneSearch.facet_counts.facet_fields.taxon_id;
     taxon_id_facet.filter((tid, idx) => idx % 2 === 0).forEach(tid => searchTaxa[tid] = true);
   }
-  if (!props.atlasStudies.byTaxon) {
-    props.doRequestExpressionStudies()
-  } else {
-    availableTaxa = Object.keys(props.atlasStudies.byTaxon).filter(tid => searchTaxa[tid] || searchTaxa[tid + '001']);
-  }
+  const availableTaxa = Object.keys(props.expressionStudies)
+    .filter(tid => searchTaxa[tid] || searchTaxa[tid + '001'])
+    .sort((a,b) => props.grameneMaps[a + '001'].left_index - props.grameneMaps[b + '001'].left_index);
   return availableTaxa && props.grameneTaxonomy &&
-    <div>
-      <label htmlFor="taxonomySelect">Select Genome:</label>
-      <select
-        id="taxonomySelect"
-        value={taxon}
-        onChange={(e) => {
-          setTaxon(e.target.value);
-          setStudy(0)
-        }}>
-        <option value="">Select...</option>
-        {availableTaxa.map((tid, idx) => <option key={idx} value={tid}>{props.grameneTaxonomy[tid].name}</option>)}
-      </select>
-      {taxon > 0 && <div>
-        <label htmlFor="studySelect">Select Study:</label>
-        <select
-          id="studySelect"
-          value={study}
-          onChange={(e) => setStudy(e.target.value)}>
-          <option value="">Select...</option>
-          {props.atlasStudies.byTaxon[taxon].map((sid, idx) => <option key={idx}
-                                                                       value={sid}>{props.atlasStudies.byID[sid].description}</option>)}
-        </select>
-      </div>
-      }
-      {study !== 0 && <Study sid={study}/>}
-    </div>
+    <Accordion alwaysOpen defaultActiveKey={availableTaxa.length === 1 ? "tax_0" : undefined}>
+      {availableTaxa.map((tid, idx) => {
+        const n = props.expressionStudies[tid].length;
+        return <Accordion.Item key={idx} eventKey={'tax_'+idx}>
+          <Accordion.Header>{props.grameneTaxonomy[tid].name} - {n} {n === 1 ? 'study' : 'studies'}</Accordion.Header>
+          <Accordion.Body><StudyList studies={props.expressionStudies[tid]}/></Accordion.Body>
+        </Accordion.Item>
+      })}
+    </Accordion>
 };
 
 export default connect(
   'selectConfiguration',
   'selectGrameneSearch',
   'selectGrameneTaxonomy',
-  'selectAtlasStudies',
-  'doRequestExpressionStudies',
-  'doRequestStudyMetadata',
+  'selectGrameneMaps',
+  'selectExpressionStudies',
   Expression
 );
