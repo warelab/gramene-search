@@ -22,6 +22,7 @@
   "author": "Andrew Olson",
   "license": "MIT",
   "dependencies": {
+    "ag-grid-community": "^31.1.1",
     "ag-grid-react": "^31.0.3",
     "axios": "^0.21.1",
     "flat-to-nested": "^1.1.1",
