@@ -193,7 +193,7 @@ const ResultsCmp = props => {
         const divRef = useRef(null);
         useEffect(() => {
           if (v.shouldScroll) {
-            const navBarHeight=106;
+            const navBarHeight=0;
             const scrollPosition = divRef.current.offsetTop - navBarHeight;
             window.scrollTo({
               top: scrollPosition,
