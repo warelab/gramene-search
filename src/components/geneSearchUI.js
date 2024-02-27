@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 import { connect } from 'redux-bundler-react'
-import { OverlayTrigger, Popover} from 'react-bootstrap'
+import { Navbar, Nav, NavDropdown, Container, OverlayTrigger, Popover} from 'react-bootstrap'
+import Switch from 'react-switch'
 import { IoAlertCircle } from 'react-icons/io5'
 import { BsGearFill,BsTrash } from 'react-icons/bs'
 import GeneList from './results/GeneList'
@@ -47,7 +48,7 @@ const StatusCmp = props => {
       <TaxonomyModal/>
     </span>;
   }
-  return <div style={{padding:'5px', backgroundColor:'dimgray', color:'cornsilk', fontSize:'small'}}>{content}</div>
+  return <div style={{padding:'5px', color:'cornsilk', fontSize:'small'}}>{content}</div>
 };
 
 const Status = connect(
@@ -184,21 +185,26 @@ const Filters = connect(
 );
 
 const ResultsCmp = props => {
-  let activeViews = props.grameneViews.options.filter((v,idx) => {
-    v.idx = idx;
-    return v.show === 'on'
-  });
+  let activeViews = props.grameneViews.options;
   return props.grameneFilters.rightIdx > 0 ? (
     <div style={{padding:'10px'}}>
-      {activeViews.map(v => {
+      {activeViews.map((v,idx) => {
         let p = Object.assign({}, props);
-        p.key = v.idx;
+        const divRef = useRef(null);
+        useEffect(() => {
+          if (v.shouldScroll) {
+            const navBarHeight=106;
+            const scrollPosition = divRef.current.offsetTop - navBarHeight;
+            window.scrollTo({
+              top: scrollPosition,
+              behavior: 'smooth'
+            })
+          }
+        }, [v.shouldScroll]);
         return (
-          <div key={v.idx}>
-            {/*<Alert variant="primary" onClose={() => props.doToggleGrameneView(v.idx)} dismissible>*/}
-            {/*  {v.name}*/}
-            {/*</Alert>*/}
-            {React.createElement(inventory[v.id], p)}
+          <div key={idx} ref={divRef}>
+            {v.show === 'on' && <div style={{borderTopWidth:'medium'}} className='gramene-view-header'>{v.name}</div>}
+            {v.show === 'on' && React.createElement(inventory[v.id], p)}
           </div>
         )
       })}
@@ -226,31 +232,46 @@ const ViewsCmp = props => (
     {/*    <label for={`toggle${idx}`}>{view.show}</label>{view.name}*/}
     {/*  </div>*/}
     {/*))}*/}
-    <ul className={'gramene-view'}>
-      {props.grameneViews.options.map((view,idx) => (
-        <li key={idx} className={`gramene-view-${view.show}`}
-            onClick={(e) => {
-              if (view.show !== 'disabled') {
-                props.doToggleGrameneView(idx)
-              }
-            }}
-        >{view.name}</li>
-      ))}
-    </ul>
-    <div>
-      &nbsp;Key:
-      <ul className={'gramene-view'}>
-        <li className='gramene-view-on'>On</li>
-        <li className='gramene-view-off'>Off</li>
-        <li className='gramene-view-disabled'>Disabled</li>
-      </ul>
-    </div>
+    {props.grameneViews.options.filter(view => view.show !== 'disabled').map((view,idx) => (
+      <div style={{textWrap:'nowrap'}} key={idx}>
+        <Switch onChange={()=>props.doToggleGrameneView(view.id)} checked={view.show === 'on'}
+                height={18}
+                width={30}
+                handleDiameter={16}
+                checkedIcon={false}
+                uncheckedIcon={false}
+        />
+        <span className={`gramene-view-span-${view.show}`} onClick={(e) => {
+          props.dontToggleGrameneView(view.id)
+        }}>{view.name}</span>
+      </div>
+    ))}
+    {/*<ul className={'gramene-view'}>*/}
+    {/*  {props.grameneViews.options.map((view,idx) => (*/}
+    {/*    <li key={idx} className={`gramene-view-${view.show}`}*/}
+    {/*        onClick={(e) => {*/}
+    {/*          if (view.show !== 'disabled') {*/}
+    {/*            props.doToggleGrameneView(idx)*/}
+    {/*          }*/}
+    {/*        }}*/}
+    {/*    >{view.name}</li>*/}
+    {/*  ))}*/}
+    {/*</ul>*/}
+    {/*<div>*/}
+    {/*  &nbsp;Key:*/}
+    {/*  <ul className={'gramene-view'}>*/}
+    {/*    <li className='gramene-view-on'>On</li>*/}
+    {/*    <li className='gramene-view-off'>Off</li>*/}
+    {/*    <li className='gramene-view-disabled'>Disabled</li>*/}
+    {/*  </ul>*/}
+    {/*</div>*/}
   </div>
 );
 
 const Views = connect(
   'selectGrameneViews',
   'doToggleGrameneView',
+  'dontToggleGrameneView',
   ViewsCmp
 );
 

@@ -6,27 +6,32 @@ const grameneViews = {
         {
           id: 'help',
           name: 'Help / Demo',
-          show: 'off'
+          show: 'disabled',
+          shouldScroll: false
         },
         {
           id: 'taxonomy',
           name: 'Taxonomic distribution',
-          show: 'on'
+          show: 'on',
+          shouldScroll: false
         },
         {
           id: 'list',
           name: 'Gene list',
-          show: 'on'
-        },
-        {
-          id: 'attribs',
-          name: 'Gene attributes',
-          show: 'off'
+          show: 'on',
+          shouldScroll: false
         },
         {
           id: 'expression',
           name: 'Gene expression',
-          show: 'off'
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'attribs',
+          name: 'Gene attributes',
+          show: 'disabled',
+          shouldScroll: false
         }
         // {
         //   id: 'domains',
@@ -45,7 +50,23 @@ const grameneViews = {
       switch (type) {
         case 'GRAMENE_VIEW_TOGGLED':
           newState = Object.assign({},state);
-          newState.options[payload].show = newState.options[payload].show === 'on' ? 'off' : 'on';
+          newState.options.forEach(view => {
+            view.shouldScroll = false;
+            if (view.id === payload) {
+              view.show = view.show === 'on' ? 'off' : 'on'
+              view.shouldScroll = view.show === 'on';
+            }
+          });
+          return newState;
+        case 'GRAMENE_VIEW_CLICKED':
+          newState = Object.assign({}, state);
+          newState.options.forEach(view => {
+            view.shouldScroll = false;
+            if (view.id === payload) {
+              view.show = view.show === 'on' ? 'on' : 'on';
+              view.shouldScroll = view.show === 'on';
+            }
+          });
           return newState;
         default:
           return state;
@@ -54,6 +75,9 @@ const grameneViews = {
   },
   doToggleGrameneView: idx => ({dispatch, getState}) => {
     dispatch({type: 'GRAMENE_VIEW_TOGGLED', payload: idx})
+  },
+  dontToggleGrameneView: idx => ({dispatch, getState}) => {
+    dispatch({type: 'GRAMENE_VIEW_CLICKED', payload: idx})
   },
   selectGrameneViews: state => state.grameneViews,
 };

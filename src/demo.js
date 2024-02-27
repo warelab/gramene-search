@@ -218,10 +218,10 @@ const GeneSearchUI = (store) => (
     </div>
   </Provider>
 );
-const SearchViews = props => (
+const SearchViewsCmp = props => (
     <div className="row no-margin no-padding">
       <div className="col-md-2 no-padding">
-        <div className="gramene-sidebar">
+        <div className={props.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
           <Status/>
           <Filters/>
           <Views/>
@@ -231,6 +231,10 @@ const SearchViews = props => (
         <Results/>
       </div>
     </div>
+);
+const SearchViews = connect(
+  'selectConfiguration',
+  SearchViewsCmp
 );
 
 const handleKey = (e, props) => {

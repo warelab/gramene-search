@@ -1,55 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, Suspense } from 'react'
 import {connect} from "redux-bundler-react";
 import { Accordion } from 'react-bootstrap';
-import { AgGridReact } from "ag-grid-react";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
-const StudyCmp = props => {
-  let samples = props.expressionSamples[props.id];
-  let sampleMetadata = [];
-  let metadataFields = [{ field: "sampleId" }];
-  let isFactor={};
-  samples.forEach((sample, idx) => {
-    if (idx === 0) {
-      sample.factor.forEach(factor => {
-        metadataFields.push({field: factor.type})
-        isFactor[factor.type] = true;
-      });
-      sample.characteristic.forEach(ch => {
-        if (!isFactor[ch.type]) {
-          metadataFields.push({field: ch.type})
-          }
-      })
-    }
-    let s_info = {sampleId: sample._id}
-    sample.factor.forEach(factor => {
-      s_info[factor.type] = factor.label;
-    })
-    sample.characteristic.forEach(ch => {
-      s_info[ch.type] = ch.label;
-    })
-    sampleMetadata.push(s_info)
-  })
-  const [rowData, setRowData] = useState(sampleMetadata);
-  const [colDefs, setColDefs] = useState(metadataFields);
-  return (
-    <div className="ag-theme-quartz" style={{height:250}}>
-      <AgGridReact rowData={rowData} columnDefs={colDefs} />
-    </div>
-  );
-};
-const Study = connect(
-  'selectExpressionSamples',
-  StudyCmp
-);
+import "./expression.css";
+const LazyStudy = React.lazy(() => import('./Study'));
+
 const StudyList = props => {
-  return <Accordion flush alwaysOpen defaultActiveKey={props.studies.length === 1 ? "study_0" : undefined}>
+  return <Accordion alwaysOpen defaultActiveKey={props.studies.length === 1 ? "study_0" : undefined}>
     {props.studies.map((study, idx) => {
       return (
         <Accordion.Item key={idx} eventKey={'study_'+idx}>
           <Accordion.Header>{study.description}</Accordion.Header>
           <Accordion.Body>
-            <Study id={study._id} />
+            <Suspense fallback={<div>Loading...</div>}>
+              <LazyStudy id={study._id}/>
+            </Suspense>
+            {/*<Study id={study._id} />*/}
           </Accordion.Body>
         </Accordion.Item>
       )

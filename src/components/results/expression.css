@@ -1,0 +1,6 @@
+.accordion-button {
+    padding:0.4rem!important;
+}
+.accordion-button:hover {
+    background-color: #dbe8f3;
+}
