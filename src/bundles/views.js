@@ -68,6 +68,10 @@ const grameneViews = {
             }
           });
           return newState;
+        case 'GRAMENE_VIEW_SCROLLED':
+          newState = Object.assign({}, state);
+          newState.options.forEach(v => v.shouldScroll = false)
+          return newState;
         default:
           return state;
       }
@@ -78,6 +82,9 @@ const grameneViews = {
   },
   dontToggleGrameneView: idx => ({dispatch, getState}) => {
     dispatch({type: 'GRAMENE_VIEW_CLICKED', payload: idx})
+  },
+  doCancelShouldScroll: () => ({dispatch, getState}) => {
+    dispatch({type: 'GRAMENE_VIEW_SCROLLED', payload: null})
   },
   selectGrameneViews: state => state.grameneViews,
 };

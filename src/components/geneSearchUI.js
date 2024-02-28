@@ -154,7 +154,7 @@ const FiltersCmp = props => {
     toggleMenu: props.doToggleGrameneFilterMenu
   };
   if (props.grameneFilters.rightIdx > 1) {
-    return <div className='gramene-filter-container'>
+    return <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-filter-container': 'gramene-filter-container'}>
       <b>Filters</b>
       <span style={{float:'right', cursor:'pointer'}} onClick={props.doClearGrameneFilters}><BsTrash/></span>
       <Filter node={props.grameneFilters}
@@ -164,7 +164,7 @@ const FiltersCmp = props => {
     </div>
   }
   else {
-    return <div className='gramene-filter-container'>
+    return <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-filter-container': 'gramene-filter-container'}>
       <b>Filters</b>
       <div className='gramene-filter gramene-filter-AND'>No filters defined</div>
     </div>
@@ -173,6 +173,7 @@ const FiltersCmp = props => {
 
 const Filters = connect(
   'selectGrameneFilters',
+  'selectConfiguration',
   'doNegateGrameneFilter',
   'doDeleteGrameneFilter',
   'doChangeGrameneFilterOperation',
@@ -199,6 +200,7 @@ const ResultsCmp = props => {
               top: scrollPosition,
               behavior: 'smooth'
             })
+            props.doCancelShouldScroll();
           }
         }, [v.shouldScroll]);
         return (
@@ -215,7 +217,7 @@ const ResultsCmp = props => {
 const Results = connect(
   'selectGrameneFilters',
   'selectGrameneViews',
-  'doToggleGrameneView',
+  'doCancelShouldScroll',
   ResultsCmp
 );
 

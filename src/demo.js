@@ -77,10 +77,12 @@ const panSites = [
     name: 'Maize',
     url: 'https://maize-pangenome.gramene.org',
     ensemblURL: 'https://maize-pangenome-ensembl.gramene.org',
-    ensemblSite: 'https://maize-pangenome-ensembl.gramene.org/genome_browser/index.html',
-    ensemblRest: 'https://data.gramene.org/pansite-ensembl',
-    grameneData: 'https://data.gramene.org/maize_v3',
+    ensemblSite: 'https://maize-pangenome-ensembl.gramene.org',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl-87',
+    grameneData: 'https://data.gramene.org/maize_v4',
     targetTaxonId: 4577,
+    ga: "G-Y7ZYG1R8QT",
+    showViews: true,
     not_downtime: 'The search interface will be undergoing maintenance on Tuesday, July 20 from 3:00 - 4:00 PM EDT',
     renderAlert: () => (
         <Alert variant='primary'>
@@ -89,7 +91,24 @@ const panSites = [
             <i>De novo</i> assembly, annotation, and comparative analysis of 26 diverse maize genomes.
           </a>&nbsp;Science, Vol 373, Issue 6555, pp. 655-662.
         </Alert>
-    )
+    ),
+    panSite : {
+      sorghum_bicolor : {
+        url: "https://sorghumbase.org/genes?idList=",
+        name: "SorghumBase",
+        svg: "./static/images/sorghum_logo.svg"
+      },
+      vitis_vinifera : {
+        url: "https://vitis.gramene.org?idList=",
+        name: "Gramene Grapevine",
+        svg: "./static/images/grapevine_logo.svg"
+      },
+      oryza_sativa : {
+        url: "https://oryza.gramene.org?idList=",
+        name: "Gramene Oryza",
+        svg: "./static/images/oryza_logo.svg"
+      }
+    }
   },
   {
     id: 'sorghum',
@@ -219,15 +238,15 @@ const GeneSearchUI = (store) => (
   </Provider>
 );
 const SearchViewsCmp = props => (
-    <div className="row no-margin no-padding">
-      <div className="col-md-2 no-padding">
-        <div className={props.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
+    <div className="no-margin no-padding">
+      <div style={{width:250}}>
+        <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
           <Status/>
           <Filters/>
-          <Views/>
+          {props.configuration.showViews && <Views/>}
         </div>
       </div>
-      <div className="col-md-10 no-padding">
+      <div style={{width:"calc(100% - 250px", left:250, position:'relative'}}>
         <Results/>
       </div>
     </div>
