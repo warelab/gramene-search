@@ -12,7 +12,7 @@ const facets = [
   "{!facet.limit='-1' facet.mincount='1' key='fixed_1000__bin'}fixed_1000__bin"
 ];
 const genomesOfInterest = '(taxon_id:2769) OR (taxon_id:3055) OR (taxon_id:3218) OR (taxon_id:3702) OR (taxon_id:3847) OR (taxon_id:4555) OR (taxon_id:4558) OR (taxon_id:4577) OR (taxon_id:13333) OR (taxon_id:15368) OR (taxon_id:29760) OR (taxon_id:39947) OR (taxon_id:55577) OR (taxon_id:88036) OR (taxon_id:214687)';
-
+const sites = ['main','oryza','maize','sorghum','grapevine'];
 const grameneSuggestions = createAsyncResourceBundle( {
   name: 'grameneSuggestions',
   actionBaseType: 'GRAMENE_SUGGESTIONS',
@@ -20,8 +20,13 @@ const grameneSuggestions = createAsyncResourceBundle( {
   getPromise: ({store}) => {
     const t = store.selectSuggestionsQuery().replaceAll(':',' ').trim();
     const g = store.selectGrameneGenomes();
-    return fetch(`${store.selectGrameneAPI()}/suggest?q={!boost b=relevance}name:${t}^5 ids:${t}^5 ids:${t}*^3 synonym:${t}^3 synonym:${t}*^2 text:${t}*^1`)
-      .then(res => res.json())
+    const q = `/suggest?q={!boost b=relevance}name:${t}^5 ids:${t}^5 ids:${t}*^3 synonym:${t}^3 synonym:${t}*^2 text:${t}*^1`;
+    // const promises = sites.map(site => fetch(`https://data.gramene.org/${site}${q}`));
+    // return Promise.all(promises)
+    return fetch(store.selectGrameneAPI() + q)
+      .then(res => {
+        return res.json()
+      })
       .then(suggestions => {
         if (Object.keys(g.active).length > 0) {
           suggestions.grouped.category.groups.forEach(group => {

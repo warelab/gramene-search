@@ -10,11 +10,23 @@ const grameneDocs = {
       sequences: {},
       rnaSequences: {},
       pepSequences: {},
-      studies: {}
+      studies: {},
+      consequences: {}
     };
     return (state = initialState, {type, payload}) => {
       let newState;
       switch (type) {
+        case 'GRAMENE_CONSEQUENCES_REQUESTED':
+          if (!state.consequences.hasOwnProperty(payload)) {
+            newState = Object.assign({}, state);
+            newState.consequences[payload] = {};
+            return newState;
+          }
+          break;
+        case 'GRAMENE_CONSEQUENCES_RECEIVED':
+          newState = Object.assign({}, state);
+          newState.consequences = Object.assign({}, state.consequences, payload);
+          return newState;
         case 'GRAMENE_GENE_REQUESTED':
           if (!state.genes.hasOwnProperty(payload)) {
             newState = Object.assign({}, state);
@@ -37,14 +49,6 @@ const grameneDocs = {
           newState = Object.assign({}, state);
           newState.trees = Object.assign({}, state.trees, payload);
           return newState;
-        // case 'GRAMENE_PATHWAYS_REQUESTED':
-          // newState = Object.assign({}, state);
-          // payload.forEach(id => {
-          //   if (!state.pathways.hasOwnProperty(id)) {
-          //     newState.pathways[id] = {};
-          //   }
-          // });
-          // return newState;
         case 'GRAMENE_PATHWAYS_RECEIVED':
           newState = Object.assign({}, state);
           newState.pathways = Object.assign({}, state.pathways, payload);
@@ -114,6 +118,21 @@ const grameneDocs = {
           return newState;
       }
       return state;
+    }
+  },
+  doRequestVEP: id => ({dispatch, store}) => {
+    const consequences = store.selectGrameneConsequences();
+    if (!consequences.hasOwnProperty(id)) {
+      dispatch({type: 'GRAMENE_CONSEQUENCES_REQUESTED', payload: id});
+      fetch(`${store.selectGrameneAPI()}/search?q=id:${id}&fl=id,VEP__*`)
+        .then(res => res.json())
+        .then(res => {
+          let genes = {};
+          res.response.docs.forEach(g => {
+            genes[g.id] = g;
+          });
+          dispatch({type: 'GRAMENE_CONSEQUENCES_RECEIVED', payload: genes})
+        })
     }
   },
   doRequestGrameneGene: id => ({dispatch, store}) => {
@@ -297,6 +316,7 @@ const grameneDocs = {
     }
   },
   selectGrameneGenes: state => state.grameneDocs.genes,
+  selectGrameneConsequences: state => state.grameneDocs.consequences,
   selectGrameneTrees: state => state.grameneDocs.trees,
   selectGramenePathways: state => state.grameneDocs.pathways,
   selectParalogExpression: state => state.grameneDocs.expression,

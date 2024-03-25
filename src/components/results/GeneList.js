@@ -6,6 +6,7 @@ import Expression from './details/Expression'
 import Homology from './details/Homology'
 import Location from './details/Location'
 import Pathways from "./details/Pathways"
+import VEP from "./details/VEP"
 import Xrefs from "./details/Xrefs"
 import Publications from "./details/Publications"
 import Sequences from "./details/Sequences"
@@ -21,6 +22,7 @@ let inventory = {
   expression: Expression,
   homology: Homology,
   pathways: Pathways,
+  VEP: VEP,
   xrefs: Xrefs,
   pubs: Publications
 };
@@ -173,6 +175,12 @@ class Gene extends React.Component {
           popup: 'Curated Publications',
           available: false
         },
+        // {
+        //   id: 'VEP',
+        //   label: 'Germplasm (PTV)',
+        //   popup: 'Germplasm with protein truncating variants',
+        //   available: false
+        // },
         {
           id: 'xrefs',
           label: 'Xrefs',
