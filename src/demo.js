@@ -116,7 +116,7 @@ const panSites = [
     url: 'https://www.sorghumbase.org',
     ensemblURL: 'https://ensembl-dev.sorghumbase.org',
     ensemblSite: 'https://ensembl-dev.sorghumbase.org',
-    ensemblRest: 'https://data.gramene.org/pansite-ensembl',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl-87',
     grameneData: 'https://data.sorghumbase.org/sorghum_v7',
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558003,

@@ -175,12 +175,12 @@ class Gene extends React.Component {
           popup: 'Curated Publications',
           available: false
         },
-        // {
-        //   id: 'VEP',
-        //   label: 'Germplasm (PTV)',
-        //   popup: 'Germplasm with protein truncating variants',
-        //   available: false
-        // },
+        {
+          id: 'VEP',
+          label: 'Germplasm',
+          popup: 'Germplasm with protein truncating variants (PTVs)',
+          available: false
+        },
         {
           id: 'xrefs',
           label: 'Xrefs',

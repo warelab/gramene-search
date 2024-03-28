@@ -226,6 +226,24 @@ curatedGenes.reactCuratedGenes = createSelector(
   }
 );
 
+const grameneGermplasm = createAsyncResourceBundle( {
+  name: 'grameneGermplasm',
+  actionBaseType: 'GRAMENE_GERMPLASM',
+  persist: true,
+  getPromise: ({store}) => {
+    return fetch(`${store.selectGrameneAPI()}/germplasm?rows=-1`)
+      .then(res => res.json())
+      .then(res => _.groupBy(res, 'ens_id'))
+  }
+});
+grameneGermplasm.reactGrameneGermplasm = createSelector(
+  'selectGrameneGermplasmShouldUpdate',
+  (shouldUpdate) => {
+    if (shouldUpdate) {
+      return { actionCreator: 'doFetchGrameneGermplasm' }
+    }
+  }
+);
 //
 // const grameneExpressionAssays = createAsyncResourceBundle( {
 //   name: 'grameneExpressionAssays',
@@ -515,4 +533,4 @@ const grameneOrthologs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes, grameneGeneAttribs, expressionSamples, expressionStudies];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes, grameneGermplasm, grameneGeneAttribs, expressionSamples, expressionStudies];
