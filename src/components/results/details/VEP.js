@@ -6,6 +6,7 @@ import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import "./VEP.css";
+import {suggestionToFilters} from "../../utils";
 
 const metaRenderer = params => {
   if (params.value.field === "germplasm") { // link to grin or SorgMutDB
@@ -19,19 +20,16 @@ const metaRenderer = params => {
         <button type="submit" className="button-like-link">SorbMutDB</button>
       </form>
     );
-
-    return (
-      <form id={params.value.pub_id} action="https://www.depts.ttu.edu/igcast/sorbmutdb.php" method="post" target="_blank">
-        <input type="hidden" name="search" value={params.value.gene_id.replace('SORBI_3','Sobic.')} />
-        <input type="hidden" name="submit" value="Search" />
-        <button className="button-like-link" onClick={() => document.getElementById(params.value.pub_id).submit()}>SorbMutDB</button>
-      </form>
-    );
-
-    return `link to SorbMutDB ${params.value.pub_id}`
   }
   if (params.value.field === "search") { // search filter
-    return `VEP__merged__${study_info[params.value.pop_id].type}__attr_ss:${params.value.ens_id}`
+    const currentURL = new URL(window.location.href);
+    currentURL.search = '';
+    currentURL.searchParams.set('category', 'Germplasm');
+    currentURL.searchParams.set('fq_field',`VEP__merged__${study_info[params.value.pop_id].type}__attr_ss`);
+    currentURL.searchParams.set('fq_value',params.value.ens_id);
+    currentURL.searchParams.set('name', params.value.ens_id);
+
+    return <a href={currentURL.toString()}>{params.value.ens_id}</a>
   }
   return params.value.label
 }
