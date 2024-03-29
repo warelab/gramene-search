@@ -140,6 +140,12 @@ class Gene extends React.Component {
     this.state = {
       details: [
         {
+          id: 'VEP',
+          label: 'Germplasm',
+          popup: 'Germplasm with protein truncating variants (PTVs)',
+          available: false
+        },
+        {
           id: 'sequences',
           label: 'Sequences',
           popup: 'Gene/cDNA/protein fasta',
@@ -173,12 +179,6 @@ class Gene extends React.Component {
           id: 'pubs',
           label: 'Papers',
           popup: 'Curated Publications',
-          available: false
-        },
-        {
-          id: 'VEP',
-          label: 'Germplasm',
-          popup: 'Germplasm with protein truncating variants (PTVs)',
           available: false
         },
         {

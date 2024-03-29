@@ -1,7 +1,6 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import {connect} from "redux-bundler-react";
-import {Tabs, Tab, Form, Container, Row, Col, ToggleButton, ButtonGroup } from 'react-bootstrap';
-import * as console from "console";
+import {Button} from 'react-bootstrap';
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
@@ -29,7 +28,7 @@ const metaRenderer = params => {
     currentURL.searchParams.set('fq_value',params.value.ens_id);
     currentURL.searchParams.set('name', params.value.ens_id);
 
-    return <a href={currentURL.toString()}>{params.value.ens_id}</a>
+    return <Button size='sm' href={currentURL.toString()}>Search</Button>
   }
   return params.value.label
 }
@@ -52,11 +51,12 @@ const Detail = props => {
     const vep_obj = props.grameneConsequences[gene._id];
     let accessionTable = [];
     let tableFields = [
+      { field: 'Order Germplasm', cellRenderer: metaRenderer, comparator: sortByLabel},
+      { field: 'Synonyms', cellRenderer: metaRenderer, comparator: sortByLabel},
       { field: 'Study/Population', cellRenderer: metaRenderer, comparator: sortByLabel},
       { field: 'VEP consequence', cellRenderer: metaRenderer, comparator: sortByLabel},
       { field: 'Allele Status', cellRenderer: metaRenderer, comparator: sortByLabel},
-      { field: 'Germplasm', cellRenderer: metaRenderer, comparator: sortByLabel},
-      { field: 'Other Genes', cellRenderer: metaRenderer, comparator: sortByLabel}
+      { field: 'All LOF Genes', cellRenderer: metaRenderer, comparator: sortByLabel}
     ];
     Object.entries(vep_obj).forEach(([key,accessions]) => {
       const parts = key.split("__");
@@ -68,8 +68,9 @@ const Detail = props => {
               'Study/Population': {label: study_info[parts[3]].label},
               'VEP consequence': {label: parts[1].replaceAll("_"," ")},
               'Allele Status': {label: parts[2] === "het" ? "heterozygous" : "homozygous"},
-              'Germplasm': {field: 'germplasm', gene_id: props.searchResult.id, label: germplasm.pub_id, ...germplasm},
-              'Other Genes': {field: 'search', label: germplasm.ens_id, ...germplasm}
+              'Order Germplasm': {field: 'germplasm', gene_id: props.searchResult.id, label: germplasm.pub_id, ...germplasm},
+              'All LOF Genes': {field: 'search', label: germplasm.ens_id, ...germplasm},
+              'Synonyms': {label: germplasm.ens_id}
             };
             accessionTable.push(accInfo);
           });
@@ -83,12 +84,18 @@ const Detail = props => {
         filter: true
       }
     }, []);
-    return <div className="ag-theme-quartz" style={{height: `${44 * (accessionTable.length + 2)}px`}}>
-      <AgGridReact rowData={accessionTable} columnDefs={tableFields} defaultColDef={defaultColDef}/>
+    return <div>
+      <h5>Predicted loss-of-function alleles were detected in these germplasm.</h5>
+      <div >Explore other variants within this gene in the <a target="_blank"
+         href={`${props.configuration.ensemblURL}/${gene.system_name}/Gene/Variation_Gene/Image?db=core;g=${props.searchResult.id}`}>
+        Variant image</a> page on the Ensembl site.</div>
+      <div className="ag-theme-quartz" style={{height: `${44 * (accessionTable.length + 2)}px`}}>
+        <AgGridReact rowData={accessionTable} columnDefs={tableFields} defaultColDef={defaultColDef}/>
+      </div>
     </div>
   } else {
-      props.doRequestVEP(gene._id);
-      return <pre>loading</pre>;
+    props.doRequestVEP(gene._id);
+    return <pre>loading</pre>;
   }
 };
 
