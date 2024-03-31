@@ -88,7 +88,7 @@ const Detail = props => {
       <h5>Predicted loss-of-function alleles were detected in these germplasm.</h5>
       <div >Explore other variants within this gene in the <a target="_blank"
          href={`${props.configuration.ensemblURL}/${gene.system_name}/Gene/Variation_Gene/Image?db=core;g=${props.searchResult.id}`}>
-        Variant image</a> page on the Ensembl site.</div>
+        Variant image</a> page in the Ensembl genome browser.</div>
       <div className="ag-theme-quartz" style={{height: `${44 * (accessionTable.length + 2)}px`}}>
         <AgGridReact rowData={accessionTable} columnDefs={tableFields} defaultColDef={defaultColDef}/>
       </div>
