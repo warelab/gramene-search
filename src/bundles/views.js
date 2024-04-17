@@ -25,7 +25,8 @@ const grameneViews = {
           id: 'expression',
           name: 'Gene expression',
           show: 'off',
-          shouldScroll: false
+          shouldScroll: false,
+          desiredSamples: {}
         },
         {
           id: 'attribs',
@@ -86,7 +87,7 @@ const grameneViews = {
   doCancelShouldScroll: () => ({dispatch, getState}) => {
     dispatch({type: 'GRAMENE_VIEW_SCROLLED', payload: null})
   },
-  selectGrameneViews: state => state.grameneViews,
+  selectGrameneViews: state => state.grameneViews
 };
 
 export default grameneViews;

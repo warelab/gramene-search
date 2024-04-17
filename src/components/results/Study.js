@@ -10,10 +10,14 @@ const metaRenderer = params => {
   }
   return params.value.label
 }
+const sampleRenderer = params => {
+  const sampleMeta = params.value;
+  return JSON.stringify(sampleMeta,null,2);
+}
 const Study = props => {
   let samples = props.expressionSamples[props.id];
   let sampleMetadata = [];
-  let metadataFields = [{ field: "sampleId" }];
+  let metadataFields = [{ field: "sampleId", cellRenderer: sampleRenderer }];
   let isFactor={};
   samples.forEach((sample, idx) => {
     if (idx === 0) {
@@ -37,7 +41,7 @@ const Study = props => {
       });
       metadataFields.push(characteristics)
     }
-    let s_info = {sampleId: sample.group}
+    let s_info = {sampleId: sample}
     sample.factor.forEach(factor => {
       s_info[factor.type] = {label: factor.label};
       if (factor.ontology) {
@@ -70,4 +74,7 @@ const Study = props => {
     </div>
   );
 };
-export default connect('selectExpressionSamples', Study);
+export default connect(
+  'selectExpressionSamples',
+  'doToggleExpressionSample',
+  Study);

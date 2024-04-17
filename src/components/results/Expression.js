@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react'
 import {connect} from "redux-bundler-react";
-import { Accordion } from 'react-bootstrap';
+import { Accordion, Button } from 'react-bootstrap';
 import "./expression.css";
 const LazyStudy = React.lazy(() => import('./Study'));
 
@@ -32,15 +32,22 @@ const Expression = props => {
     .filter(tid => searchTaxa[tid] || searchTaxa[tid + '001'])
     .sort((a,b) => props.grameneMaps[a + '001'].left_index - props.grameneMaps[b + '001'].left_index);
   return availableTaxa && props.grameneTaxonomy &&
-    <Accordion alwaysOpen defaultActiveKey={availableTaxa.length === 1 ? "tax_0" : undefined}>
-      {availableTaxa.map((tid, idx) => {
-        const n = props.expressionStudies[tid].length;
-        return <Accordion.Item key={idx} eventKey={'tax_'+idx}>
-          <Accordion.Header>{props.grameneTaxonomy[tid].name} - {n} {n === 1 ? 'study' : 'studies'}</Accordion.Header>
-          <Accordion.Body><StudyList studies={props.expressionStudies[tid]}/></Accordion.Body>
-        </Accordion.Item>
-      })}
-    </Accordion>
+    <div>
+      <div>This is where you can launch a component for the selected samples. props.desiredSamples lists them.
+        This component can request the data from the API
+        organize samples by factor metadata? One big table with all the studies?
+        <Button>Show Samples ({Object.keys(props.desiredSamples).length} selected)</Button>
+      </div>
+      <Accordion alwaysOpen defaultActiveKey={availableTaxa.length === 1 ? "tax_0" : undefined}>
+        {availableTaxa.map((tid, idx) => {
+          const n = props.expressionStudies[tid].length;
+          return <Accordion.Item key={idx} eventKey={'tax_'+idx}>
+            <Accordion.Header>{props.grameneTaxonomy[tid].name} - {n} {n === 1 ? 'study' : 'studies'}</Accordion.Header>
+            <Accordion.Body><StudyList studies={props.expressionStudies[tid]}/></Accordion.Body>
+          </Accordion.Item>
+        })}
+      </Accordion>
+    </div>
 };
 
 export default connect(
@@ -49,5 +56,6 @@ export default connect(
   'selectGrameneTaxonomy',
   'selectGrameneMaps',
   'selectExpressionStudies',
+  'selectDesiredSamples', // current set of samples to fetch expression data for
   Expression
 );

@@ -11,6 +11,7 @@ const grameneDocs = {
       rnaSequences: {},
       pepSequences: {},
       studies: {},
+      desiredSamples: {},
       consequences: {}
     };
     return (state = initialState, {type, payload}) => {
@@ -116,9 +117,21 @@ const grameneDocs = {
           newState.expression = Object.assign({}, state.expression);
           newState.expression[payload.id] = payload.paralogs;
           return newState;
+        case 'EXPRESSION_SAMPLE_TOGGLED':
+          newState = Object.assign({}, state);
+          newState.desiredSamples = Object.assign({}, state.desiredSamples);
+          if (newState.desiredSamples.hasOwnProperty(payload)) {
+            delete newState.desiredSamples[payload]
+          }
+          else {
+            newState.desiredSamples[payload] = {status: 'need'}
+          }
       }
       return state;
     }
+  },
+  doToggleExpressionSample: id => ({dispatch}) => {
+    dispatch({type: 'EXPRESSION_SAMPLE_TOGGLED', payload: id});
   },
   doRequestVEP: id => ({dispatch, store}) => {
     const consequences = store.selectGrameneConsequences();
@@ -323,7 +336,8 @@ const grameneDocs = {
   selectGeneSequences: state => state.grameneDocs.sequences,
   selectRnaSequences: state => state.grameneDocs.rnaSequences,
   selectPepSequences: state => state.grameneDocs.pepSequences,
-  selectAtlasStudies: state => state.grameneDocs.studies
+  selectAtlasStudies: state => state.grameneDocs.studies,
+  selectDesiredSamples: state => state.grameneDocs.desiredSamples
 };
 
 export default grameneDocs;

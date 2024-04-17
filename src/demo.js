@@ -121,6 +121,7 @@ const panSites = [
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558003,
     alertText: 'Click the search icon in the menu bar or type / to search',
+    showViews: true,
     panSite : {
       vitis_vinifera : {
         url: "https://vitis.gramene.org?idList=",
