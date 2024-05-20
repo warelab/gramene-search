@@ -188,7 +188,7 @@ const Filters = connect(
 const ResultsCmp = props => {
   let activeViews = props.grameneViews.options;
   return props.grameneFilters.rightIdx > 0 ? (
-    <div style={{padding:'10px'}}>
+    <div>
       {activeViews.map((v,idx) => {
         let p = Object.assign({}, props);
         const divRef = useRef(null);
