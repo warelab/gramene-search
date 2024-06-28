@@ -1,5 +1,6 @@
 import React from "react";
 import isEqual from "lodash/isEqual";
+
 // var ensemblREST = require('../../../../../package.json').gramene.ensemblREST;
 //const ensemblREST = 'http://data.gramene.org/ensembl63';
 // const ensemblREST = 'https://data.sorghumbase.org/ensembl2';
@@ -88,7 +89,7 @@ export default class DallianceBrowser extends React.Component {
         maxViewWidth: 1000000
       }
     );
-    
+
     browser.addViewListener(this.props.onViewChange);
   }
 

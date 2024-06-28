@@ -28,7 +28,7 @@
     "flat-to-nested": "^1.1.1",
     "formik": "^3.0.0-next.8",
     "gramene-bins-client": "^2.3.3",
-    "gramene-dbxrefs": "^3.0.11",
+    "gramene-dbxrefs": "^3.0.12",
     "gramene-efp-browser": "^1.0.6",
     "gramene-genetree-vis": "^4.2.7",
     "gramene-mdview": "^2.0.6",
@@ -73,6 +73,7 @@
     "http-proxy-middleware": "latest",
     "parcel": "latest",
     "process": "^0.11.10",
+    "url": "^0.11.3",
     "util": "^0.12.5"
   },
   "repository": {
