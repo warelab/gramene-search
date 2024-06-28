@@ -134,60 +134,63 @@ function shouldShowClosestOrtholog(searchResult) {
   );
 }
 
+const allDetails = [
+  {
+    id: 'VEP',
+    label: 'Germplasm',
+    popup: 'Germplasm with protein truncating variants (PTVs)',
+    available: false
+  },
+  {
+    id: 'sequences',
+    label: 'Sequences',
+    popup: 'Gene/cDNA/protein fasta',
+    available: true
+  },
+  {
+    id: 'location',
+    label: 'Location',
+    popup: 'Genome Browser',
+    available: false
+  },
+  {
+    id: 'expression',
+    label: 'Expression',
+    popup: 'Gene Expression Atlas',
+    available: false
+  },
+  {
+    id: 'homology',
+    label: 'Homology',
+    popup: 'Gene Family Tree',
+    available: false
+  },
+  {
+    id: 'pathways',
+    label: 'Pathways',
+    popup: 'Plant Reactome Pathways',
+    available: false
+  },
+  {
+    id: 'pubs',
+    label: 'Papers',
+    popup: 'Curated Publications',
+    available: false
+  },
+  {
+    id: 'xrefs',
+    label: 'Xrefs',
+    popup: 'Database Cross-references',
+    available: false
+  }
+];
+
+
 class Gene extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      details: [
-        // {
-        //   id: 'VEP',
-        //   label: 'Germplasm',
-        //   popup: 'Germplasm with protein truncating variants (PTVs)',
-        //   available: false
-        // },
-        {
-          id: 'sequences',
-          label: 'Sequences',
-          popup: 'Gene/cDNA/protein fasta',
-          available: true
-        },
-        {
-          id: 'location',
-          label: 'Location',
-          popup: 'Genome Browser',
-          available: false
-        },
-        {
-          id: 'expression',
-          label: 'Expression',
-          popup: 'Gene Expression Atlas',
-          available: false
-        },
-        {
-          id: 'homology',
-          label: 'Homology',
-          popup: 'Gene Family Tree',
-          available: false
-        },
-        {
-          id: 'pathways',
-          label: 'Pathways',
-          popup: 'Plant Reactome Pathways',
-          available: false
-        },
-        {
-          id: 'pubs',
-          label: 'Papers',
-          popup: 'Curated Publications',
-          available: false
-        },
-        {
-          id: 'xrefs',
-          label: 'Xrefs',
-          popup: 'Database Cross-references',
-          available: false
-        }
-      ],
+      details: allDetails.map(o => ({...o})).filter(d => props.config.details[d.id]),
       expandedDetail: props.expandedDetail
     };
     let hasData = {};
@@ -236,7 +239,7 @@ class Gene extends React.Component {
     return renderTairSummary(gene) || renderClosestOrtholog(gene);
   }
   render() {
-    const panSite = this.props.panSite;
+    const panSite = this.props.config.panSite;
     const searchResult = this.props.searchResult;
     const taxName = this.props.taxName;
     // let orthologs='';
@@ -303,9 +306,7 @@ const GeneList = props => {
       {props.grameneSearch.response.docs.map((g,idx) => (
         <Gene key={idx}
               searchResult={g}
-              ensemblURL={props.configuration.ensemblURL}
-              ensemblRest={props.configuration.ensemblRest}
-              panSite={props.configuration.panSite}
+              config={props.configuration}
               taxName={props.grameneTaxonomy[g.taxon_id].name}
               geneDocs={props.grameneGenes}
               requestGene={props.doRequestGrameneGene}

@@ -57,13 +57,13 @@ export default class DallianceBrowser extends React.Component {
         sources: [
           {
             name: 'DNA',
-            ensemblURI: this.props.ensemblRest,
+            ensemblURI: this.props.config.ensemblRest,
             species: g.system_name,
             tier_type: 'sequence'
           },
           {
             name: 'Genes',
-            uri: this.props.ensemblRest,
+            uri: this.props.config.ensemblRest,
             tier_type: 'ensembl',
             species: g.system_name,
             type: ['gene', 'transcript', 'exon', 'cds']

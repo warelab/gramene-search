@@ -156,7 +156,7 @@ class Location extends React.Component {
     }
     var gene = this.gene;
     let links = [
-      {name: 'Ensembl Browser', url: `${this.props.ensemblURL}/${gene.system_name}/Gene/Summary?g=${gene._id}`}
+      {name: 'Ensembl Browser', url: `${this.props.config.ensemblURL}/${gene.system_name}/Gene/Summary?g=${gene._id}`}
     ];
     if (gene.annotations.taxonomy.ancestors.includes(4557))
       links.push({name: 'Phytozome', url: `https://phytozome-next.jgi.doe.gov/report/gene/Sbicolor_v5_1/${jgiify(gene._id)}`})

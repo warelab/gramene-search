@@ -49,6 +49,16 @@ const panSites = [
     ga: 'G-ZTEQBFCRXZ',
     targetTaxonId: 3702,
     alertText: 'Main site',
+    details: {
+      sequences: true,
+      VEP: false,
+      location: true,
+      expression: true,
+      homology: true,
+      pathways: true,
+      pubs: true,
+      xrefs: true
+    },
     panSite : {
       sorghum_bicolor : {
         url: "https://sorghumbase.org/genes?idList=",
@@ -84,6 +94,16 @@ const panSites = [
     ga: "G-Y7ZYG1R8QT",
     showViews: true,
     not_downtime: 'The search interface will be undergoing maintenance on Tuesday, July 20 from 3:00 - 4:00 PM EDT',
+    details: {
+      sequences: true,
+      VEP: false,
+      location: true,
+      expression: true,
+      homology: true,
+      pathways: true,
+      pubs: true,
+      xrefs: true
+    },
     renderAlert: () => (
         <Alert variant='primary'>
           Hufford et. al., 2021. &nbsp;
@@ -122,6 +142,16 @@ const panSites = [
     targetTaxonId: 4558003,
     alertText: 'Click the search icon in the menu bar or type / to search',
     showViews: true,
+    details: {
+      sequences: true,
+      VEP: true,
+      location: true,
+      expression: true,
+      homology: true,
+      pathways: true,
+      pubs: true,
+      xrefs: true
+    },
     panSite : {
       vitis_vinifera : {
         url: "https://vitis.gramene.org?idList=",
@@ -161,6 +191,16 @@ const panSites = [
     },
     targetTaxonId: 29760020,
     alertText: 'Grapevine site',
+    details: {
+      sequences: true,
+      VEP: false,
+      location: true,
+      expression: true,
+      homology: true,
+      pathways: true,
+      pubs: true,
+      xrefs: true
+    },
     panSite : {
       sorghum_bicolor : {
         url: "https://sorghumbase.org/genes?idList=",
@@ -187,8 +227,18 @@ const panSites = [
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-87',
     grameneData: 'https://data.gramene.org/oryza_v5',
     targetTaxonId: 3702,
-    alertText: 'Rice site'
-  },
+    alertText: 'Rice site',
+    details: {
+      sequences: true,
+      VEP: false,
+      location: true,
+      expression: true,
+      homology: true,
+      pathways: true,
+      pubs: true,
+      xrefs: true
+    }
+  }
 ];
 const initialState = Object.assign({helpIsOn:false}, panSites[subsitelut[subsite]]);
 
