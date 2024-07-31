@@ -223,7 +223,12 @@ class Gene extends React.Component {
       expandedDetail: props.expandedDetail
     };
     let hasData = {};
-    props.searchResult.capabilities.forEach(c => hasData[c]=true);
+    props.searchResult.capabilities.forEach(c => {
+      hasData[c] = true;
+      if (c === 'PanOryza') {
+        hasData.xrefs = true;
+      }
+    });
     this.state.details.forEach(d => d.available |= hasData.hasOwnProperty(d.id));
   }
   getDetailStatus(d) {
