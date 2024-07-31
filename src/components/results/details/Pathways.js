@@ -104,6 +104,10 @@ class Pathways extends React.Component {
 
   makeTaxonSpecific(docs,taxon_id) {
     let lineageField = 'lineage_'+taxon_id;
+    if (! docs[0].hasOwnProperty(lineageField)) {
+      let tid = Math.floor(taxon_id / 1000);
+      lineageField = 'lineage_'+tid;
+    }
     let tsDocs = docs.map(function(doc) {
       let tsDoc = _.pick(doc,['_id','name','type']);
       tsDoc.lineage = doc[lineageField];

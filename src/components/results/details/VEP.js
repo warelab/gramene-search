@@ -7,13 +7,19 @@ import "ag-grid-community/styles/ag-theme-quartz.css";
 import "./VEP.css";
 import {suggestionToFilters} from "../../utils";
 
+const ggURL = {
+  IRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
+  ARS: 'https://npgsweb.ars-grin.gov/gringlobal/accessiondetail.aspx?id=',
+  sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php'
+};
 const metaRenderer = params => {
-  if (params.value.field === "germplasm") { // link to grin or SorgMutDB
+  if (params.value.field === "germplasm") { // link to GrinGlobal or SorgMutDB
+    const url = ggURL[params.value.stock_center];
     if (params.value.germplasm_dbid) {
-      return <a target="_blank" href={`https://npgsweb.ars-grin.gov/gringlobal/accessiondetail.aspx?id=${params.value.germplasm_dbid}`}>{params.value.pub_id}</a>;
+      return <a target="_blank" href={`${url}${params.value.germplasm_dbid}`}>{params.value.pub_id}</a>;
     }
     return (
-      <form id={params.value.pub_id} action="https://www.depts.ttu.edu/igcast/sorbmutdb.php" method="post" target="_blank">
+      <form id={params.value.pub_id} action={url} method="post" target="_blank">
         <input type="hidden" name="search" value={params.value.gene_id.replace('SORBI_3','Sobic.')} />
         <input type="hidden" name="submit" value="Search" />
         <button type="submit" className="button-like-link">SorbMutDB</button>
@@ -37,12 +43,25 @@ const sortByLabel = (valueA, valueB, nodeA, nodeB, isDescending) => {
   return (valueA.label > valueB.label) ? 1 : -1;
 }
 
+const rice_studies = {'1': {label: '3K-RG', type: 'NAT'}};
 const study_info = {
-  '1' : {label: 'Purdue EMS', type: 'EMS'},
-  '2' : {label: 'USDA Lubbock EMS', type: 'EMS'},
-  '3' : {label: 'Lozano', type: 'NAT'},
-  '4' : {label: 'USDA Lubbock EMS', type: 'EMS'},
-  '5' : {label: 'Boatwright SAP', type: 'NAT'}
+  'sorghum_bicolor': {
+    '1': {label: 'Purdue EMS', type: 'EMS'},
+    '2': {label: 'USDA Lubbock EMS', type: 'EMS'},
+    '3': {label: 'Lozano', type: 'NAT'},
+    '4': {label: 'USDA Lubbock EMS', type: 'EMS'},
+    '5': {label: 'Boatwright SAP', type: 'NAT'}
+  },
+  'oryza_sativa': {
+    '7': {label: '3K-RG', type: 'NAT'},
+  },
+  'oryza_aus': rice_studies,
+  'oryza_sativa117425': rice_studies,
+  'oryza_sativa125827': rice_studies,
+  'oryza_sativaazucena': rice_studies,
+  'oryza_sativair64': rice_studies,
+  'oryza_sativamh63': rice_studies,
+  'oryza_sativazs97': rice_studies
 };
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
@@ -65,7 +84,7 @@ const Detail = props => {
           accessions.forEach(ens_id => {
             const germplasm = germplasmLUT[ens_id][0];
             const accInfo = {
-              'Study/Population': {label: study_info[parts[3]].label},
+              'Study/Population': {label: study_info[parts[3]][parts[4]].label},
               'VEP consequence': {label: parts[1].replaceAll("_"," ")},
               'Allele Status': {label: parts[2] === "het" ? "heterozygous" : "homozygous"},
               'Order Germplasm': {field: 'germplasm', gene_id: props.searchResult.id, label: germplasm.pub_id, ...germplasm},

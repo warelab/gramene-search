@@ -148,9 +148,9 @@ class Homology extends React.Component {
       }
     }
     let flagged=0;
-    if (this.props.curation && this.props.curation.taxa.hasOwnProperty(this.gene.taxon_id)) {
-      flagged = this.props.curatedGenes && this.props.curatedGenes[id] ? this.props.curatedGenes[id].flagged : 0;
-    }
+    // if (this.props.curation && this.props.curation.taxa.hasOwnProperty(this.gene.taxon_id)) {
+    //   flagged = this.props.curatedGenes && this.props.curatedGenes[id] ? this.props.curatedGenes[id].flagged : 0;
+    // }
     return (
       <Detail>
         <Title key="title">Compara Gene Tree</Title>

@@ -163,7 +163,7 @@ const panSites = [
         name: "Gramene Oryza",
         svg: "./static/images/oryza_logo.svg"
       },
-      zea_mays : {
+      zea_maysb73 : {
         url: "https://maize-pangenome.gramene.org?idList=",
         name: "Gramene Maize",
         svg: "./static/images/maize_logo.svg"
@@ -222,10 +222,11 @@ const panSites = [
   {
     id: 'rice',
     name: 'Rice',
+    ga: "G-ZTEQBFCRXZ",
     url: 'https://oryza.gramene.org',
     ensemblStie: 'https://ensembl-oryza.gramene.org',
-    ensemblRest: 'https://data.gramene.org/pansite-ensembl-87',
-    grameneData: 'https://data.gramene.org/oryza_v5',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
+    grameneData: 'https://data.gramene.org/oryza_v8',
     targetTaxonId: 3702,
     alertText: 'Rice site',
     details: {
@@ -237,6 +238,23 @@ const panSites = [
       pathways: true,
       pubs: true,
       xrefs: true
+    },
+    panSite : {
+      sorghum_bicolor : {
+        url: "https://sorghumbase.org/genes?idList=",
+        name: "SorghumBase",
+        svg: "./static/images/sorghum_logo.svg"
+      },
+      vitis_vinifera : {
+        url: "https://vitis.gramene.org?idList=",
+        name: "Gramene Grapevine",
+        svg: "./static/images/grapevine_logo.svg"
+      },
+      zea_maysb73 : {
+        url: "https://maize-pangenome.gramene.org?idList=",
+        name: "Gramene Maize",
+        svg: "./static/images/maize_logo.svg"
+      }
     }
   }
 ];

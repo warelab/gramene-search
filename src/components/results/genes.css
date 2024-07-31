@@ -79,6 +79,23 @@
     width: auto;
     vertical-align: top;
 }
+.gene-curation {
+    float:right;
+    margin-top: 20px;
+    border: 1px solid grey;
+}
+.gene-curation span {
+    width: 20px;
+    display: inline-block;
+    color: white;
+    text-align: center;
+}
+.gene-curation .okay {
+    background-color: #0c00f3;
+}
+.gene-curation .flagged {
+    background-color: darkorange;
+}
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;

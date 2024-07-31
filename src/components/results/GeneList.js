@@ -58,8 +58,37 @@ const PanLink = (props) => {
   </div>;
 };
 
-const ClosestOrthologCmp = (props) =>
-{
+const CurationComponent1 = ({ curation }) => {
+  return (
+    <div className="gene-curation">
+      <span>Curated gene structure</span>
+      {curation.okay > 0 && <span className="status">✔️ {curation.okay}</span>}
+      {curation.flagged > -10 && <span className="status">⚠️ {curation.flagged}</span>}
+    </div>
+  );
+};
+const CurationComponent = ({ curation, gene }) => {
+  const total = curation.okay + curation.flagged;
+  const okayRatio = (curation.okay / total);
+  const flaggedRatio = (curation.flagged / total);
+  const tooltip = (
+    <Tooltip id="tooltip">
+      <strong>Gene structure</strong><br/>
+      Okay: {curation.okay} &nbsp;
+      Flagged: {curation.flagged}
+    </Tooltip>
+  );
+  return (
+    <OverlayTrigger placement="left" overlay={tooltip}>
+      <a className="gene-curation" target="_blank" href={`https://devdata.gramene.org/curation/curations?idList=${gene.id}`}>
+        <span className="okay" style={{opacity: okayRatio}}>☑</span>
+        <span className="flagged" style={{opacity: flaggedRatio}}>⚠</span>
+      </a>
+    </OverlayTrigger>
+  )
+};
+
+const ClosestOrthologCmp = (props) => {
   let id, taxon_id, name, desc, species, className, identity;
   const gene = props.gene;
 
@@ -242,6 +271,7 @@ class Gene extends React.Component {
     const panSite = this.props.config.panSite;
     const searchResult = this.props.searchResult;
     const taxName = this.props.taxName;
+    const curation = this.props.curation;
     // let orthologs='';
     // if (this.props.orthologs && this.props.orthologs.hasOwnProperty(searchResult.id)) {
     //   orthologs = this.props.orthologs[searchResult.id].join(', ');
@@ -252,6 +282,7 @@ class Gene extends React.Component {
         <div className="result-gene-summary">
           <div className="result-gene-title-body">
             {panSite.hasOwnProperty(searchResult.system_name) && <PanLink pan={panSite[searchResult.system_name]} gene={searchResult}/>}
+            {curation && <CurationComponent curation={curation} gene={searchResult}/> }
             <div className="gene-title">
               <div className="gene-species">{taxName}</div>
               <h3 className="gene-name">{searchResult.name}
@@ -313,6 +344,7 @@ const GeneList = props => {
               requestOrthologs={props.doRequestOrthologs}
               orthologs={props.grameneOrthologs}
               taxLut={props.grameneTaxonomy}
+              curation={props.curatedGenes ? props.curatedGenes[g.id] : null}
               expandedDetail={props.grameneSearch.response.numFound === 1 && g.can_show.homology ? 'homology' : null}
         />
       ))}
@@ -330,6 +362,7 @@ export default connect(
   'selectGrameneOrthologs',
   'selectGrameneSearchOffset',
   'selectGrameneSearchRows',
+  'selectCuratedGenes',
   'doRequestGrameneGene',
   'doRequestOrthologs',
   'doRequestResultsPage',
