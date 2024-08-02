@@ -13,24 +13,28 @@ const ggURL = {
   sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php'
 };
 const metaRenderer = params => {
-  if (params.value.field === "germplasm") { // link to GrinGlobal or SorgMutDB
-    const url = ggURL[params.value.stock_center];
-    if (params.value.germplasm_dbid) {
-      return <a target="_blank" href={`${url}${params.value.germplasm_dbid}`}>{params.value.pub_id}</a>;
+  if (params.value.field === "germplasm") { // link to stock center
+    const genebank = params.value.stock_center;
+    const url = ggURL[genebank];
+    if (params.value.germplasm_dbid && url && params.value.germplasm_dbid !== "0") {
+      return <a target="_blank" href={`${url}${params.value.germplasm_dbid}`}>
+        {params.value.pub_id} ({genebank})</a>;
     }
-    return (
-      <form id={params.value.pub_id} action={url} method="post" target="_blank">
-        <input type="hidden" name="search" value={params.value.gene_id.replace('SORBI_3','Sobic.')} />
-        <input type="hidden" name="submit" value="Search" />
-        <button type="submit" className="button-like-link">SorbMutDB</button>
-      </form>
-    );
+    if (genebank === "sorbmutdb") {
+      return (
+        <form id={params.value.pub_id} action={url} method="post" target="_blank">
+          <input type="hidden" name="search" value={params.value.gene_id.replace('SORBI_3','Sobic.')} />
+          <input type="hidden" name="submit" value="Search" />
+          <button type="submit" className="button-like-link">SorbMutDB</button>
+        </form>
+      );
+    }
   }
   if (params.value.field === "search") { // search filter
     const currentURL = new URL(window.location.href);
     currentURL.search = '';
     currentURL.searchParams.set('category', 'Germplasm');
-    currentURL.searchParams.set('fq_field',`VEP__merged__${study_info[params.value.pop_id].type}__attr_ss`);
+    currentURL.searchParams.set('fq_field',`VEP__merged__${params.value.pop_type}__attr_ss`);
     currentURL.searchParams.set('fq_value',params.value.ens_id);
     currentURL.searchParams.set('name', params.value.ens_id);
 
@@ -43,7 +47,7 @@ const sortByLabel = (valueA, valueB, nodeA, nodeB, isDescending) => {
   return (valueA.label > valueB.label) ? 1 : -1;
 }
 
-const rice_studies = {'1': {label: '3K-RG', type: 'NAT'}};
+const rice_studies = {'1': {label: 'Rice 3K', type: 'NAT'}};
 const study_info = {
   'sorghum_bicolor': {
     '1': {label: 'Purdue EMS', type: 'EMS'},
@@ -53,7 +57,9 @@ const study_info = {
     '5': {label: 'Boatwright SAP', type: 'NAT'}
   },
   'oryza_sativa': {
-    '7': {label: '3K-RG', type: 'NAT'},
+    '6': {label: 'Rice 3K', type: 'NAT'},
+    '12': {label: 'Rice USDA mini core', type: 'NAT'},
+    '15': {label: 'RAPDB 2024', type: 'NAT'},
   },
   'oryza_aus': rice_studies,
   'oryza_sativa117425': rice_studies,
@@ -88,7 +94,7 @@ const Detail = props => {
               'VEP consequence': {label: parts[1].replaceAll("_"," ")},
               'Allele Status': {label: parts[2] === "het" ? "heterozygous" : "homozygous"},
               'Order Germplasm': {field: 'germplasm', gene_id: props.searchResult.id, label: germplasm.pub_id, ...germplasm},
-              'All LOF Genes': {field: 'search', label: germplasm.ens_id, ...germplasm},
+              'All LOF Genes': {field: 'search', label: germplasm.ens_id, pop_type: study_info[parts[3]][parts[4]].type, ...germplasm},
               'Synonyms': {label: germplasm.ens_id}
             };
             accessionTable.push(accInfo);
