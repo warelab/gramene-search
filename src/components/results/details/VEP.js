@@ -57,9 +57,9 @@ const study_info = {
     '5': {label: 'Boatwright SAP', type: 'NAT'}
   },
   'oryza_sativa': {
-    '6': {label: 'Rice 3K', type: 'NAT'},
-    '12': {label: 'Rice USDA mini core', type: 'NAT'},
-    '15': {label: 'RAPDB 2024', type: 'NAT'},
+    '7': {label: 'Rice 3K', type: 'NAT'},
+    '29': {label: 'Rice USDA mini core', type: 'NAT'},
+    '38': {label: 'RAPDB 2024', type: 'NAT'},
   },
   'oryza_aus': rice_studies,
   'oryza_sativa117425': rice_studies,
