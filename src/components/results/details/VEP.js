@@ -85,23 +85,23 @@ const study_info = {
   'oryza_sativazs97': rice_studies
 };
 const AccessionLink = ({germplasm, gene_id}) => {
+  const genebank = germplasm.stock_center;
+  const url = ggURL[genebank];
   if (germplasm.germplasm_dbid) { // link to stock center
     const germ_id = germplasm.germplasm_dbid;
-    const genebank = germplasm.stock_center;
-    const url = ggURL[genebank];
     if (germ_id && url && germ_id !== "0") {
       return <a target="_blank" href={`${url}${germ_id}`}>
         {germplasm.pub_id} ({genebank})</a>;
     }
-    if (genebank === "sorbmutdb") {
-      return (
-        <form id={germplasm.pub_id} action={url} method="post" target="_blank">
-          <input type="hidden" name="search" value={gene_id.replace('SORBI_3','Sobic.')} />
-          <input type="hidden" name="submit" value="Search" />
-          <button type="submit" className="button-like-link">SorbMutDB</button>
-        </form>
-      );
-    }
+  }
+  if (genebank === "sorbmutdb") {
+    return (
+      <form id={germplasm.pub_id} action={url} method="post" target="_blank">
+        <input type="hidden" name="search" value={gene_id.replace('SORBI_3','Sobic.')} />
+        <input type="hidden" name="submit" value="Search" />
+        <button type="submit" className="button-like-link">SorbMutDB</button>
+      </form>
+    );
   }
   return <span>{germplasm.pub_id}</span>
 }
