@@ -1,12 +1,11 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {connect} from "redux-bundler-react";
-import {Button, Accordion, AccordionHeader} from 'react-bootstrap';
+import {Button} from 'react-bootstrap';
 import { AgGridReact } from "ag-grid-react";
 import _ from 'lodash';
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import "./VEP.css";
-import {suggestionToFilters} from "../../utils";
 
 const ggURL = {
   IRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
@@ -14,51 +13,6 @@ const ggURL = {
   ICRISAT: 'https://genebank.icrisat.org/IND/PassportSummary?ID=',
   sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php'
 };
-const metaRenderer = params => {
-  if (params.value.field === "accessions") {
-    const accs = params.value.accessions;
-    return <Accordion>
-      <Accordion.Item>
-        <Accordion.Header>{accs.length}</Accordion.Header>
-        <Accordion.Body>
-          <p>This is where the "table" goes</p>
-        </Accordion.Body>
-      </Accordion.Item>
-    </Accordion>
-  }
-  if (params.value.field === "germplasm") { // link to stock center
-    const genebank = params.value.stock_center;
-    const url = ggURL[genebank];
-    if (params.value.germplasm_dbid && url && params.value.germplasm_dbid !== "0") {
-      return <a target="_blank" href={`${url}${params.value.germplasm_dbid}`}>
-        {params.value.pub_id} ({genebank})</a>;
-    }
-    if (genebank === "sorbmutdb") {
-      return (
-        <form id={params.value.pub_id} action={url} method="post" target="_blank">
-          <input type="hidden" name="search" value={params.value.gene_id.replace('SORBI_3','Sobic.')} />
-          <input type="hidden" name="submit" value="Search" />
-          <button type="submit" className="button-like-link">SorbMutDB</button>
-        </form>
-      );
-    }
-  }
-  if (params.value.field === "search") { // search filter
-    const currentURL = new URL(window.location.href);
-    currentURL.search = '';
-    currentURL.searchParams.set('category', 'Germplasm');
-    currentURL.searchParams.set('fq_field',`VEP__merged__${params.value.pop_type}__attr_ss`);
-    currentURL.searchParams.set('fq_value',params.value.ens_id);
-    currentURL.searchParams.set('name', params.value.ens_id);
-
-    return <Button size='sm' href={currentURL.toString()}>Search</Button>
-  }
-  return params.value.label
-}
-const sortByLabel = (valueA, valueB, nodeA, nodeB, isDescending) => {
-  if (valueA.label === valueB.label) return 0;
-  return (valueA.label > valueB.label) ? 1 : -1;
-}
 
 const rice_studies = {'1': {label: 'Rice 3K', type: 'NAT'}};
 const study_info = {
@@ -171,7 +125,6 @@ const GridWithGroups = ({groups,gene_id}) => {
   });
   const [expandedGroups, setExpandedGroups] = useState(initialExpanded);
 
-  // const gridRef = useRef();
 
   // Toggle group visibility
   const toggleGroup = (group) => {
@@ -261,9 +214,6 @@ const GridWithGroups = ({groups,gene_id}) => {
   const defaultColDef = {
     sortable: false,
     cellStyle: (params) => {
-      // if (!params.data.summary) {
-      //   return {paddingLeft: '30px'};
-      // }
       if (params.data.summary) {
         return {cursor: 'pointer'};
       }
@@ -300,9 +250,6 @@ const Detail = props => {
          href={`${props.configuration.ensemblURL}/${gene.system_name}/Gene/Variation_Gene/Image?db=core;g=${props.searchResult.id}`}>
         Variant image</a> page in the Ensembl genome browser.</div>
       <GridWithGroups groups={...groups} gene_id={gene._id}/>
-      {/*<div className="ag-theme-quartz" style={{height: `${rowHeight * (rows2show + 1)}px`}}>*/}
-      {/*  /!*<AgGridReact rowHeight={rowHeight} rowData={rowData} columnDefs={tableFields} defaultColDef={defaultColDef}/>*!/*/}
-      {/*</div>*/}
     </div>
   } else {
     props.doRequestVEP(gene._id);
