@@ -151,7 +151,7 @@ const GridWithGroups = ({groups,gene_id}) => {
 
   // Define columns with a custom renderer for the summary rows
   const columnDefs = [
-    { field: 'pop', headerName: 'Study',
+    { field: 'pop', headerName: 'Study', flex: 1,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -159,7 +159,7 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'conseq', headerName: 'VEP consequence',
+    { field: 'conseq', headerName: 'VEP consequence', flex: 1,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -167,7 +167,7 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'status', headerName: 'Allele status',
+    { field: 'status', headerName: 'Allele status', flex: 1,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -175,7 +175,7 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'accession', headerName: 'Order Germplasm',
+    { field: 'accession', headerName: 'Order Germplasm', flex: 1,
       cellRenderer: (params) => {
         if (params.value) {
           return <AccessionLink germplasm={params.value.germplasm} gene_id={gene_id} />;
@@ -192,7 +192,14 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'search', headerName: 'All LOF Genes',
+    { field: 'synonym', headerName: 'Synonym',  flex: 1, cellRenderer: (params) => {
+      console.log(params.data);
+      if (params.data.accession) {
+        return params.data.accession.germplasm.ens_id
+      }
+      return null;
+    }},
+    { field: 'search', headerName: 'All LOF Genes', flex: 1,
       cellRenderer: (params) => {
         if (params.data.accession) {
           const currentURL = new URL(window.location.href);
@@ -226,7 +233,7 @@ const GridWithGroups = ({groups,gene_id}) => {
   return (
     <div
       className="ag-theme-quartz"
-      style={{ height: tableHeight, width: "100%" }}
+      style={{ height: tableHeight, width: "100%", maxWidth: "1200px" }}
     >
       <AgGridReact
         rowData={getVisibleRowData()}
