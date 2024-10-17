@@ -5,6 +5,7 @@ import { AgGridReact } from "ag-grid-react";
 import _ from 'lodash';
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./VEP.css";
 
 const ggURL = {
@@ -151,7 +152,7 @@ const GridWithGroups = ({groups,gene_id}) => {
 
   // Define columns with a custom renderer for the summary rows
   const columnDefs = [
-    { field: 'pop', headerName: 'Study', flex: 1,
+    { field: 'pop', headerName: 'Study/Population', flex: 1,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -176,6 +177,14 @@ const GridWithGroups = ({groups,gene_id}) => {
       }
     },
     { field: 'accession', headerName: 'Order Germplasm', flex: 1,
+      headerComponent: (props) => {
+        return (
+          <div style={{display: 'flex', alignItems: 'center'}}>
+            <i className="fas fa-shopping-cart"></i>&nbsp;
+            <span>{props.displayName}</span>
+          </div>
+        );
+      }, // Use the custom header with the shopping cart icon
       cellRenderer: (params) => {
         if (params.value) {
           return <AccessionLink germplasm={params.value.germplasm} gene_id={gene_id} />;
@@ -192,14 +201,14 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'synonym', headerName: 'Synonym',  flex: 1, cellRenderer: (params) => {
+    { field: 'synonym', headerName: 'Synonym', filter:false, sortable:false, flex: 1, cellRenderer: (params) => {
       console.log(params.data);
       if (params.data.accession) {
         return params.data.accession.germplasm.ens_id
       }
       return null;
     }},
-    { field: 'search', headerName: 'All LOF Genes', flex: 1,
+    { field: 'search', headerName: 'All LOF Genes', sortable:false, filter:false, flex: 1,
       cellRenderer: (params) => {
         if (params.data.accession) {
           const currentURL = new URL(window.location.href);
@@ -219,7 +228,8 @@ const GridWithGroups = ({groups,gene_id}) => {
   ];
 
   const defaultColDef = {
-    sortable: false,
+    sortable: true,
+    filter: "agTextColumnFilter",
     cellStyle: (params) => {
       if (params.data.summary) {
         return {cursor: 'pointer'};
