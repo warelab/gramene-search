@@ -6,7 +6,13 @@ const grameneViews = {
         {
           id: 'help',
           name: 'Help / Demo',
-          show: 'disabled',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'userLists',
+          name: 'User Gene Lists',
+          show: 'off',
           shouldScroll: false
         },
         {

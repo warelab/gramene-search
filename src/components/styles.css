@@ -14,6 +14,16 @@
     padding-bottom: 8px;
     width: 250px;
 }
+.gramene-auth-container {
+    background-color: #fff3a9;
+    padding-left: 4px;
+    padding-bottom: 4px;
+}
+.sorghumbase-auth-container {
+    background-color: #fff3a9;
+    padding-left: 4px;
+    padding-bottom: 4px;
+}
 .gramene-filter-container {
     background-color: #fff3a9;
     padding-left: 4px;
