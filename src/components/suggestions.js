@@ -7,7 +7,6 @@ import './styles.css'
 function showMatches(text, x) {
   let re = new RegExp(`(${x})`, 'ig');
   let match = text.split(re);
-  console.log('showMatches',text, x, match);
   return <span>
     {match.map((str, idx) => {
       if (idx % 2 === 1) {
@@ -24,6 +23,20 @@ function logAction(sugg) {
     action: 'SetFilter',
     label: sugg.name
   })
+}
+function getLowestCommonAncestorName(tids, taxonomy) {
+  let lca;
+  tids.forEach(tid => {
+    if (!lca) {
+      lca = [...taxonomy[tid].ancestors];
+    } else {
+      let ancestors = new Set(taxonomy[tid].ancestors);
+      while (!ancestors.has(lca[0])) {
+        lca.shift();
+      }
+    }
+  });
+  return taxonomy[lca[0]].short_name;
 }
 const Suggestions = props => {
   let suggestions = props.grameneSuggestions;
@@ -74,6 +87,7 @@ const Suggestions = props => {
                           onClick={() => {logAction(sugg); props.doAcceptSuggestion(sugg); props.doAcceptGrameneSuggestion(sugg)}}>
                     {showMatches(sugg.display_name,props.suggestionsQuery)}{' '}
                     <Badge bg="secondary">{sugg.num_genes}</Badge>
+                    <i>&nbsp;{getLowestCommonAncestorName(sugg.taxon_id, props.grameneTaxonomy)}</i>
                   </Button>
                 )}
               </div>
@@ -90,6 +104,7 @@ const Suggestions = props => {
 export default connect(
   'selectGrameneSuggestions',
   'selectSuggestionsQuery',
+  'selectGrameneTaxonomy',
   'doAcceptSuggestion',
   'doAcceptGrameneSuggestion',
   Suggestions
