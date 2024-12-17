@@ -140,7 +140,7 @@ const panSites = [
     grameneData: 'https://data.sorghumbase.org/sorghum_v9',
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558003,
-    alertText: 'Click the search icon in the menu bar or type / to search',
+    alertText: 'Click the search icon in the menu bar or type /',
     showViews: false,
     details: {
       sequences: true,
