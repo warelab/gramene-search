@@ -32,7 +32,7 @@
     "gramene-bins-client": "^2.3.3",
     "gramene-dbxrefs": "^3.0.14",
     "gramene-efp-browser": "^1.0.7",
-    "gramene-genetree-vis": "^4.2.8",
+    "gramene-genetree-vis": "^4.2.9",
     "gramene-mdview": "^2.0.6",
     "gramene-search-vis": "^4.2.4",
     "gramene-taxonomy-with-genomes": "^3.0.10",
