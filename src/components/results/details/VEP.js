@@ -67,7 +67,7 @@ function group_germplasm(gene, germplasmLUT, vep_obj) {
     const parts = key.split("__");
     if (parts[0] === "VEP") {
       if (parts[1] !== "merged") {
-        accessions.forEach(ens_id => {
+        accessions.filter(ens_id => germplasmLUT.hasOwnProperty(ens_id)).forEach(ens_id => {
           const germplasm = germplasmLUT[ens_id][0];
           const pop = study_info[parts[3]][parts[4]];
           const conseq = parts[1].replaceAll("_"," ");
