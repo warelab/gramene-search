@@ -180,6 +180,9 @@ const grameneDocs = {
               else if (node.taxon_id === 1100004558) {
                 node.taxon_name = "Sorghum bicolor"
               }
+              if (node.taxon_id === 45580023 && node.hasOwnProperty('children')) {
+                node.taxon_name = "Sorghum bicolor"
+              }
               if (node.taxon_id === 45770001 && node.hasOwnProperty('children')) {
                 node.taxon_name = "Zea mays"
               }
