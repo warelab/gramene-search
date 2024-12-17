@@ -24,7 +24,8 @@ const study_info = {
     '4': {label: 'USDA Lubbock EMS', type: 'EMS'},
     '5': {label: 'Boatwright SAP', type: 'NAT'},
     '7': {label: 'Kumar BAP', type: 'NAT'},
-    '8': {label: 'Lasky landraces', type: 'NAT'}
+    '8': {label: 'Lasky landraces', type: 'NAT'},
+    '9': {label: 'Sorghum Genomics Toolbox', type: 'NAT'}
   },
   'oryza_sativa': {
     '7': {label: 'Rice 3K', type: 'NAT'},

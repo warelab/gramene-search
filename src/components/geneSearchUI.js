@@ -10,6 +10,8 @@ import HelpDemo from './results/HelpDemo'
 import GeneAttribs from './results/GeneAttribs'
 import TaxonomyModal from './TaxonomyModal'
 import Expression from './results/Expression'
+import UserGeneLists from './results/UserGeneLists'
+import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
 
@@ -18,7 +20,8 @@ const inventory = {
   list: GeneList,
   taxonomy: TaxDist,
   attribs: GeneAttribs,
-  expression: Expression
+  expression: Expression,
+  userLists: UserGeneLists
 };
 
 const StatusCmp = props => {
@@ -224,16 +227,6 @@ const Results = connect(
 const ViewsCmp = props => (
   <div className={'gramene-view-container'}>
     <b>Views</b>
-    {/*{props.grameneViews.options.map((view,idx) => (*/}
-    {/*  <div key={idx}>*/}
-    {/*    <input type="checkbox" className='toggle-switch' id={`toggle${idx}`} onChange={(e) => {*/}
-    {/*      if (view.show !== 'disabled') {*/}
-    {/*        props.doToggleGrameneView(idx)*/}
-    {/*      }*/}
-    {/*    }} disabled={view.show === 'disabled'} checked={view.show === 'on'}/>*/}
-    {/*    <label for={`toggle${idx}`}>{view.show}</label>{view.name}*/}
-    {/*  </div>*/}
-    {/*))}*/}
     {props.grameneViews.options.filter(view => view.show !== 'disabled').map((view,idx) => (
       <div style={{textWrap:'nowrap'}} key={idx}>
         <Switch onChange={()=>props.doToggleGrameneView(view.id)} checked={view.show === 'on'}
@@ -248,25 +241,6 @@ const ViewsCmp = props => (
         }}>{view.name}</span>
       </div>
     ))}
-    {/*<ul className={'gramene-view'}>*/}
-    {/*  {props.grameneViews.options.map((view,idx) => (*/}
-    {/*    <li key={idx} className={`gramene-view-${view.show}`}*/}
-    {/*        onClick={(e) => {*/}
-    {/*          if (view.show !== 'disabled') {*/}
-    {/*            props.doToggleGrameneView(idx)*/}
-    {/*          }*/}
-    {/*        }}*/}
-    {/*    >{view.name}</li>*/}
-    {/*  ))}*/}
-    {/*</ul>*/}
-    {/*<div>*/}
-    {/*  &nbsp;Key:*/}
-    {/*  <ul className={'gramene-view'}>*/}
-    {/*    <li className='gramene-view-on'>On</li>*/}
-    {/*    <li className='gramene-view-off'>Off</li>*/}
-    {/*    <li className='gramene-view-disabled'>Disabled</li>*/}
-    {/*  </ul>*/}
-    {/*</div>*/}
   </div>
 );
 
@@ -277,4 +251,4 @@ const Views = connect(
   ViewsCmp
 );
 
-export {Status, Filters, Results, Views};
+export {Status, Filters, Results, Views, Auth};

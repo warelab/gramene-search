@@ -6,7 +6,7 @@ import { getConfiguredCache } from 'money-clip';
 import { DebounceInput } from 'react-debounce-input'
 import ReactGA from 'react-ga4'
 import { Alert, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
-import { Status, Filters, Results, Views } from './components/geneSearchUI';
+import { Status, Filters, Results, Views, Auth } from './components/geneSearchUI';
 import GrameneSuggestions from './components/suggestions';
 import HelpModal from './components/HelpModal';
 import bundles from './bundles';
@@ -137,11 +137,11 @@ const panSites = [
     ensemblURL: 'https://ensembl-dev.sorghumbase.org',
     ensemblSite: 'https://ensembl-dev.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.sorghumbase.org/sorghum_v8',
+    grameneData: 'https://data.sorghumbase.org/sorghum_v9',
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558003,
     alertText: 'Click the search icon in the menu bar or type / to search',
-    showViews: true,
+    showViews: false,
     details: {
       sequences: true,
       VEP: true,
@@ -315,6 +315,7 @@ const SearchViewsCmp = props => (
           <Status/>
           <Filters/>
           {props.configuration.showViews && <Views/>}
+          {/*<Auth/>*/}
         </div>
       </div>
       <div style={{width:"calc(100% - 250px", left:250, position:'relative'}}>
