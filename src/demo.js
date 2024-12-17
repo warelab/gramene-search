@@ -137,11 +137,11 @@ const panSites = [
     ensemblURL: 'https://ensembl-dev.sorghumbase.org',
     ensemblSite: 'https://ensembl-dev.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.sorghumbase.org/auth_testing',
+    grameneData: 'https://data.sorghumbase.org/sorghum_v9',
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558003,
     alertText: 'Click the search icon in the menu bar or type / to search',
-    showViews: true,
+    showViews: false,
     details: {
       sequences: true,
       VEP: true,
@@ -315,7 +315,7 @@ const SearchViewsCmp = props => (
           <Status/>
           <Filters/>
           {props.configuration.showViews && <Views/>}
-          <Auth/>
+          {/*<Auth/>*/}
         </div>
       </div>
       <div style={{width:"calc(100% - 250px", left:250, position:'relative'}}>

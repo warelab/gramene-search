@@ -8,7 +8,7 @@ const auth = getAuth(firebaseApp);
 
 const MAX_GENE_IDS = 1000; // Define the maximum number of gene IDs allowed
 
-const GeneListDisplayComponent = () => {
+const GeneListDisplayComponent = props => {
   const [savedGeneLists, setSavedGeneLists] = useState([]);
   const [error, setError] = useState(null);
   const [user, setUser] = useState({});
@@ -18,7 +18,7 @@ const GeneListDisplayComponent = () => {
   const fetchSavedGeneLists = async () => {
     try {
       // Replace this with actual fetch from your backend or storage
-      const response = await fetch('https://your-backend-url.com/gene-lists');
+      const response = await fetch(`${props.api}/gene-lists`);
       const result = await response.json();
 
       if (response.ok) {
@@ -64,7 +64,7 @@ const GeneListDisplayComponent = () => {
                 <Button variant="info" onClick={() => viewGeneList(list)}>
                   View
                 </Button>
-                <Button variant="danger" onClick={() => deleteGeneList(list.id)} className="ml-2">
+                <Button variant="danger" onClick={() => deleteGeneList(props.api, list.id)} className="ml-2">
                   Delete
                 </Button>
               </td>
@@ -86,11 +86,11 @@ const viewGeneList = (list) => {
   alert(`Viewing gene list: ${list.name}\nGenes: ${list.genes.join(', ')}`);
 };
 
-const deleteGeneList = async (listId) => {
+const deleteGeneList = async (api,listId) => {
   if (window.confirm('Are you sure you want to delete this gene list?')) {
     // Replace with the actual delete request
     try {
-      await fetch(`https://your-backend-url.com/gene-lists/${listId}`, {
+      await fetch(`${api}/gene-lists/${listId}`, {
         method: 'DELETE',
       });
       alert('Gene list deleted!');
@@ -144,7 +144,7 @@ const GeneListComponent = props => {
     setLoading(true); // Set loading state to true to show progress
 
     try {
-      const response = await fetch(`${props.api}/validate`, {
+      const response = await fetch(`${props.api}/gene_lists/validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ const GeneListComponent = props => {
 
     const token = await user.getIdToken();
     try {
-      const response = await fetch(`${props.api}/save_list?${queryString}`, {
+      const response = await fetch(`${props.api}/gene_list?${queryString}`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
