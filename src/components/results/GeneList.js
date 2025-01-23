@@ -295,7 +295,7 @@ class Gene extends React.Component {
               </h3>
             </div>
             {searchResult.synonyms && <small className="gene-synonyms">{searchResult.synonyms.join(', ')}</small>}
-            {(numWordsInDescription > 1 || searchResult.can_show.pubs) && <p className="gene-description">{searchResult.description}</p>}
+            {searchResult.description !== "unknown" && (numWordsInDescription > 1 || searchResult.can_show.pubs) && <p className="gene-description">{searchResult.description}</p>}
           </div>
           {this.renderMetadata()}
         </div>
