@@ -27,6 +27,9 @@ const study_info = {
     '8': {label: 'Lasky landraces', type: 'NAT'},
     '9': {label: 'Sorghum Genomics Toolbox', type: 'NAT'}
   },
+  'zea_maysb73': {
+    '15': {label: 'MaizeGDB 2024', type: 'NAT'}
+  },
   'oryza_sativa': {
     '7': {label: 'Rice 3K', type: 'NAT'},
     '29': {label: 'Rice USDA mini core', type: 'NAT'},
