@@ -12,7 +12,8 @@ const ggURL = {
   IRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
   ARS: 'https://npgsweb.ars-grin.gov/gringlobal/accessiondetail.aspx?id=',
   ICRISAT: 'https://genebank.icrisat.org/IND/PassportSummary?ID=',
-  sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php'
+  sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php',
+  maizeGDB: 'https://wgs.maizegdb.org/'
 };
 
 const rice_studies = {'1': {label: 'Rice 3K', type: 'NAT'}};
@@ -61,6 +62,9 @@ const AccessionLink = ({germplasm, gene_id}) => {
         <button type="submit" className="button-like-link">SorbMutDB</button>
       </form>
     );
+  }
+  if (germplasm.pop_id === '15' && germplasm.stock_center === 'NOT FOUND') {
+    return <a target="_blank" href={ggURL['maizeGDB']}>SNPVersity 2.0</a>
   }
   return <span>{germplasm.pub_id}</span>
 }
@@ -206,7 +210,6 @@ const GridWithGroups = ({groups,gene_id}) => {
       }
     },
     { field: 'synonym', headerName: 'Synonym', filter:false, sortable:false, flex: 1, cellRenderer: (params) => {
-      console.log(params.data);
       if (params.data.accession) {
         return params.data.accession.germplasm.ens_id
       }
