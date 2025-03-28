@@ -63,6 +63,11 @@ const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
   const [atlasExperiment, setAtlasExperiment] = useState('reference');
   const [atlasExperimentList, setAtlasExperimentList] = useState([]);
+  const [isLocal, setIsLocal] = useState(false);
+
+  const handleLocalAPIChange = (event) => {
+    setIsLocal(event.target.checked);
+  };
   useEffect(() => {
     const tid = Math.floor(gene.taxon_id / 1000);
     if (props.expressionStudies[tid]) {
@@ -73,12 +78,12 @@ const Detail = props => {
   }, [props.expressionStudies]);
 
   let paralogs_url;
-  let gene_url = `/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}`;
+  let gene_url = `/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
   let paralogs = gene.homology.homologous_genes.within_species_paralog;
   // if (props.paralogExpression && props.paralogExpression[gene._id]) {
   //   let paralogs = props.paralogExpression[gene._id].map(p => p.atlas_id || p.id);
     if (paralogs.length > 1 && atlasExperiment) {
-      paralogs_url= `/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}`;
+      paralogs_url= `/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
     }
   // }
   // else {
@@ -88,6 +93,13 @@ const Detail = props => {
     {paralogs_url && atlasExperimentList &&
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`}>
         <Form>
+          <Form.Check
+            type="switch"
+            id="localAPI"
+            label="Local API"
+            checked={isLocal}
+            onChange={handleLocalAPIChange}
+          />
           <Form.Group as={Row} className="mb-3" controlId="formGroupExperiment">
             <Form.Label column sm={1}>Experiment</Form.Label>
             <Col sm={5}>
@@ -102,7 +114,15 @@ const Detail = props => {
         <DynamicIframe url={paralogs_url}/>
       </Tab>
     }
-    <Tab tabClassName="gxa" eventKey="gene" title="All Studies"><DynamicIframe url={gene_url}/></Tab>
+    <Tab tabClassName="gxa" eventKey="gene" title="All Studies">
+      <Form.Check
+        type="switch"
+        id="localAPI"
+        label="Local API"
+        checked={isLocal}
+        onChange={handleLocalAPIChange}
+      />
+      <DynamicIframe url={gene_url}/></Tab>
     {haveBAR(gene) &&
       <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser"><BAR gene={gene}/></Tab>
     }
