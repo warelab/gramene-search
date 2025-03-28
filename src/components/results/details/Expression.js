@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import {connect} from "redux-bundler-react";
-import {Tabs, Tab} from 'react-bootstrap';
+import {Tabs, Tab, Form} from 'react-bootstrap';
 import BAR, {haveBAR} from "gramene-efp-browser";
 
 function DynamicIframe(props) {
@@ -61,21 +61,37 @@ function DynamicIframe(props) {
 
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
+  const [atlasExperiment, setAtlasExperiment] = useState('reference');
+  const [atlasExperimentList, setAtlasExperimentList] = useState([]);
+  useEffect(() => {
+    const tid = Math.floor(gene.taxon_id / 1000);
+    if (props.expressionStudies[tid]) {
+      let eList = props.expressionStudies[tid].filter(e => e.type === "Baseline");
+      eList.unshift({_id:'reference',name:'Reference Study'});
+      setAtlasExperimentList(eList);
+    }
+  }, [props.expressionStudies]);
+
   let paralogs_url;
   let gene_url = `/static/atlasWidget.html?reference=0&genes=${gene.atlas_id || gene._id}`;
-
-  if (props.paralogExpression && props.paralogExpression[gene._id]) {
-    let paralogs = props.paralogExpression[gene._id].map(p => p.atlas_id || p.id);
-    if (paralogs.length > 1) {
-      paralogs_url= `/static/atlasWidget.html?reference=1&genes=${paralogs.join(' ')}`;
+  let paralogs = gene.homology.homologous_genes.within_species_paralog;
+  // if (props.paralogExpression && props.paralogExpression[gene._id]) {
+  //   let paralogs = props.paralogExpression[gene._id].map(p => p.atlas_id || p.id);
+    if (paralogs.length > 1 && atlasExperiment) {
+      paralogs_url= `/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}`;
     }
-  }
-  else {
-    props.doRequestParalogExpression(gene._id)
-  }
+  // }
+  // else {
+  //   props.doRequestParalogExpression(gene._id)
+  // }
   return <Tabs>
-    {paralogs_url &&
-      <Tab tabClassName="gxa" eventKey="paralogs" title="Reference Study (all paralogs)">
+    {paralogs_url && atlasExperimentList &&
+      <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`}>
+        <Form.Select onChange={(e) => setAtlasExperiment(e.target.value)}>
+          {atlasExperimentList.map((experiment, index) => (
+            <option key={index} value={experiment._id} selected={experiment._id === atlasExperiment}>{experiment.name}</option>
+          ))}
+        </Form.Select>
         <DynamicIframe url={paralogs_url}/>
       </Tab>
     }
@@ -87,7 +103,8 @@ const Detail = props => {
 };
 
 export default connect(
-  'selectParalogExpression',
+  // 'selectParalogExpression',
+  'selectExpressionStudies',
   'doRequestParalogExpression',
   Detail
 );

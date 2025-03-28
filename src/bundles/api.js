@@ -64,7 +64,8 @@ grameneSuggestions.selectGrameneSuggestionsStatus = createSelector(
     if (!queryString) return '';
     if (shouldUpdate) return 'update needed';
     if (isLoading) return 'loading';
-    if (suggestionsRaw) return suggestionsRaw.data.grouped.category.matches + ' terms';
+    if (suggestionsRaw.data) return suggestionsRaw.data.grouped.category.matches + ' terms';
+    console.error(suggestionsRaw)
     return 'error';
   }
 );
