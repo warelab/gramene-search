@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import {connect} from "redux-bundler-react";
-import {Tabs, Tab, Form} from 'react-bootstrap';
+import {Tabs, Tab, Form, Row, Col} from 'react-bootstrap';
 import BAR, {haveBAR} from "gramene-efp-browser";
 
 function DynamicIframe(props) {
@@ -73,7 +73,7 @@ const Detail = props => {
   }, [props.expressionStudies]);
 
   let paralogs_url;
-  let gene_url = `/static/atlasWidget.html?reference=0&genes=${gene.atlas_id || gene._id}`;
+  let gene_url = `/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}`;
   let paralogs = gene.homology.homologous_genes.within_species_paralog;
   // if (props.paralogExpression && props.paralogExpression[gene._id]) {
   //   let paralogs = props.paralogExpression[gene._id].map(p => p.atlas_id || p.id);
@@ -87,11 +87,18 @@ const Detail = props => {
   return <Tabs>
     {paralogs_url && atlasExperimentList &&
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`}>
-        <Form.Select onChange={(e) => setAtlasExperiment(e.target.value)}>
-          {atlasExperimentList.map((experiment, index) => (
-            <option key={index} value={experiment._id} selected={experiment._id === atlasExperiment}>{experiment.name}</option>
-          ))}
-        </Form.Select>
+        <Form>
+          <Form.Group as={Row} className="mb-3" controlId="formGroupExperiment">
+            <Form.Label column sm={1}>Experiment</Form.Label>
+            <Col sm={5}>
+              <Form.Select onChange={(e) => setAtlasExperiment(e.target.value)}>
+                {atlasExperimentList.map((experiment, index) => (
+                  <option key={index} value={experiment._id} selected={experiment._id === atlasExperiment}>{experiment.name}</option>
+                ))}
+              </Form.Select>
+            </Col>
+          </Form.Group>
+        </Form>
         <DynamicIframe url={paralogs_url}/>
       </Tab>
     }
