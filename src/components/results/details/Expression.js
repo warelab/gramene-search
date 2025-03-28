@@ -61,7 +61,7 @@ function DynamicIframe(props) {
 
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
-  const [atlasExperiment, setAtlasExperiment] = useState('reference');
+  const [atlasExperiment, setAtlasExperiment] = useState(null);
   const [atlasExperimentList, setAtlasExperimentList] = useState([]);
   const [isLocal, setIsLocal] = useState(false);
 
@@ -72,25 +72,29 @@ const Detail = props => {
     const tid = Math.floor(gene.taxon_id / 1000);
     if (props.expressionStudies[tid]) {
       let eList = props.expressionStudies[tid].filter(e => e.type === "Baseline");
-      eList.unshift({_id:'reference',name:'Reference Study'});
       setAtlasExperimentList(eList);
+
+      let refExp = eList.filter(e => e.isRef);
+      if (refExp.length === 1) {
+        setAtlasExperiment(refExp[0]._id);
+      } else {
+        // no reference experiment - choose first
+        setAtlasExperiment(eList[0]._id);
+      }
     }
   }, [props.expressionStudies]);
 
   let paralogs_url;
   let gene_url = `/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
-  let paralogs = gene.homology.homologous_genes.within_species_paralog;
-  // if (props.paralogExpression && props.paralogExpression[gene._id]) {
-  //   let paralogs = props.paralogExpression[gene._id].map(p => p.atlas_id || p.id);
-    if (paralogs.length > 1 && atlasExperiment) {
-      paralogs_url= `/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
-    }
-  // }
-  // else {
-  //   props.doRequestParalogExpression(gene._id)
-  // }
+  let paralogs = [];
+  if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
+    paralogs = gene.homology.homologous_genes.within_species_paralog;
+  }
+  if (paralogs.length > 1 && atlasExperiment) {
+    paralogs_url= `/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
+  }
   return <Tabs>
-    {paralogs_url && atlasExperimentList &&
+    {paralogs_url &&
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`}>
         <Form>
           <Form.Check
