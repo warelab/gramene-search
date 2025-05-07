@@ -6,47 +6,18 @@ import BAR, {haveBAR} from "gramene-efp-browser";
 function DynamicIframe(props) {
   // Create a ref for the iframe element
   const iframeRef = useRef(null);
+  const [iframeHeight, setIframeHeight] = useState(500); // Default height
 
-  // Function to resize iframe height
-  const resizeIframe = () => {
-    if (iframeRef.current) {
-      const iframe = iframeRef.current;
-      const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
-      iframe.style.height = 44 + innerDoc.body.scrollHeight + 'px';
-    }
-  };
-
-  // Resize iframe when content loads
   useEffect(() => {
-    resizeIframe();
-  }, []); // Empty dependency array ensures it only runs once after initial render
-
-  // Optional: Resize iframe when window is resized
-  useEffect(() => {
-    window.addEventListener('resize', resizeIframe);
-    return () => {
-      window.removeEventListener('resize', resizeIframe);
-    };
-  }, []); // Empty dependency array ensures it only runs once after initial render
-
-  // Resize iframe when content changes
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const observer = new MutationObserver(resizeIframe);
-    const checkElement = () => {
-      const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
-      const targetElement = innerDoc.querySelector('#heatmapContainer');
-      if (targetElement) {
-        observer.observe(targetElement, { attributes: true, childList: true, subtree: true });
-      } else {
-        setTimeout(checkElement, 200); // Check again after 100 milliseconds
+    const handleMessage = (event) => {
+      if (event.data.type === 'heightChange') {
+        setIframeHeight(event.data.height + 44);
       }
     };
-    checkElement();
 
-    return () => observer.disconnect();
+    window.addEventListener("message", handleMessage);
+
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   return (
@@ -54,7 +25,7 @@ function DynamicIframe(props) {
       ref={iframeRef}
       src={props.url}
       title="Dynamic Iframe"
-      style={{ width: '100%', border: 'none' }}
+      style={{ width: '100%', height: `${iframeHeight}px`, border: 'none' }}
     />
   );
 }
@@ -85,13 +56,13 @@ const Detail = props => {
   }, [props.expressionStudies]);
 
   let paralogs_url;
-  let gene_url = `/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
+  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
   let paralogs = [];
   if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
     paralogs = gene.homology.homologous_genes.within_species_paralog;
   }
   if (paralogs.length > 1 && atlasExperiment) {
-    paralogs_url= `/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
+    paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
   }
   return <Tabs>
     {paralogs_url &&
