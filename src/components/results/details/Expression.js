@@ -95,7 +95,7 @@ const Detail = props => {
   }
   return <Tabs>
     {paralogs_url &&
-      <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`}>
+      <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
         <Form>
           <Form.Check
             type="switch"
@@ -107,9 +107,9 @@ const Detail = props => {
           <Form.Group as={Row} className="mb-3" controlId="formGroupExperiment">
             <Form.Label column sm={1}>Experiment</Form.Label>
             <Col sm={5}>
-              <Form.Select onChange={(e) => setAtlasExperiment(e.target.value)}>
+              <Form.Select defaultValue={atlasExperiment} onChange={(e) => setAtlasExperiment(e.target.value)}>
                 {atlasExperimentList.map((experiment, index) => (
-                  <option key={index} value={experiment._id} selected={experiment._id === atlasExperiment}>{experiment.name}</option>
+                  <option key={index} value={experiment._id}>{experiment.name}</option>
                 ))}
               </Form.Select>
             </Col>
@@ -118,7 +118,7 @@ const Detail = props => {
         <DynamicIframe url={paralogs_url}/>
       </Tab>
     }
-    <Tab tabClassName="gxa" eventKey="gene" title="All Studies">
+    <Tab tabClassName="gxa" eventKey="gene" title="All Studies" key="gxa">
       <Form.Check
         type="switch"
         id="localAPI"
@@ -126,9 +126,10 @@ const Detail = props => {
         checked={isLocal}
         onChange={handleLocalAPIChange}
       />
-      <DynamicIframe url={gene_url}/></Tab>
+      <DynamicIframe url={gene_url}/>
+    </Tab>
     {haveBAR(gene) &&
-      <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser"><BAR gene={gene}/></Tab>
+      <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser" key="bar"><BAR gene={gene}/></Tab>
     }
   </Tabs>
 };
