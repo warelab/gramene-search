@@ -109,13 +109,13 @@ const Detail = props => {
             <Col sm={5}>
               <Form.Select defaultValue={atlasExperiment} onChange={(e) => setAtlasExperiment(e.target.value)}>
                 {atlasExperimentList.map((experiment, index) => (
-                  <option key={index} value={experiment._id}>{experiment.name}</option>
+                  <option key={index} value={experiment._id}>{experiment.description || experiment._id}</option>
                 ))}
               </Form.Select>
             </Col>
           </Form.Group>
         </Form>
-        <DynamicIframe url={paralogs_url}/>
+        {/*<DynamicIframe url={paralogs_url}/>*/}
       </Tab>
     }
     <Tab tabClassName="gxa" eventKey="gene" title="All Studies" key="gxa">
@@ -126,7 +126,7 @@ const Detail = props => {
         checked={isLocal}
         onChange={handleLocalAPIChange}
       />
-      <DynamicIframe url={gene_url}/>
+      {/*<DynamicIframe url={gene_url}/>*/}
     </Tab>
     {haveBAR(gene) &&
       <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser" key="bar"><BAR gene={gene}/></Tab>
