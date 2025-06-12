@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react'
 import {connect} from "redux-bundler-react";
 import {Tabs, Tab, Form, Row, Col} from 'react-bootstrap';
+import { Typeahead } from 'react-bootstrap-typeahead'; // ES2015
+// Import as a module in your JS
+import 'react-bootstrap-typeahead/css/Typeahead.css';
 import BAR, {haveBAR} from "gramene-efp-browser";
 
 function DynamicIframe(props) {
@@ -42,7 +45,11 @@ const Detail = props => {
   useEffect(() => {
     const tid = Math.floor(gene.taxon_id / 1000);
     if (props.expressionStudies[tid]) {
-      let eList = props.expressionStudies[tid].filter(e => e.type === "Baseline");
+      let eList = props.expressionStudies[tid];
+      if (props.searchResult.hasOwnProperty('expressed_in_gxa_attr_ss')) {
+        const in_gxa = new Set(props.searchResult.expressed_in_gxa_attr_ss);
+        eList = props.expressionStudies[tid].filter(e => in_gxa.has(e._id));
+      }
       setAtlasExperimentList(eList);
 
       let refExp = eList.filter(e => e.isRef);
@@ -56,7 +63,7 @@ const Detail = props => {
   }, [props.expressionStudies]);
 
   let paralogs_url;
-  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
+  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
   let paralogs = [];
   if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
     paralogs = gene.homology.homologous_genes.within_species_paralog;
@@ -64,38 +71,39 @@ const Detail = props => {
   if (paralogs.length > 1 && atlasExperiment) {
     paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
   }
+  const ref = useRef(null);
+  const ref2 = useRef(null);
   return <Tabs>
     {paralogs_url &&
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
-        <Form>
-          <Form.Check
-            type="switch"
-            id="localAPI"
-            label="Local API"
-            checked={isLocal}
-            onChange={handleLocalAPIChange}
-          />
-          <Form.Group as={Row} className="mb-3" controlId="formGroupExperiment">
-            <Form.Label column sm={1}>Experiment</Form.Label>
-            <Col sm={5}>
-              <Form.Select defaultValue={atlasExperiment} onChange={(e) => setAtlasExperiment(e.target.value)}>
-                {atlasExperimentList.map((experiment, index) => (
-                  <option key={index} value={experiment._id}>{experiment.description || experiment._id}</option>
-                ))}
-              </Form.Select>
-            </Col>
-          </Form.Group>
-        </Form>
+        <Typeahead clearButton size='sm'
+          id="experiment-selector"
+          ref={ref}
+          labelKey="experiment"
+          onChange={(exps) => {if (exps.length > 0) {setAtlasExperiment(exps[0]._id);setTimeout(() => ref.current?.clear(), 2000)}}}
+          placeholder="Choose an experiment..."
+          options={atlasExperimentList}
+          labelKey={(experiment) => `${experiment.type}: ${experiment.description || experiment._id}`}
+        />
         <DynamicIframe url={paralogs_url}/>
       </Tab>
     }
     <Tab tabClassName="gxa" eventKey="gene" title="All Studies" key="gxa">
-      <Form.Check
-        type="switch"
-        id="localAPI"
-        label="Local API"
-        checked={isLocal}
-        onChange={handleLocalAPIChange}
+      {/*<Form.Check*/}
+      {/*  type="switch"*/}
+      {/*  id="localAPI"*/}
+      {/*  label="Local API"*/}
+      {/*  checked={isLocal}*/}
+      {/*  onChange={handleLocalAPIChange}*/}
+      {/*/>*/}
+      <Typeahead clearButton size='sm'
+                 id="experiment-selector2"
+                 ref={ref}
+                 labelKey="experiment"
+                 onChange={(exps) => {if (exps.length > 0) {setAtlasExperiment(exps[0]._id);setTimeout(() => ref.current?.clear(), 2000)}}}
+                 placeholder="Choose an experiment..."
+                 options={atlasExperimentList}
+                 labelKey={(experiment) => `${experiment.type}: ${experiment.description || experiment._id}`}
       />
       <DynamicIframe url={gene_url}/>
     </Tab>
@@ -106,9 +114,9 @@ const Detail = props => {
 };
 
 export default connect(
-  // 'selectParalogExpression',
+  //'selectParalogExpression',
   'selectExpressionStudies',
-  'doRequestParalogExpression',
+  //'doRequestParalogExpression',
   Detail
 );
 
