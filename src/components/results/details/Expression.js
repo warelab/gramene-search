@@ -1,9 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import {connect} from "redux-bundler-react";
 import {Tabs, Tab, Form, Row, Col} from 'react-bootstrap';
-import { Typeahead } from 'react-bootstrap-typeahead'; // ES2015
-// Import as a module in your JS
-import 'react-bootstrap-typeahead/css/Typeahead.css';
 import BAR, {haveBAR} from "gramene-efp-browser";
 
 function DynamicIframe(props) {
@@ -76,15 +73,13 @@ const Detail = props => {
   return <Tabs>
     {paralogs_url &&
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
-        <Typeahead clearButton size='sm'
-          id="experiment-selector"
-          ref={ref}
-          labelKey="experiment"
-          onChange={(exps) => {if (exps.length > 0) {setAtlasExperiment(exps[0]._id);setTimeout(() => ref.current?.clear(), 2000)}}}
-          placeholder="Choose an experiment..."
-          options={atlasExperimentList}
-          labelKey={(experiment) => `${experiment.type}: ${experiment.description || experiment._id}`}
-        />
+        <Form.Select aria-label='experiment selector'
+                     placeholder='Select experiment'
+                     onChange={(e) => setAtlasExperiment(e.target.value)}>
+          { atlasExperimentList.map((e,idx) =>
+            <option key={idx} value={e._id}>{e.type}: {e.description || e._id}</option>
+          )}
+        </Form.Select>
         <DynamicIframe url={paralogs_url}/>
       </Tab>
     }
@@ -96,15 +91,13 @@ const Detail = props => {
       {/*  checked={isLocal}*/}
       {/*  onChange={handleLocalAPIChange}*/}
       {/*/>*/}
-      <Typeahead clearButton size='sm'
-                 id="experiment-selector2"
-                 ref={ref}
-                 labelKey="experiment"
-                 onChange={(exps) => {if (exps.length > 0) {setAtlasExperiment(exps[0]._id);setTimeout(() => ref.current?.clear(), 2000)}}}
-                 placeholder="Choose an experiment..."
-                 options={atlasExperimentList}
-                 labelKey={(experiment) => `${experiment.type}: ${experiment.description || experiment._id}`}
-      />
+      <Form.Select aria-label='experiment selector'
+                   placeholder='Select experiment'
+                   onChange={(e) => setAtlasExperiment(e.target.value)}>
+        { atlasExperimentList.map((e,idx) =>
+          <option key={idx} value={e._id}>{e.type}: {e.description || e._id}</option>
+        )}
+      </Form.Select>
       <DynamicIframe url={gene_url}/>
     </Tab>
     {haveBAR(gene) &&
