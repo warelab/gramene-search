@@ -478,6 +478,43 @@ const grameneOrthologs = {
   selectGrameneOrthologs: state => state.grameneOrthologs
 };
 
+const grameneParalogs = {
+  name: 'grameneParalogs',
+  getReducer: () => {
+    const initialState = {};
+    return (state = initialState, {type, payload}) => {
+      let newState;
+      switch (type) {
+        case 'GRAMENE_PARALOGS_REQUESTED':
+          if (!state.hasOwnProperty(payload)) {
+            newState = Object.assign({}, state);
+            newState[payload] = [];
+            return newState;
+          }
+          break;
+        case 'GRAMENE_PARALOGS_RECEIVED':
+          return Object.assign({}, state, payload);
+      }
+      return state;
+    }
+  },
+  doRequestParalogs: (geneId,supertree,taxon_id) => ({dispatch, store}) => {
+    const paralogs = store.selectGrameneParalogs();
+    if (!paralogs.hasOwnProperty(geneId)) {
+      dispatch({type: 'GRAMENE_PARALOGS_REQUESTED', payload: geneId});
+      const API = store.selectGrameneAPI();
+      const q= supertree ? `supertree_attr_s:${supertree}` : `homology__within_species_paralog:${geneId}`;
+      fetch(`${API}/search?q=${q}&rows=100&fq=taxon_id:${taxon_id}`)
+        .then(res => res.json())
+        .then(res => {
+          let newParalogs = {};
+          newParalogs[geneId] = res.response.docs.map(d => d.id);
+          dispatch({type: 'GRAMENE_PARALOGS_RECEIVED', payload: newParalogs})
+        })
+    }
+  },
+  selectGrameneParalogs: state => state.grameneParalogs
+};
 
 // function selectFacetIDs(store, field) {
 //   const path = `grameneGenes.data.facet_counts.facet_fields.${field}`;
@@ -534,4 +571,4 @@ const grameneOrthologs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, curatedGenes, grameneGermplasm, grameneGeneAttribs, expressionSamples, expressionStudies];
+export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, grameneParalogs, curatedGenes, grameneGermplasm, grameneGeneAttribs, expressionSamples, expressionStudies];

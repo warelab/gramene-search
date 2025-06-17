@@ -60,16 +60,19 @@ const Detail = props => {
   }, [props.expressionStudies]);
 
   let paralogs_url;
-  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
+  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
   let paralogs = [];
-  if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
-    paralogs = gene.homology.homologous_genes.within_species_paralog;
+  if (props.grameneParalogs && props.grameneParalogs[gene._id]) {
+    paralogs = props.grameneParalogs[gene._id];
+  } else {
+    props.doRequestParalogs(gene._id, gene.homology.supertree, gene.taxon_id);
   }
+  // if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
+  //   paralogs = gene.homology.homologous_genes.within_species_paralog;
+  // }
   if (paralogs.length > 1 && atlasExperiment) {
     paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
   }
-  const ref = useRef(null);
-  const ref2 = useRef(null);
   return <Tabs>
     {paralogs_url &&
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
@@ -91,13 +94,6 @@ const Detail = props => {
       {/*  checked={isLocal}*/}
       {/*  onChange={handleLocalAPIChange}*/}
       {/*/>*/}
-      <Form.Select aria-label='experiment selector'
-                   placeholder='Select experiment'
-                   onChange={(e) => setAtlasExperiment(e.target.value)}>
-        { atlasExperimentList.map((e,idx) =>
-          <option key={idx} value={e._id}>{e.type}: {e.description || e._id}</option>
-        )}
-      </Form.Select>
       <DynamicIframe url={gene_url}/>
     </Tab>
     {haveBAR(gene) &&
@@ -107,8 +103,9 @@ const Detail = props => {
 };
 
 export default connect(
-  //'selectParalogExpression',
+  'selectGrameneParalogs',
   'selectExpressionStudies',
+  'doRequestParalogs',
   //'doRequestParalogExpression',
   Detail
 );
