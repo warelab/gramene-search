@@ -64,7 +64,7 @@ const AccessionLink = ({germplasm, gene_id}) => {
     );
   }
   if (germplasm.pop_id === '15' && germplasm.stock_center === 'NOT FOUND') {
-    return <a target="_blank" href={ggURL['maizeGDB']}>SNPVersity 2.0</a>
+    return <a target="_blank" href={ggURL['maizeGDB']}>{germplasm.pub_id} (SNPVersity)</a>
   }
   return <span>{germplasm.pub_id}</span>
 }
@@ -123,7 +123,7 @@ function group_germplasm(gene, germplasmLUT, vep_obj) {
   return grouped;
 }
 const THRESHOLD = 5;
-const GridWithGroups = ({groups,gene_id}) => {
+const GridWithGroups = ({groups,gene_id,doGrin}) => {
   const [rowData, setRowData] = useState(groups);
 
   const initialExpanded = {};
@@ -184,11 +184,11 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'accession', headerName: 'Order Germplasm', flex: 1,
+    { field: 'accession', headerName: doGrin ? 'Order Germplasm' : 'Accession', flex: 1,
       headerComponent: (props) => {
         return (
           <div style={{display: 'flex', alignItems: 'center'}}>
-            <i className="fas fa-shopping-cart"></i>&nbsp;
+            {doGrin && <i className="fas fa-shopping-cart">&nbsp;</i>}
             <span>{props.displayName}</span>
           </div>
         );
@@ -273,7 +273,7 @@ const Detail = props => {
       <div >Explore other variants within this gene in the <a target="_blank"
          href={`${props.configuration.ensemblURL}/${gene.system_name}/Gene/Variation_Gene/Image?db=core;g=${props.searchResult.id}`}>
         Variant image</a> page in the Ensembl genome browser.</div>
-      <GridWithGroups groups={...groups} gene_id={gene._id}/>
+      <GridWithGroups groups={...groups} gene_id={gene._id} doGrin={!props.configuration.hasOwnProperty('noGRIN')}/>
     </div>
   } else {
     props.doRequestVEP(gene._id);
