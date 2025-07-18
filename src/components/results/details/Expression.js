@@ -35,6 +35,7 @@ const Detail = props => {
   const [atlasExperiment, setAtlasExperiment] = useState(null);
   const [atlasExperimentList, setAtlasExperimentList] = useState([]);
   const [isLocal, setIsLocal] = useState(false);
+  const [activeTab, setActiveTab] = useState('gene');
 
   const handleLocalAPIChange = (event) => {
     setIsLocal(event.target.checked);
@@ -73,7 +74,7 @@ const Detail = props => {
   if (paralogs.length > 1 && atlasExperiment) {
     paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
   }
-  return <Tabs>
+  return <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
     {paralogs_url &&
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
         <Form.Select aria-label='experiment selector'
@@ -83,7 +84,7 @@ const Detail = props => {
             <option key={idx} value={e._id}>{e.type}: {e.description || e._id}</option>
           )}
         </Form.Select>
-        <DynamicIframe url={paralogs_url}/>
+        {activeTab === "paralogs" && <DynamicIframe url={paralogs_url}/> }
       </Tab>
     }
     <Tab tabClassName="gxa" eventKey="gene" title="All Studies" key="gxa">
@@ -94,7 +95,7 @@ const Detail = props => {
       {/*  checked={isLocal}*/}
       {/*  onChange={handleLocalAPIChange}*/}
       {/*/>*/}
-      <DynamicIframe url={gene_url}/>
+      {activeTab === "gene" && <DynamicIframe url={gene_url}/> }
     </Tab>
     {haveBAR(gene) &&
       <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser" key="bar"><BAR gene={gene}/></Tab>
