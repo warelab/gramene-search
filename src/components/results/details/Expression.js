@@ -43,14 +43,14 @@ const Detail = props => {
   useEffect(() => {
     const tid = Math.floor(gene.taxon_id / 1000);
     if (props.expressionStudies[tid]) {
-      let eList = props.expressionStudies[tid];
+      let eList = props.expressionStudies[tid].sort((a,b) => {
+        const a_name = `${a.type}:${a.description || a._id}`;
+        const b_name = `${b.type}:${b.description || b._id}`;
+        return a_name < b_name ? -1 : 1;
+      });
       if (props.searchResult.hasOwnProperty('expressed_in_gxa_attr_ss')) {
         const in_gxa = new Set(props.searchResult.expressed_in_gxa_attr_ss);
-        eList = props.expressionStudies[tid].filter(e => in_gxa.has(e._id)).sort((a,b) => {
-          const a_name = `${a.type}:${a.description || a._id}`;
-          const b_name = `${b.type}:${b.description || b._id}`;
-          return a_name < b_name ? -1 : 1;
-        })
+        eList = eList.filter(e => in_gxa.has(e._id))
       }
       setAtlasExperimentList(eList);
 
