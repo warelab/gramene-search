@@ -5,7 +5,7 @@ import treesClient from "gramene-trees-client";
 import {build} from "gramene-taxonomy-with-genomes";
 
 const facets = [
-  "{!facet.limit='200' facet.mincount='1' key='taxon_id'}taxon_id",
+  "{!facet.limit='300' facet.mincount='1' key='taxon_id'}taxon_id",
   "{!facet.limit='100' facet.mincount='1' key='genetree'}gene_tree",
   "{!facet.limit='100' facet.mincount='1' key='pathways'}pathways__ancestors",
   "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots",
