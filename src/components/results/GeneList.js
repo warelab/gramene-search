@@ -52,7 +52,7 @@ const PanLink = (props) => {
   const gene = props.gene;
   const pan = props.pan;
   return <div className="gene-panlink">
-    <a target="_blank" href={pan.url + gene.id}>
+    <a target="_blank" href={pan.url + "?idList=" + gene.id}>
       <img src={pan.svg} title={`View this gene at ${pan.name}`}/>
     </a>
   </div>;

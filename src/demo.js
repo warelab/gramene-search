@@ -40,7 +40,7 @@ const subsitelut = {
 const panSites = [
   {
     id: 'main',
-    name: 'Gramene Main',
+    name: 'Gramene Plants',
     url: 'https://www.gramene.org',
     ensemblURL: 'https://ensembl.gramene.org',
     ensemblSite: 'https://ensembl.gramene.org',
@@ -60,25 +60,25 @@ const panSites = [
       xrefs: true
     },
     panSite : {
-      sorghum_bicolor : {
-        url: "https://sorghumbase.org/genes?idList=",
-        name: "SorghumBase",
-        svg: "./static/images/sorghum_logo.svg"
-      },
-      vitis_vinifera : {
-        url: "https://vitis.gramene.org?idList=",
-        name: "Gramene Grapevine",
-        svg: "./static/images/grapevine_logo.svg"
-      },
       oryza_sativa : {
-        url: "https://oryza.gramene.org?idList=",
+        url: "https://oryza.gramene.org",
         name: "Gramene Oryza",
         svg: "./static/images/oryza_logo.svg"
       },
       zea_mays : {
-        url: "https://maize-pangenome.gramene.org?idList=",
+        url: "https://maize-pangenome.gramene.org",
         name: "Gramene Maize",
         svg: "./static/images/maize_logo.svg"
+      },
+      vitis_vinifera : {
+        url: "https://vitis.gramene.org",
+        name: "Gramene Grapevine",
+        svg: "./static/images/grapevine_logo.svg"
+      },
+      sorghum_bicolor : {
+        url: "https://sorghumbase.org/genes",
+        name: "SorghumBase",
+        svg: "./static/images/sorghum_logo.svg"
       }
     }
   },
