@@ -464,6 +464,17 @@ grameneFilters.reactGrameneFilters = createSelector(
         }
         return { type: 'BATCH_ACTIONS', actions: actions };
       }
+      if (queryObject.hasOwnProperty('sugg')) {
+        const url = new URL(myUrl.href);
+        url.search = '';
+        return {
+          type: 'BATCH_ACTIONS', actions: [
+            {type: 'URL_UPDATED', payload: {url: url.href, replace:false}},
+            {type: 'GRAMENE_SEARCH_CLEARED'},
+            {type: 'GRAMENE_FILTER_ADDED', payload: JSON.parse(queryObject.suggestion)}
+          ]
+        };
+      }
       if (queryObject.hasOwnProperty('suggestion')) {
         const url = new URL(myUrl.href);
         url.search = '';
