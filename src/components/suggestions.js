@@ -53,13 +53,10 @@ const TryAnotherSite = props => {
   const query = props.query;
   const config = props.config;
   let sites = Object.keys(config.panSite);
-  if (config.id === 'main') {
-    return <div>
-      <Alert variant={'info'}>Don't see what you're looking for? Search for <b>{query}</b> on one of our sister sites</Alert>
-      {sites.map((p, idx) => <TryPan key={idx} query={query} pan={config.panSite[p]}/>)}
-    </div>
-  }
-  return <></>
+  return <div>
+    <Alert variant={'info'}>Don't see what you're looking for? Search for <b>{query}</b> on one of our sister sites</Alert>
+    {sites.map((p, idx) => <TryPan key={idx} query={query} pan={config.panSite[p]}/>)}
+  </div>
 }
 
 const Suggestions = props => {

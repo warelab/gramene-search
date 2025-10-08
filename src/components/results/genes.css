@@ -80,9 +80,9 @@
     vertical-align: top;
 }
 .suggestion-panlink img {
-    height: 40px;
+    height: 60px;
     width: auto;
-    vertical-align: top;
+    float: left;
 }
 .gene-curation {
     float:right;
