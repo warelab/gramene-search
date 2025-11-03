@@ -13,7 +13,8 @@ const ggURL = {
   ARS: 'https://npgsweb.ars-grin.gov/gringlobal/accessiondetail.aspx?id=',
   ICRISAT: 'https://genebank.icrisat.org/IND/PassportSummary?ID=',
   sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php',
-  maizeGDB: 'https://wgs.maizegdb.org/'
+  maizeGDB: 'https://wgs.maizegdb.org/',
+  NCBI: 'https://www.ncbi.nlm.nih.gov/biosample/?term='
 };
 
 const rice_studies = {'1': {label: 'Rice 3K', type: 'NAT'}};
@@ -33,6 +34,7 @@ const study_info = {
   },
   'oryza_sativa': {
     '7': {label: 'Rice 3K', type: 'NAT'},
+    '20': {label: '20K-RGP', type: 'NAT'},
     '29': {label: 'Rice USDA mini core', type: 'NAT'},
     '38': {label: 'RAPDB 2024', type: 'NAT'},
   },
