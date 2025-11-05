@@ -228,7 +228,7 @@ const panSites = [
     ensemblSite: 'https://oryza-ensembl.gramene.org',
     ensemblURL: 'https://oryza-ensembl.gramene.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.gramene.org/oryza_v8',
+    grameneData: 'https://data.gramene.org/oryza_v9',
     targetTaxonId: 3702,
     alertText: 'Rice site',
     showViews: true,

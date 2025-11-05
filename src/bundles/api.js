@@ -234,7 +234,14 @@ const grameneGermplasm = createAsyncResourceBundle( {
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/germplasm?rows=-1`)
       .then(res => res.json())
-      .then(res => _.groupBy(res, 'ens_id'))
+      .then(res => {
+        res.forEach(g => {
+          if (!g.subpop) {
+            g.subpop = "?"
+          }
+        });
+        return _.groupBy(res, 'ens_id')
+      })
   }
 });
 grameneGermplasm.reactGrameneGermplasm = createSelector(

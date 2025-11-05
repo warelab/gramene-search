@@ -70,6 +70,16 @@ const AccessionLink = ({germplasm, gene_id}) => {
   }
   return <span>{germplasm.pub_id}</span>
 }
+function compareGermplasm(a, b) {
+  const aSub = a?.germplasm?.subpop ?? '';
+  const bSub = b?.germplasm?.subpop ?? '';
+  const subCmp = aSub.localeCompare(bSub, 'en', { sensitivity: 'accent' });
+  if (subCmp !== 0) return subCmp;
+
+  const aPub = a?.germplasm?.pub_id ?? '';
+  const bPub = b?.germplasm?.pub_id ?? '';
+  return aPub.localeCompare(bPub, 'en', { sensitivity: 'accent' });
+}
 function group_germplasm(gene, germplasmLUT, vep_obj) {
   let accessionTable = [];
   Object.entries(vep_obj).forEach(([key,accessions]) => {
@@ -108,7 +118,7 @@ function group_germplasm(gene, germplasmLUT, vep_obj) {
       status: status,
       tally: tally
     });
-    groups[group].forEach(acc => {
+    groups[group].sort(compareGermplasm).forEach(acc => {
       id++;
       grouped.push({
         id: id,
@@ -217,6 +227,12 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
       }
       return null;
     }},
+    { field: 'subpop', headerName: 'Subpopulation', filter:false, sortable: false, flex: 1, cellRenderer: (params) => {
+      if (params.data.accession && params.data.accession.germplasm.subpop && params.data.accession.germplasm.subpop !== "?") {
+        return params.data.accession.germplasm.subpop
+      }
+      return null;
+      }},
     { field: 'search', headerName: 'All LOF Genes', sortable:false, filter:false, flex: 1,
       cellRenderer: (params) => {
         if (params.data.accession) {
