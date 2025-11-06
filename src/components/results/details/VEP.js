@@ -38,13 +38,10 @@ const study_info = {
     '29': {label: 'Rice USDA mini core', type: 'NAT'},
     '38': {label: 'RAPDB 2024', type: 'NAT'},
   },
-  'oryza_aus': rice_studies,
-  'oryza_sativa117425': rice_studies,
-  'oryza_sativa125827': rice_studies,
-  'oryza_sativaazucena': rice_studies,
-  'oryza_sativair64': rice_studies,
-  'oryza_sativamh63': rice_studies,
-  'oryza_sativazs97': rice_studies
+  'oryza_aus': { '20': {label: '20K-RGP', type: 'NAT'}},
+  'oryza_sativa117425': { '20': {label: '20K-RGP', type: 'NAT'}},
+  'oryza_sativair64rs2': { '20': {label: '20K-RGP', type: 'NAT'}},
+  'oryza_sativamh63': { '20': {label: '20K-RGP', type: 'NAT'}}
 };
 const AccessionLink = ({germplasm, gene_id}) => {
   const genebank = germplasm.stock_center;
