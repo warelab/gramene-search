@@ -9,7 +9,8 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./VEP.css";
 
 const ggURL = {
-  IRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
+  xIRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
+  IRRI: 'https://www.irri.org/genesys-rice#/a/',
   ARS: 'https://npgsweb.ars-grin.gov/gringlobal/accessiondetail.aspx?id=',
   ICRISAT: 'https://genebank.icrisat.org/IND/PassportSummary?ID=',
   sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php',
