@@ -12,12 +12,27 @@ const metaRenderer = params => {
 }
 const sampleRenderer = params => {
   const sampleMeta = params.value;
-  return JSON.stringify(sampleMeta,null,2);
+  return (
+    <label>
+      <input
+        type="checkbox"
+        checked={params.desiredSamples.hasOwnProperty(sampleMeta._id)}
+        onChange={() => params.doToggleExpressionSample(sampleMeta._id)}
+      />
+      &nbsp;{sampleMeta.experiment}-{sampleMeta.group}
+    </label>
+  );
+  // return JSON.stringify(sampleMeta,null,2);
 }
+const connectedSampleRenderer = connect(
+  'selectDesiredSamples', // current set of samples to fetch expression data for
+  'doToggleExpressionSample',
+  sampleRenderer
+);
 const Study = props => {
   let samples = props.expressionSamples[props.id];
   let sampleMetadata = [];
-  let metadataFields = [{ field: "sampleId", cellRenderer: sampleRenderer }];
+  let metadataFields = [{ field: "sampleId", cellRenderer: connectedSampleRenderer }];
   let isFactor={};
   samples.forEach((sample, idx) => {
     if (idx === 0) {
@@ -76,5 +91,4 @@ const Study = props => {
 };
 export default connect(
   'selectExpressionSamples',
-  'doToggleExpressionSample',
   Study);

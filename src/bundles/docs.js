@@ -126,6 +126,7 @@ const grameneDocs = {
           else {
             newState.desiredSamples[payload] = {status: 'need'}
           }
+          return newState;
       }
       return state;
     }

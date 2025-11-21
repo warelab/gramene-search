@@ -6,10 +6,11 @@ import {build} from "gramene-taxonomy-with-genomes";
 
 const facets = [
   "{!facet.limit='300' facet.mincount='1' key='taxon_id'}taxon_id",
-  "{!facet.limit='100' facet.mincount='1' key='genetree'}gene_tree",
-  "{!facet.limit='100' facet.mincount='1' key='pathways'}pathways__ancestors",
-  "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots",
-  "{!facet.limit='-1' facet.mincount='1' key='fixed_1000__bin'}fixed_1000__bin"
+  // "{!facet.limit='100' facet.mincount='1' key='genetree'}gene_tree",
+  // "{!facet.limit='100' facet.mincount='1' key='pathways'}pathways__ancestors",
+  // "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots",
+  "{!facet.limit='-1' facet.mincount='1' key='fixed_1000__bin'}fixed_1000__bin",
+  "{!facet.limit='100' facet.mincount='0' key='AED' type='range' start=0 end=1.0 gap=0.01}MAKER__AED__attr_f"
 ];
 const genomesOfInterest = '(taxon_id:2769) OR (taxon_id:3055) OR (taxon_id:3218) OR (taxon_id:3702) OR (taxon_id:3847) OR (taxon_id:4555) OR (taxon_id:4558) OR (taxon_id:4577) OR (taxon_id:13333) OR (taxon_id:15368) OR (taxon_id:29760) OR (taxon_id:39947) OR (taxon_id:55577) OR (taxon_id:88036) OR (taxon_id:214687)';
 const sites = ['main','oryza','maize','sorghum','grapevine'];
@@ -291,54 +292,43 @@ grameneGermplasm.reactGrameneGermplasm = createSelector(
 //   }
 // );
 
-const attribFacetFields = [
-  "{!facet.limit='10' facet.mincount='1' key='age'}panset_age_attr_s",
-  "{!facet.limit='100' facet.mincount='1' key='taxa'}panset_ntaxa_attr_i",
-  "{!facet.limit='100' facet.mincount='1' key='AED' type='range' start=0 end=1.0 gap=0.25}MAKER_AED_attr_f",
-  "{!facet.limit='100' facet.mincount='1' key='QI2' type='range' start=0 end=1.0 gap=0.25}MAKER_QI2_attr_f",
-  "{!facet.limit='100' facet.mincount='1' key='QI3' type='range' start=0 end=1.0 gap=0.25}MAKER_QI3_attr_f",
-  "{!facet.limit='100' facet.mincount='1' key='QI4' type='range' start=0 end=1.0 gap=0.25}MAKER_QI4_attr_f",
-  "{!facet.limit='100' facet.mincount='1' key='QI5' type='range' start=0 end=1.0 gap=0.25}MAKER_QI5_attr_f",
-  "{!facet.limit='100' facet.mincount='1' key='QI6' type='range' start=0 end=1.0 gap=0.25}MAKER_QI6_attr_f"
+const MAKERAttribs = [
+  'MAKER__AED__attr_f',
+  'MAKER__QI1__attr_i',
+  'MAKER__QI2__attr_f',
+  'MAKER__QI3__attr_f',
+  'MAKER__QI4__attr_f',
+  'MAKER__QI5__attr_f',
+  'MAKER__QI6__attr_f',
+  'MAKER__QI7__attr_i',
+  'MAKER__QI8__attr_i',
+  'MAKER__QI9__attr_i'
 ];
-const attribFacets = {
-  "age":{ "type": "terms", "field": "panset_age_attr_s" },
-  "nTaxa": { "type": "terms", "field": "panset_ntaxa_attr_i", "limit": 100 },
-  "AED":{ "type": "range", "field": "MAKER_AED_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-  "QI2":{ "type": "range", "field": "MAKER_QI2_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-  "QI3":{ "type": "range", "field": "MAKER_QI3_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-  "QI4":{ "type": "range", "field": "MAKER_QI4_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-  "QI5":{ "type": "range", "field": "MAKER_QI5_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-  "QI6":{ "type": "range", "field": "MAKER_QI6_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-  "byAge":{ "type": "terms", "field": "panset_age_attr_s", "facet": {
-      "nTaxa": { "type": "terms", "field": "panset_ntaxa_attr_i", "limit": 100 },
-      "AED":{ "type": "range", "field": "MAKER_AED_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-      "QI2":{ "type": "range", "field": "MAKER_QI2_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-      "QI3":{ "type": "range", "field": "MAKER_QI3_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-      "QI4":{ "type": "range", "field": "MAKER_QI4_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-      "QI5":{ "type": "range", "field": "MAKER_QI5_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 },
-      "QI6":{ "type": "range", "field": "MAKER_QI6_attr_f", "start": 0.0, "end": 1.0, "gap": 0.25 }
-    }
-  }
+const geneAttribs = {
+  "MAKER transcript metrics" : [
+    { name: "AED", description: "Annotation Edit Distance", dtype: "f", fieldName: "MAKER__AED__attr_f" },
+    { name: "QI1", description: "Length of the 5' UTR", dtype: "i", fieldName: "MAKER__QI1__attr_i" },
+    { name: "QI2", description: "Fraction of splice sites confirmed by an EST alignment", dtype: "f", fieldName: "MAKER__QI2__attr_f" },
+    { name: "QI3", description: "Fraction of exons that overlap an EST alignment", dtype: "f", fieldName: "MAKER__QI3__attr_f" },
+    { name: "QI4", description: "Fraction of exons that overlap EST or Protein alignments", dtype: "f", fieldName: "MAKER__QI4__attr_f" },
+    // { name: "QI5", description: "Fraction of splice sites confirmed by a SNAP prediction", dtype: "f", fieldName: "MAKER__QI5__attr_f" },
+    // { name: "QI6", description: "Fraction of exons that overlap a SNAP prediction", dtype: "f", fieldName: "MAKER__QI6__attr_f" },
+    { name: "QI7", description: "Number of exons in the mRNA", dtype: "i", fieldName: "MAKER__QI7__attr_i" },
+    { name: "QI8", description: "Length of the 3' UTR", dtype: "i", fieldName: "MAKER__QI8__attr_i" },
+    { name: "QI9", description: "Length of the protein sequence produced by the mRNA", dtype: "i", fieldName: "MAKER__QI9__attr_i" }
+  ]
 }
+const statsFields = geneAttribs['MAKER transcript metrics'].map(
+  // (f) => `stats.field={!min=true max=true count=true mean=true stddev=true percentiles='20,40,60,80,90,95,99'}${f}`
+  (f) => `stats.field={!min=true max=true count=true mean=true stddev=true percentiles='10,20,30,40,50,60,70,80,90,99.99'}${f.fieldName}`
+);
+
 const grameneGeneAttribs = createAsyncResourceBundle( {
   name: 'grameneGeneAttribs',
   actionBaseType: 'GRAMENE_GENE_ATTRIBS',
   persist: false,
   getPromise: ({store}) => {
-    const g = store.selectGrameneGenomes();
-    const taxa = Object.keys(g.active);
-    let fq='';
-    if (taxa.length) {
-      console.log('search add a fq for ',taxa);
-      fq = `&fq=taxon_id:(${taxa.join(' OR ')})`;
-    }
-    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&json.facet=${JSON.stringify(attribFacets)}&rows=0${fq}`)
-    // return fetch(`${store.selectGrameneAPI()}/search?rows=1&q=MAKER_AED_attr_f:*&json.facet=${JSON.stringify(attribFacets)}`)
-      .then(res => res.json())
-      .then(res => {
-        return res.facets
-      })
+    return fetch(`${store.selectGrameneAPI()}/geneAttributes`).then(res => geneAttribs)
   }
 });
 grameneGeneAttribs.reactGrameneGeneAttribs = createSelector(
@@ -369,7 +359,7 @@ const grameneSearch = createAsyncResourceBundle({
       console.log('search add a fq for ',taxa);
       fq = `&fq=taxon_id:(${taxa.join(' OR ')})`;
     }
-    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}`)
+    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}&stats=true&${statsFields.join('&')}`)
       .then(res => res.json())
       .then(res => {
         res.response.docs.forEach(d => {
@@ -578,4 +568,4 @@ const grameneParalogs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, grameneParalogs, curatedGenes, grameneGermplasm, grameneGeneAttribs, expressionSamples, expressionStudies];
+export default [grameneSuggestions, grameneSearch, grameneGeneAttribs, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, grameneParalogs, curatedGenes, grameneGermplasm, expressionSamples, expressionStudies];

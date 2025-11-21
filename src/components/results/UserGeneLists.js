@@ -55,6 +55,32 @@ const GeneListDisplayComponent = props => {
     }
   };
 
+  // Example functions for viewing and deleting lists
+  const viewGeneList = (list) => {
+    alert(`Viewing gene list: ${list.label}`);
+    props.addFilter({
+      category: 'Gene List',
+      fq_field: 'saved_search',
+      fq_value: list.hash,
+      name: list.label
+    })
+  };
+
+  const deleteGeneList = async (api,listId) => {
+    if (window.confirm('Are you sure you want to delete this gene list?')) {
+      // Replace with the actual delete request
+      try {
+        await fetch(`${api}/gene_lists/${listId}`, {
+          method: 'DELETE',
+        });
+        alert('Gene list deleted!');
+        // Optionally refetch the updated list
+      } catch (err) {
+        alert('Failed to delete gene list.');
+      }
+    }
+  };
+
   // Fetch data when the component is mounted
   useEffect(() => {
     fetchPublicGeneLists();
@@ -76,6 +102,7 @@ const GeneListDisplayComponent = props => {
       {privateGeneLists.length > 0 && (
         <Table striped bordered hover className="mt-4">
           <thead>
+          <tr><th colspan={3}>My gene lists</th></tr>
           <tr>
             <th>List Name</th>
             <th>Number of Genes</th>
@@ -86,7 +113,7 @@ const GeneListDisplayComponent = props => {
           {privateGeneLists.map((list, index) => (
             <tr key={index}>
               <td>{list.label}</td>
-              <td>{list.hash}</td>
+              <td>{list.n_genes || 0}</td>
               <td>
                 <Button variant="info" onClick={() => viewGeneList(list)}>
                   View
@@ -105,6 +132,9 @@ const GeneListDisplayComponent = props => {
         <Table striped bordered hover className="mt-4">
           <thead>
           <tr>
+            <th colSpan={3}>Public gene lists</th>
+          </tr>
+          <tr>
             <th>List Name</th>
             <th>Number of Genes</th>
             <th>Actions</th>
@@ -114,7 +144,7 @@ const GeneListDisplayComponent = props => {
           {publicGeneLists.map((list, index) => (
             <tr key={index}>
               <td>{list.label}</td>
-              <td>{list.hash}</td>
+              <td>{list.n_genes || 0}</td>
               <td>
                 <Button variant="info" onClick={() => viewGeneList(list)}>
                   View
@@ -135,27 +165,6 @@ const GeneListDisplayComponent = props => {
     </div>
   );
 };
-
-// Example functions for viewing and deleting lists
-const viewGeneList = (list) => {
-  alert(`Viewing gene list: ${list.name}\nGenes: ${list.genes.join(', ')}`);
-};
-
-const deleteGeneList = async (api,listId) => {
-  if (window.confirm('Are you sure you want to delete this gene list?')) {
-    // Replace with the actual delete request
-    try {
-      await fetch(`${api}/gene_lists/${listId}`, {
-        method: 'DELETE',
-      });
-      alert('Gene list deleted!');
-      // Optionally refetch the updated list
-    } catch (err) {
-      alert('Failed to delete gene list.');
-    }
-  }
-};
-
 
 const GeneListComponent = props => {
   const [geneList, setGeneList] = useState('');
@@ -230,6 +239,7 @@ const GeneListComponent = props => {
       label: listName,
       hash: listHash,
       site: props.site,
+      n_genes: validatedList.length,
       isPublic: listIsPublic
     };
     const queryString = new URLSearchParams(queryParams).toString();
@@ -348,7 +358,7 @@ const UserGeneListsComponent = props => {
     <Container fluid>
       <Row>
         <Col><GeneListComponent api={props.configuration.grameneData} site={props.configuration.id}/></Col>
-        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id}/></Col>
+        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id} addFilter={props.doAcceptGrameneSuggestion}/></Col>
       </Row>
     </Container>
   )
@@ -356,5 +366,6 @@ const UserGeneListsComponent = props => {
 
 export default connect(
   'selectConfiguration',
+  'doAcceptGrameneSuggestion',
   UserGeneListsComponent
 );

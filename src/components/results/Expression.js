@@ -2,6 +2,7 @@ import React, { useState, Suspense } from 'react'
 import {connect} from "redux-bundler-react";
 import { Accordion, Button } from 'react-bootstrap';
 import "./expression.css";
+import Study from './Study';
 const LazyStudy = React.lazy(() => import('./Study'));
 
 const StudyList = props => {
@@ -11,10 +12,10 @@ const StudyList = props => {
         <Accordion.Item key={idx} eventKey={'study_'+idx}>
           <Accordion.Header>{study.description}</Accordion.Header>
           <Accordion.Body>
-            <Suspense fallback={<div>Loading...</div>}>
-              <LazyStudy id={study._id}/>
-            </Suspense>
-            {/*<Study id={study._id} />*/}
+            {/*<Suspense fallback={<div>Loading...</div>}>*/}
+            {/*  <LazyStudy id={study._id}/>*/}
+            {/*</Suspense>*/}
+            <Study id={study._id}/>
           </Accordion.Body>
         </Accordion.Item>
       )
@@ -26,24 +27,37 @@ const Expression = props => {
   let searchTaxa = {};
   if (props.grameneSearch) {
     const taxon_id_facet = props.grameneSearch.facet_counts.facet_fields.taxon_id;
-    taxon_id_facet.filter((tid, idx) => idx % 2 === 0).forEach(tid => searchTaxa[tid] = true);
+    taxon_id_facet.filter((tid, idx) => idx % 2 === 0).forEach(tid => {
+      if (tid > 1000000) {
+        const tid2 = Math.floor(tid / 1000);
+        if (props.expressionStudies[tid2]) {
+          searchTaxa[tid2] = tid;
+        }
+      }
+      else {
+        searchTaxa[tid] = tid;
+      }
+    });
   }
   const availableTaxa = Object.keys(props.expressionStudies)
-    .filter(tid => searchTaxa[tid] || searchTaxa[tid + '001'])
-    .sort((a,b) => props.grameneMaps[a + '001'].left_index - props.grameneMaps[b + '001'].left_index);
+    .filter(tid => searchTaxa[tid])
+    .sort((a,b) => props.grameneMaps[searchTaxa[a]].left_index - props.grameneMaps[searchTaxa[b]].left_index);
   return availableTaxa && props.grameneTaxonomy &&
     <div>
       <div>This is where you can launch a component for the selected samples. props.desiredSamples lists them.
         This component can request the data from the API
         organize samples by factor metadata? One big table with all the studies?
-        <Button>Show Samples ({Object.keys(props.desiredSamples).length} selected)</Button>
+        <Button
+          onClick={console.log(Object.keys(props.desiredSamples))}
+        >Show Samples ({Object.keys(props.desiredSamples).length} selected)</Button>
       </div>
       <Accordion alwaysOpen defaultActiveKey={availableTaxa.length === 1 ? "tax_0" : undefined}>
         {availableTaxa.map((tid, idx) => {
-          const n = props.expressionStudies[tid].length;
+          const baselineStudies = props.expressionStudies[tid].filter(study => study.type === 'Baseline');
+          const n = baselineStudies.length;
           return <Accordion.Item key={idx} eventKey={'tax_'+idx}>
             <Accordion.Header>{props.grameneTaxonomy[tid].name} - {n} {n === 1 ? 'study' : 'studies'}</Accordion.Header>
-            <Accordion.Body><StudyList studies={props.expressionStudies[tid]}/></Accordion.Body>
+            <Accordion.Body><StudyList studies={baselineStudies}/></Accordion.Body>
           </Accordion.Item>
         })}
       </Accordion>
