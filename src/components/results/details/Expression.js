@@ -69,13 +69,13 @@ const Detail = props => {
   let paralogs = [];
   if (props.grameneParalogs && props.grameneParalogs[gene._id]) {
     paralogs = props.grameneParalogs[gene._id];
-  } else if(gene.homology) {
+  } else if (gene.homology) {
     props.doRequestParalogs(gene._id, gene.homology.supertree, gene.taxon_id);
   }
   // if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
   //   paralogs = gene.homology.homologous_genes.within_species_paralog;
   // }
-  if (paralogs.length > 1 && atlasExperiment) {
+  if (paralogs.length > 0 && atlasExperiment) {
     paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
   }
   return <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>

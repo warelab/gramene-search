@@ -501,11 +501,11 @@ const grameneParalogs = {
       dispatch({type: 'GRAMENE_PARALOGS_REQUESTED', payload: geneId});
       const API = store.selectGrameneAPI();
       const q= supertree ? `supertree_attr_s:${supertree}` : `homology__within_species_paralog:${geneId}`;
-      fetch(`${API}/search?q=${q}&rows=100&fq=taxon_id:${taxon_id}`)
+      fetch(`${API}/search?q=${q}&rows=1000&fq=taxon_id:${taxon_id}`)
         .then(res => res.json())
         .then(res => {
           let newParalogs = {};
-          newParalogs[geneId] = res.response.docs.map(d => d.id);
+          newParalogs[geneId] = res.response.numFound > 0 ? res.response.docs.map(d => d.id) : [geneId];
           dispatch({type: 'GRAMENE_PARALOGS_RECEIVED', payload: newParalogs})
         })
     }
