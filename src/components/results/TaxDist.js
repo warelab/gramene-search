@@ -60,7 +60,7 @@ class TaxDist extends React.Component {
           <button type="button"
                   className="btn btn-outline-success btn-sm"
                   onClick={this.toggleCompara.bind(this)}>
-            Show {this.state.comparaOnly ? 'all genomes' : 'compara only'}
+            Show {this.state.comparaOnly ? 'all genomes' : 'only genomes in gene trees'}
           </button>
         </span>}
         {this.props.grameneTaxDist && <Vis taxonomy={this.props.grameneTaxDist}
