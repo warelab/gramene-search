@@ -138,9 +138,9 @@ const panSites = [
     ensemblURL: 'https://ensembl-dev.sorghumbase.org',
     ensemblSite: 'https://ensembl-dev.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.sorghumbase.org/auth_testing',
+    grameneData: 'https://data.sorghumbase.org/sorghum_v10',
     ga: 'G-L5KXDCCZ16',
-    targetTaxonId: 4558003,
+    targetTaxonId: 4558001,
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
     details: {

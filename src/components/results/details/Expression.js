@@ -34,6 +34,7 @@ const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
   const [atlasExperiment, setAtlasExperiment] = useState(null);
   const [atlasExperimentList, setAtlasExperimentList] = useState([]);
+  const [atlasFacets, setAtlasFacets] = useState(null);
   const [isLocal, setIsLocal] = useState(false);
   const [activeTab, setActiveTab] = useState('gene');
 
@@ -43,6 +44,7 @@ const Detail = props => {
   useEffect(() => {
     const tid = Math.floor(gene.taxon_id / 1000);
     if (props.expressionStudies[tid]) {
+      let facets={Differential: {}, Baseline: {}};
       let eList = props.expressionStudies[tid].sort((a,b) => {
         const a_name = `${a.type}:${a.description || a._id}`;
         const b_name = `${b.type}:${b.description || b._id}`;
@@ -52,8 +54,9 @@ const Detail = props => {
         const in_gxa = new Set(props.searchResult.expressed_in_gxa_attr_ss);
         eList = eList.filter(e => in_gxa.has(e._id))
       }
+      eList.forEach(e => {e.factors.forEach(factor => facets[e.type][factor] = 1);});
       setAtlasExperimentList(eList);
-
+      setAtlasFacets(facets);
       let refExp = eList.filter(e => e.isRef);
       if (refExp.length === 1) {
         setAtlasExperiment(refExp[0]._id);

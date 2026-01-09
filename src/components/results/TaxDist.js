@@ -8,7 +8,8 @@ class TaxDist extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      collapseEmpties: true
+      collapseEmpties: true,
+      comparaOnly: true
     };
   }
   handleSelection(selections) {
@@ -23,6 +24,9 @@ class TaxDist extends React.Component {
   toggleEmpties() {
     this.setState({collapseEmpties: !this.state.collapseEmpties})
   }
+  toggleCompara() {
+    this.setState({comparaOnly: !this.state.comparaOnly})
+  }
   render() {
     let selectedTaxa = {};
     if (this.props.grameneSearch && this.state.collapseEmpties) {
@@ -31,15 +35,34 @@ class TaxDist extends React.Component {
       })
     }
     else {
-      selectedTaxa = this.props.grameneGenomes.active
+      if (Object.keys(this.props.grameneGenomes.active).length === 0 && this.props.grameneMaps) {
+        Object.keys(this.props.grameneMaps).forEach(tid => selectedTaxa[tid] = true);
+      }
+      else {
+        selectedTaxa = this.props.grameneGenomes.active
+      }
+    }
+    if (this.state.comparaOnly && this.props.grameneMaps) {
+      Object.keys(selectedTaxa).forEach(tid => {
+        if (!this.props.grameneMaps[tid].in_compara) {
+          delete selectedTaxa[tid];
+        }
+      })
     }
     return (
       <div className="results-vis big-vis">
-        {this.props.grameneTaxDist && <button type="button"
-                                              className="btn btn-primary btn-sm"
-                                              onClick={this.toggleEmpties.bind(this)}>
+        {this.props.grameneTaxDist && <span>
+          <button type="button"
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={this.toggleEmpties.bind(this)}>
           {this.state.collapseEmpties ? 'Expand' : 'Collapse'} empty branches
-        </button>}
+          </button>
+          <button type="button"
+                  className="btn btn-outline-success btn-sm"
+                  onClick={this.toggleCompara.bind(this)}>
+            Show {this.state.comparaOnly ? 'all genomes' : 'compara only'}
+          </button>
+        </span>}
         {this.props.grameneTaxDist && <Vis taxonomy={this.props.grameneTaxDist}
                                            selectedTaxa={selectedTaxa}
                                            onSelection={this.handleSelection.bind(this)}
@@ -63,5 +86,6 @@ export default connect(
   'selectGrameneTaxDist',
   'selectGrameneGenomes',
   'selectGrameneSearch',
+  'selectGrameneMaps',
   TaxDist
 );
