@@ -9,7 +9,8 @@ class TaxDist extends React.Component {
     super(props);
     this.state = {
       collapseEmpties: true,
-      comparaOnly: true
+      comparaOnly: true,
+      showCompara: props.configuration.hasOwnProperty('partialCompara')
     };
   }
   handleSelection(selections) {
@@ -42,7 +43,7 @@ class TaxDist extends React.Component {
         selectedTaxa = this.props.grameneGenomes.active
       }
     }
-    if (this.state.comparaOnly && this.props.grameneMaps) {
+    if (this.state.showCompara && this.state.comparaOnly && this.props.grameneMaps) {
       Object.keys(selectedTaxa).forEach(tid => {
         if (!this.props.grameneMaps[tid].in_compara) {
           delete selectedTaxa[tid];
@@ -57,11 +58,12 @@ class TaxDist extends React.Component {
                   onClick={this.toggleEmpties.bind(this)}>
           {this.state.collapseEmpties ? 'Expand' : 'Collapse'} empty branches
           </button>
-          <button type="button"
+          {this.state.showCompara && <button type="button"
                   className="btn btn-outline-success btn-sm"
                   onClick={this.toggleCompara.bind(this)}>
             Show {this.state.comparaOnly ? 'all genomes' : 'only genomes in gene trees'}
           </button>
+          }
         </span>}
         {this.props.grameneTaxDist && <Vis taxonomy={this.props.grameneTaxDist}
                                            selectedTaxa={selectedTaxa}
@@ -83,6 +85,7 @@ class TaxDist extends React.Component {
 }
 
 export default connect(
+  'selectConfiguration',
   'selectGrameneTaxDist',
   'selectGrameneGenomes',
   'selectGrameneSearch',

@@ -143,6 +143,7 @@ const panSites = [
     targetTaxonId: 4558001,
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
+    partialCompara: true,
     details: {
       sequences: true,
       VEP: true,
