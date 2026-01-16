@@ -35,14 +35,14 @@ const study_info = {
   },
   'oryza_sativa': {
     '7': {label: 'Rice 3K', type: 'NAT'},
-    '20': {label: '20K-RGP', type: 'NAT'},
+    '20': {label: '19K-RGP', type: 'NAT'},
     '29': {label: 'Rice USDA mini core', type: 'NAT'},
     '38': {label: 'RAPDB 2024', type: 'NAT'},
   },
-  'oryza_aus': { '20': {label: '20K-RGP', type: 'NAT'}},
-  'oryza_sativa117425': { '20': {label: '20K-RGP', type: 'NAT'}},
-  'oryza_sativair64rs2': { '20': {label: '20K-RGP', type: 'NAT'}},
-  'oryza_sativamh63': { '20': {label: '20K-RGP', type: 'NAT'}}
+  'oryza_aus': { '20': {label: '19K-RGP', type: 'NAT'}},
+  'oryza_sativa117425': { '20': {label: '19K-RGP', type: 'NAT'}},
+  'oryza_sativair64rs2': { '20': {label: '19K-RGP', type: 'NAT'}},
+  'oryza_sativamh63': { '20': {label: '19K-RGP', type: 'NAT'}}
 };
 const AccessionLink = ({germplasm, gene_id}) => {
   const genebank = germplasm.stock_center;
