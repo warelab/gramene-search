@@ -266,7 +266,9 @@ const grameneFilters = {
         case 'GRAMENE_SEARCH_FETCH_FINISHED':
           return Object.assign({}, state, {status: 'finished'});
         case 'GRAMENE_GENOMES_UPDATED':
-          return Object.assign({}, state, {status: 'search'});
+          if (!(state.status === 'ready')) {
+            return Object.assign({}, state, {status: 'search'});
+          }
         case 'URL_UPDATED':
           if (state.status === 'ready') {
             return Object.assign({}, initialState, {children:[]})
