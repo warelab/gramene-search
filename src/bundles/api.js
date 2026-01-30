@@ -359,7 +359,8 @@ const grameneSearch = createAsyncResourceBundle({
       console.log('search add a fq for ',taxa);
       fq = `&fq=taxon_id:(${taxa.join(' OR ')})`;
     }
-    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}&stats=true&${statsFields.join('&')}`)
+    // return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}&stats=true&${statsFields.join('&')}`)
+    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}`)
       .then(res => res.json())
       .then(res => {
         res.response.docs.forEach(d => {
