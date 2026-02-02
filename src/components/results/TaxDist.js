@@ -30,25 +30,25 @@ class TaxDist extends React.Component {
   }
   render() {
     let selectedTaxa = {};
-    if (this.props.grameneSearch && this.state.collapseEmpties) {
-      this.props.grameneSearch.facet_counts.facet_fields.taxon_id.filter((tid,idx) => idx % 2 === 0).forEach(tid => {
-        selectedTaxa[tid] = true;
-      })
-    }
-    else {
-      if (Object.keys(this.props.grameneGenomes.active).length === 0 && this.props.grameneMaps) {
-        Object.keys(this.props.grameneMaps).forEach(tid => selectedTaxa[tid] = true);
-      }
-      else {
-        selectedTaxa = this.props.grameneGenomes.active
-      }
-    }
-    if (this.state.showCompara && this.state.comparaOnly && this.props.grameneMaps) {
-      Object.keys(selectedTaxa).forEach(tid => {
-        if (!this.props.grameneMaps[tid].in_compara) {
-          delete selectedTaxa[tid];
+    if (this.props.grameneSearch) {
+      if (this.state.collapseEmpties) {
+        this.props.grameneSearch.facet_counts.facet_fields.taxon_id.filter((tid, idx) => idx % 2 === 0).forEach(tid => {
+          selectedTaxa[tid] = true;
+        })
+      } else {
+        if (Object.keys(this.props.grameneGenomes.active).length === 0 && this.props.grameneMaps) {
+          Object.keys(this.props.grameneMaps).forEach(tid => selectedTaxa[tid] = true);
+        } else {
+          Object.keys(this.props.grameneGenomes.active).forEach(tid => selectedTaxa[tid]= true);
         }
-      })
+      }
+      if (this.state.showCompara && this.state.comparaOnly && this.props.grameneMaps) {
+        Object.keys(selectedTaxa).forEach(tid => {
+          if (!this.props.grameneMaps[tid].in_compara) {
+            delete selectedTaxa[tid];
+          }
+        })
+      }
     }
     return (
       <div className="results-vis big-vis">

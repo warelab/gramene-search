@@ -353,7 +353,8 @@ const grameneSearch = createAsyncResourceBundle({
     const offset = store.selectGrameneSearchOffset();
     const rows = store.selectGrameneSearchRows();
     const g = store.selectGrameneGenomes();
-    const taxa = Object.keys(g.active).filter(tid => !g.active[tid].hidden);
+    const m = store.selectGrameneMaps();
+    const taxa = Object.keys(g.active).filter(tid => !m[tid].hidden);
     let fq='';
     if (taxa.length) {
       console.log('search add a fq for ',taxa);
@@ -376,9 +377,9 @@ const grameneSearch = createAsyncResourceBundle({
 grameneSearch.reactGrameneSearch = createSelector(
   'selectGrameneSearchShouldUpdate',
   'selectGrameneFiltersStatus',
-  'selectGrameneGenomes','selectGrameneMaps',
-  (shouldUpdate, status, genomes, maps) => {
-    if (shouldUpdate && status === 'search' && genomes && maps) {
+  'selectGrameneGenomes',
+  (shouldUpdate, status, genomes) => {
+    if (shouldUpdate && status === 'search' && genomes) {
       return { actionCreator: 'doFetchGrameneSearch' }
     }
   }
