@@ -1,18 +1,49 @@
-.gramene-sidebar {
-    position: fixed;
-    background-color: #557b74;
+/* ── Main search layout: sidebar + content ──────────────────────────────── */
+.search-views-layout {
+    display: flex;
+    align-items: flex-start;
+}
+
+.search-views-content {
+    flex: 1 1 0;
+    min-width: 0; /* prevent flex children from overflowing */
+}
+
+.gramene-sidebar,
+.sorghumbase-sidebar {
+    flex: 0 0 250px;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
     padding-left: 8px;
     padding-right: 8px;
     padding-bottom: 8px;
-    width: 16.4%;
+}
+
+.gramene-sidebar {
+    background-color: #557b74;
 }
 .sorghumbase-sidebar {
-    position: fixed;
     background-color: #a03e34;
-    padding-left: 8px;
-    padding-right: 8px;
-    padding-bottom: 8px;
-    width: 16.4%;
+}
+
+/* ── Mobile: stack sidebar above content ────────────────────────────────── */
+@media (max-width: 767px) {
+    .search-views-layout {
+        flex-direction: column;
+    }
+    .gramene-sidebar,
+    .sorghumbase-sidebar {
+        flex: 0 0 auto;
+        position: static;
+        width: 100%;
+        max-height: none;
+        overflow-y: visible;
+    }
+    .search-views-content {
+        width: 100%;
+    }
 }
 .gramene-auth-container {
     background-color: #fff3a9;
@@ -39,7 +70,7 @@
     padding-right: 4px;
     padding-bottom: 4px;
     background-color: white;
-    font-size: small;
+    font-size: 0.875rem; /* ~14px — explicit instead of 'small' keyword */
 }
 .gramene-filter span:hover {
     font-weight:bolder;
@@ -72,7 +103,7 @@
 .gramene-filter-menu li {
     display: block;
     cursor: pointer;
-    padding-left: 15px;
+    padding: 8px 8px 8px 15px; /* vertical padding makes tap targets ~36px+ */
 }
 .gramene-filter-menu li:hover {
     background-color: #feff96;
@@ -145,5 +176,27 @@
     color: #fff;
     background-color: #6c757d;
     border-color: #6c757d;
+}
+
+/* ── Mobile touch-target improvements ──────────────────────────────────── */
+@media (max-width: 767px) {
+    /* View toggle rows: tall enough to tap with a finger */
+    .gramene-view-container > div {
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Suggestion buttons: increase tap area */
+    #gramene-suggestion button {
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 4px;
+    }
+
+    /* Ensure search input is large enough to tap on mobile */
+    #search-input {
+        font-size: 1rem; /* prevents iOS zoom-on-focus when < 16px */
+        min-height: 44px;
+    }
 }
 

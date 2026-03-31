@@ -299,28 +299,26 @@ const getStore = composeBundles(
 const GeneSearchUI = (store) => (
   <Provider store={store}>
     <div className="row no-margin no-padding">
-      <div className="col-md-2 no-padding">
+      <div className="col-12 col-md-2 no-padding">
         <Status/>
         <Filters/>
         <Views/>
       </div>
-      <div className="col-md-10 no-padding">
+      <div className="col-12 col-md-10 no-padding">
         <Results/>
       </div>
     </div>
   </Provider>
 );
 const SearchViewsCmp = props => (
-    <div className="no-margin no-padding">
-      <div style={{width:250}}>
-        <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
-          <Status/>
-          <Filters/>
-          {props.configuration.showViews && <Views/>}
-          <Auth/>
-        </div>
+    <div className="no-margin no-padding search-views-layout">
+      <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
+        <Status/>
+        <Filters/>
+        {props.configuration.showViews && <Views/>}
+        <Auth/>
       </div>
-      <div style={{width:"calc(100% - 250px", left:250, position:'relative'}}>
+      <div className="search-views-content">
         <Results/>
       </div>
     </div>
@@ -421,7 +419,7 @@ const SearchUI_ = (store) => (
 );
 
 const SearchMenu = props => (
-  <div id="searchbar-parent" style={{width:'500px'}}>
+  <div id="searchbar-parent" style={{maxWidth:'500px', width:'100%'}}>
     <div id="searchbar">
       {/*<Form inline>*/}
         <SearchBar/>
@@ -465,14 +463,13 @@ const demo = (store) => (
           <Navbar.Brand href="/">
             <img
               src={`/static/images/${subsite}_logo.svg`}
-              height="80"
-              className="d-inline-block align-top"
+              className="d-inline-block align-top gramene-navbar-logo"
               alt="Gene Search"
             />
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="mr-auto">
+            <Nav className="me-auto">
               <Switch>
                 <Route exact path="/" component={SearchMenu} />
                 <Route>

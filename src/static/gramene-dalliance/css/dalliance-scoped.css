@@ -125,11 +125,11 @@
   background-image: -moz-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black),
                     -moz-linear-gradient(-45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
   background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
-                    linear-gradient(135deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc); 
+                    linear-gradient(135deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
 }
 
 *.dalliance .loc-field {
-  width: 240px;
+  width: min(240px, 100%);
   margin-bottom: 0px;
 }
 *.dalliance .loc-status {

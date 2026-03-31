@@ -68,24 +68,46 @@
     font-size: small;
 }
 .gene-extras {
-    float: right;
     border: dashed 1px blue;
 }
 .gene-panlink {
-    float:right;
+    flex-shrink: 0;
 }
 .gene-panlink img {
     height: 60px;
     width: auto;
+    max-width: 100%;
     vertical-align: top;
 }
 .suggestion-panlink img {
     height: 60px;
     width: auto;
-    float: left;
+    max-width: 100%;
+}
+@media (max-width: 767px) {
+    /* Allow the ortholog/TAIR box to stack below the gene title on mobile.
+       It stays inside .result-gene-summary, so it still appears above .gene-detail-tabs. */
+    .result-gene-summary {
+        flex-wrap: wrap;
+    }
+    .result-gene-title-body {
+        flex: 1 1 100%;
+    }
+    .model-ortholog,
+    .closest-ortholog,
+    .gene-summary-tair {
+        flex: 1 1 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-top: 8px;
+    }
+    .gene-panlink img,
+    .suggestion-panlink img {
+        height: 40px;
+    }
 }
 .gene-curation {
-    float:right;
+    flex-shrink: 0;
     margin-top: 20px;
     border: 1px solid grey;
 }
@@ -104,8 +126,27 @@
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;
-    white-space: nowrap;
-    width: 80em;
+    width: 100%;
+}
+/* Tab items: 4-per-row by default, overrides Bootstrap col-md-1 (8.33%) */
+.gene-detail-tabs > div {
+    flex: 0 0 25%;
+    width: 25%;
+    max-width: 25%;
+    box-sizing: border-box;
+    padding: 6px 4px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* At wide viewports, all 8 fit comfortably in one row */
+@media (min-width: 992px) {
+    .gene-detail-tabs > div {
+        flex: 0 0 12.5%;
+        width: 12.5%;
+        max-width: 12.5%;
+    }
 }
 .gene-detail-tab-closed {
     color: darkgreen;
@@ -136,6 +177,7 @@
     display: flex;
     flex-flow: row nowrap;
     justify-content: flex-start;
+    align-items: flex-start;
 }
 .result-gene-summary .species-name {
     white-space: nowrap;
@@ -143,12 +185,14 @@
 }
 .result-gene-title-body {
     flex: 1 1 auto;
-    width: 1036px;
+    max-width: 1036px;
+    width: 100%;
 }
 .model-ortholog, .closest-ortholog, .gene-summary-tair {
     cursor: pointer;
     flex: 1 1 auto;
-    width: 500px;
+    max-width: 500px;
+    width: 100%;
     font-size: smaller;
     margin-top: 10px;
     padding: 0 1rem;
@@ -212,7 +256,7 @@
 }
 
 .rep-identity {
-    float: right;
+    margin-left: auto;
     padding-right: 10px;
     padding-top: 5px;
     font-style: italic;
