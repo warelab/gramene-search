@@ -16,23 +16,28 @@
     border-collapse: collapse;
     border-spacing: 0;
     border-color: grey;
-    table-layout: fixed;
+    table-layout: auto;
+    width: 100%;
 }
-.xref-name-col {
-    width: 20%;
+/* Col 1 (PubMed link) and col 2 (Curation source): shrink to content */
+table.xrefs th:nth-child(1),
+table.xrefs td:nth-child(1),
+table.xrefs th:nth-child(2),
+table.xrefs td:nth-child(2) {
+    width: 1%;
+    white-space: nowrap;
 }
-.xref-value-col {
-    width: 80%;
+/* Col 3 (Title/Description): fill remaining space */
+table.xrefs th:nth-child(3),
+table.xrefs td:nth-child(3) {
+    width: 100%;
 }
-.xref-80-col {
-    width: 80%;
-}
-.xref-70-col {
-    width: 70%;
-}
-.xref-10-col {
-    width: 10%;
-}
+/* Legacy column-width classes — kept for other tables that use them */
+.xref-name-col { white-space: nowrap; }
+.xref-value-col { }
+.xref-80-col { }
+.xref-70-col { }
+.xref-10-col { white-space: nowrap; }
 .xref-id-list {
     padding-left: 0;
     list-style: none;
@@ -71,7 +76,9 @@
     border: dashed 1px blue;
 }
 .gene-panlink {
-    flex-shrink: 0;
+    float: right;
+    margin-left: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 .gene-panlink img {
     height: 60px;
@@ -98,12 +105,23 @@
     .gene-summary-tair {
         flex: 1 1 100%;
         max-width: 100%;
+        width: auto;
         margin-left: 0;
         margin-top: 8px;
+    }
+    /* Show descriptions on mobile (no hover available) */
+    .model-ortholog p,
+    .closest-ortholog p {
+        display: block;
     }
     .gene-panlink img,
     .suggestion-panlink img {
         height: 40px;
+    }
+    /* Papers table: hide "Curation source" column on small screens */
+    table.xrefs th:nth-child(2),
+    table.xrefs td:nth-child(2) {
+        display: none;
     }
 }
 .gene-curation {
@@ -190,14 +208,64 @@
 }
 .model-ortholog, .closest-ortholog, .gene-summary-tair {
     cursor: pointer;
-    flex: 1 1 auto;
-    max-width: 500px;
-    width: 100%;
+    flex: 0 0 auto;
+    max-width: 280px;
+    width: 280px;
     font-size: smaller;
     margin-top: 10px;
-    padding: 0 1rem;
+    padding: 0.25rem 0.5rem 0.5rem;
     margin-left: 1rem;
     border: 1px solid darkorange;
+}
+
+/* Ortholog boxes: grid layout — gene name left, species+identity right */
+.model-ortholog, .closest-ortholog {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 0.4rem;
+}
+
+/* Hide description paragraphs by default; show on hover/focus */
+.model-ortholog p,
+.closest-ortholog p {
+    display: none;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin: 0.25rem 0 0;
+}
+.model-ortholog:hover p,
+.model-ortholog:focus p,
+.closest-ortholog:hover p,
+.closest-ortholog:focus p {
+    display: block;
+}
+
+/* Gene name: left column, vertically centred across species+identity rows */
+.model-ortholog h3.gene-id,
+.closest-ortholog h3.gene-id {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    align-self: center;
+    margin: 0;
+}
+
+/* Species: right column, top row */
+.model-ortholog .gene-species,
+.closest-ortholog .gene-species {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+}
+
+/* Identity: right column, below species */
+.model-ortholog .rep-identity,
+.closest-ortholog .rep-identity {
+    grid-column: 2;
+    grid-row: 3;
+    text-align: right;
+    margin-left: 0;
+    padding-right: 0;
+    padding-top: 0;
 }
 
 .model-ortholog {
@@ -231,12 +299,13 @@
 .closest-ortholog::before,
 .model-ortholog::before,
 .gene-summary-tair::before {
-    position: relative;
-    float: right;
-    margin-top: -12px;
-    margin-right: 6px;
+    display: block;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: center;
     border: dotted 1px;
-    padding: 0 1rem;
+    padding: 0 0.5rem;
+    margin: -0.25rem -0.5rem 0.25rem;  /* bleed to box edges */
     background: #fff;
 }
 
