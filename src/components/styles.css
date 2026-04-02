@@ -262,10 +262,9 @@
         font-size: 0.8rem;
     }
 
-    /* Ensure search input is large enough to tap on mobile */
+    /* Prevent iOS zoom-on-focus (requires >= 16px) without forcing extra height */
     #search-input {
-        font-size: 1rem; /* prevents iOS zoom-on-focus when < 16px */
-        min-height: 44px;
+        font-size: 1rem;
     }
 }
 
