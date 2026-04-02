@@ -209,42 +209,38 @@ const Detail = props => {
     onSelect={(k) => setTab(k)}
     >
     <Tab tabClassName="dna" eventKey="dna" title="Genomic sequence">
-      <Container style={{ width: '100ch', marginLeft: 0}}>
+      <Container style={{ maxWidth: '100ch', marginLeft: 0}}>
         <Row>
           <Col><b><i>Show flanking sequence</i></b></Col>
         </Row>
-        <Row>
-          <Col style={{ maxWidth: '5ch', textAlign: 'right'}}>{upstream}</Col>
-          <Col style={{maxWidth: '20ch'}}>
-            <Form.Range
-              className="reverse-slide"
-              value={upstream}
-              onChange={(e) => setUpstream(e.target.value)}
-              min={0}
-              max={maxUp}
-              step={10}
-            /><div style={{textAlign:'right'}}>Upstream</div>
-          </Col>
-          <Col style={{maxWidth: '30ch'}}>
-            <div className="styled-span">
-              <div className="vertical-line"/>
-              <div className="horizontal-line"/>
-              <span>Transcript (unspliced)</span>
-              <div className="horizontal-line"/>
-              <div className="vertical-line"/>
-            </div>
-          </Col>
-          <Col style={{maxWidth: '20ch'}}>
-            <Form.Range
-              value={downstream}
-              onChange={(e) => setDownstream(e.target.value)}
-              min={0}
-              max={maxDown}
-              step={10}
-            /><div style={{textAlign:'left'}}>Downstream</div>
-          </Col>
-          <Col style={{ maxWidth: '5ch', textAlign: 'left'}}>{downstream}</Col>
-        </Row>
+        <div className="flanking-guide">
+          <span className="flanking-label-left">Upstream</span>
+          <div className="horizontal-line"/>
+          <span className="flanking-center-label">Transcript (unspliced)</span>
+          <div className="horizontal-line"/>
+          <span className="flanking-label-right">Downstream</span>
+
+          <span className="flanking-value-left">{upstream}</span>
+          <Form.Range
+            className="reverse-slide"
+            style={{width: '60px'}}
+            value={upstream}
+            onChange={(e) => setUpstream(e.target.value)}
+            min={0}
+            max={maxUp}
+            step={10}
+          />
+          <span/>
+          <Form.Range
+            style={{width: '60px'}}
+            value={downstream}
+            onChange={(e) => setDownstream(e.target.value)}
+            min={0}
+            max={maxDown}
+            step={10}
+          />
+          <span className="flanking-value-right">{downstream}</span>
+        </div>
         {gene.gene_structure.transcripts.length > 1 &&
         <Row>
           <Col><b><i>Highlight transcript</i></b><br/>

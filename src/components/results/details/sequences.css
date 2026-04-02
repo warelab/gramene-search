@@ -19,10 +19,11 @@
     background-color: black;
 }
 .horizontal-line {
-    width: 57px;
+    width: 60px;
+    min-width: 15px;
     height: 3px;
     background-color: black;
-    margin: 0 0px;
+    margin: 0;
 }
 code.fasta {
     white-space: pre-wrap;
@@ -72,6 +73,45 @@ code.fasta {
     width: 20px;
     height: 20px;
     background: linear-gradient(to bottom right, #c5a3bf 0%, #c5a3bf 50%, #dcc9d9 50%, #dcc9d9 100%);
+}
+
+.flanking-guide {
+    display: grid;
+    grid-template-columns: auto 60px auto 60px auto;
+    align-items: center;
+    row-gap: 2px;
+    column-gap: 0;
+    width: fit-content;
+}
+/* Row 1 */
+.flanking-label-left {
+    text-align: right;
+    padding-right: 0.5rem;
+}
+.flanking-center-label {
+    text-align: center;
+    white-space: nowrap;
+    padding: 0 0.25rem;
+}
+.flanking-guide > .horizontal-line {
+    height: 3px;
+    background-color: black;
+    align-self: center;
+}
+.flanking-label-right {
+    text-align: left;
+    padding-left: 0.5rem;
+}
+/* Row 2 */
+.flanking-value-left {
+    text-align: right;
+    min-width: 5ch;
+    padding-right: 0.5rem;
+}
+.flanking-value-right {
+    text-align: left;
+    min-width: 5ch;
+    padding-left: 0.5rem;
 }
 
 .reverse-slide {
