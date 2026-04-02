@@ -91,6 +91,12 @@ table.xrefs td:nth-child(3) {
     width: auto;
     max-width: 100%;
 }
+@media (max-width: 1200px) {
+    .gene-panlink img,
+    .suggestion-panlink img {
+        height: 30px;
+    }
+}
 @media (max-width: 767px) {
     /* Allow the ortholog/TAIR box to stack below the gene title on mobile.
        It stays inside .result-gene-summary, so it still appears above .gene-detail-tabs. */
@@ -109,18 +115,48 @@ table.xrefs td:nth-child(3) {
         margin-left: 0;
         margin-top: 8px;
     }
+    /* Stack ortholog box contents vertically on narrow screens */
+    .model-ortholog,
+    .closest-ortholog {
+        grid-template-columns: 1fr;
+    }
+    .model-ortholog h3.gene-id,
+    .closest-ortholog h3.gene-id {
+        grid-column: 1;
+        grid-row: 2;
+    }
+    .model-ortholog .gene-species,
+    .closest-ortholog .gene-species {
+        grid-column: 1;
+        grid-row: 3;
+        text-align: left;
+    }
+    .model-ortholog .rep-identity,
+    .closest-ortholog .rep-identity {
+        grid-column: 1;
+        grid-row: 4;
+        text-align: left;
+    }
+    .model-ortholog p,
+    .closest-ortholog p {
+        grid-row: 5;
+    }
     /* Show descriptions on mobile (no hover available) */
     .model-ortholog p,
     .closest-ortholog p {
         display: block;
     }
-    .gene-panlink img,
-    .suggestion-panlink img {
-        height: 40px;
+    /* PanLink: stop floating, display inline next to gene title */
+    .gene-panlink {
+        float: none;
+        display: inline;
+        margin-left: 0.25rem;
+        margin-bottom: 0;
+        vertical-align: middle;
     }
-    /* Papers table: hide "Curation source" column on small screens */
-    table.xrefs th:nth-child(2),
-    table.xrefs td:nth-child(2) {
+    /* Papers table only: hide "Curation source" column on small screens */
+    table.xrefs-pubs th:nth-child(2),
+    table.xrefs-pubs td:nth-child(2) {
         display: none;
     }
 }
@@ -209,8 +245,8 @@ table.xrefs td:nth-child(3) {
 .model-ortholog, .closest-ortholog, .gene-summary-tair {
     cursor: pointer;
     flex: 0 0 auto;
-    max-width: 280px;
-    width: 280px;
+    max-width: 380px;
+    width: 380px;
     font-size: smaller;
     margin-top: 10px;
     padding: 0.25rem 0.5rem 0.5rem;
@@ -218,46 +254,36 @@ table.xrefs td:nth-child(3) {
     border: 1px solid darkorange;
 }
 
-/* Ortholog boxes: grid layout — gene name left, species+identity right */
+/* Ortholog boxes: grid — title row, then gene name left / species+identity right */
 .model-ortholog, .closest-ortholog {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 0 0.4rem;
+    gap: 0 0.5rem;
+    align-items: center;
 }
 
-/* Hide description paragraphs by default; show on hover/focus */
-.model-ortholog p,
-.closest-ortholog p {
-    display: none;
-    grid-column: 1 / -1;
-    grid-row: 4;
-    margin: 0.25rem 0 0;
-}
-.model-ortholog:hover p,
-.model-ortholog:focus p,
-.closest-ortholog:hover p,
-.closest-ortholog:focus p {
-    display: block;
-}
-
-/* Gene name: left column, vertically centred across species+identity rows */
+/* Gene name: left column, smaller font to fit alongside species */
 .model-ortholog h3.gene-id,
 .closest-ortholog h3.gene-id {
     grid-column: 1;
-    grid-row: 2 / 4;
-    align-self: center;
+    grid-row: 2;
     margin: 0;
+    font-size: 1.5em;
+    overflow-wrap: break-word;
+    word-break: break-all;
+    min-width: 0;
 }
 
-/* Species: right column, top row */
+/* Species: right column, top of the pair */
 .model-ortholog .gene-species,
 .closest-ortholog .gene-species {
     grid-column: 2;
     grid-row: 2;
     text-align: right;
+    align-self: end;
 }
 
-/* Identity: right column, below species */
+/* Identity: right column, below species (same row group as gene name) */
 .model-ortholog .rep-identity,
 .closest-ortholog .rep-identity {
     grid-column: 2;
@@ -266,6 +292,22 @@ table.xrefs td:nth-child(3) {
     margin-left: 0;
     padding-right: 0;
     padding-top: 0;
+    align-self: start;
+}
+
+/* Description: hidden by default; show on hover/focus */
+.model-ortholog p,
+.closest-ortholog p {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    display: none;
+    margin: 0.25rem 0 0;
+}
+.model-ortholog:hover p,
+.model-ortholog:focus p,
+.closest-ortholog:hover p,
+.closest-ortholog:focus p {
+    display: block;
 }
 
 .model-ortholog {

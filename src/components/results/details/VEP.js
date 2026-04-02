@@ -170,7 +170,7 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
 
   // Define columns with a custom renderer for the summary rows
   const columnDefs = [
-    { field: 'pop', headerName: 'Study/Population', flex: 1,
+    { field: 'pop', headerName: 'Study/Population', flex: 1, minWidth: 120,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -178,7 +178,7 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
         return null;
       }
     },
-    { field: 'conseq', headerName: 'VEP consequence', flex: 1,
+    { field: 'conseq', headerName: 'VEP consequence', flex: 1, minWidth: 130,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -186,7 +186,7 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
         return null;
       }
     },
-    { field: 'status', headerName: 'Allele status', flex: 1,
+    { field: 'status', headerName: 'Allele status', flex: 1, minWidth: 100,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -194,7 +194,7 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
         return null;
       }
     },
-    { field: 'accession', headerName: doGrin ? 'Order Germplasm' : 'Accession', flex: 1,
+    { field: 'accession', headerName: doGrin ? 'Order Germplasm' : 'Accession', flex: 1, minWidth: 140,
       headerComponent: (props) => {
         return (
           <div style={{display: 'flex', alignItems: 'center'}}>
@@ -219,19 +219,19 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
         return null;
       }
     },
-    { field: 'synonym', headerName: 'Synonym', filter:false, sortable:false, flex: 1, cellRenderer: (params) => {
+    { field: 'synonym', headerName: 'Synonym', filter:false, sortable:false, flex: 1, minWidth: 110, cellRenderer: (params) => {
       if (params.data.accession) {
         return params.data.accession.germplasm.ens_id
       }
       return null;
     }},
-    { field: 'subpop', headerName: 'Subpopulation', filter:false, sortable: false, flex: 1, cellRenderer: (params) => {
+    { field: 'subpop', headerName: 'Subpopulation', filter:false, sortable: false, flex: 1, minWidth: 110, cellRenderer: (params) => {
       if (params.data.accession && params.data.accession.germplasm.subpop && params.data.accession.germplasm.subpop !== "?") {
         return params.data.accession.germplasm.subpop
       }
       return null;
       }},
-    { field: 'search', headerName: 'All LOF Genes', sortable:false, filter:false, flex: 1,
+    { field: 'search', headerName: 'All LOF Genes', sortable:false, filter:false, flex: 1, minWidth: 100,
       cellRenderer: (params) => {
         if (params.data.accession) {
           const currentURL = new URL(window.location.href);
@@ -264,17 +264,19 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
   const nVisible = getVisibleRowData().length;
   const tableHeight = 50 + Math.min(nVisible, 10) * 42;
   return (
-    <div
-      className="ag-theme-quartz"
-      style={{ height: tableHeight, width: "100%", maxWidth: "1200px" }}
-    >
-      <AgGridReact
-        rowData={getVisibleRowData()}
-        columnDefs={columnDefs}
-        getRowNodeId={(data) => data.id}
-        animateRows={true}
-        defaultColDef={defaultColDef}
-      />
+    <div style={{ overflowX: "auto", width: "100%", maxWidth: "1200px" }}>
+      <div
+        className="ag-theme-quartz"
+        style={{ height: tableHeight, minWidth: "810px", width: "100%" }}
+      >
+        <AgGridReact
+          rowData={getVisibleRowData()}
+          columnDefs={columnDefs}
+          getRowNodeId={(data) => data.id}
+          animateRows={true}
+          defaultColDef={defaultColDef}
+        />
+      </div>
     </div>
   );
 };

@@ -1,9 +1,9 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { connect } from 'redux-bundler-react'
 import { Navbar, Nav, NavDropdown, Container, OverlayTrigger, Popover} from 'react-bootstrap'
 import Switch from 'react-switch'
 import { IoAlertCircle } from 'react-icons/io5'
-import { BsGearFill,BsTrash } from 'react-icons/bs'
+import { BsGearFill,BsTrash,BsChevronDown,BsChevronRight } from 'react-icons/bs'
 import GeneList from './results/GeneList'
 import TaxDist from './results/TaxDist'
 import HelpDemo from './results/HelpDemo'
@@ -14,6 +14,24 @@ import UserGeneLists from './results/UserGeneLists'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
+
+const CollapsibleSection = ({ title, defaultOpen = true, extra, children }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="sidebar-section">
+      <div className="sidebar-section-header" onClick={() => setOpen(!open)}>
+        <b>{title}</b>
+        <span className="sidebar-section-actions">
+          {extra}
+          <span className="sidebar-section-toggle">
+            {open ? <BsChevronDown/> : <BsChevronRight/>}
+          </span>
+        </span>
+      </div>
+      {open && <div className="sidebar-section-body">{children}</div>}
+    </div>
+  );
+};
 
 const inventory = {
   help: HelpDemo,
@@ -156,20 +174,23 @@ const FiltersCmp = props => {
     unmarkTargets: props.doUnmarkGrameneFilterTargets,
     toggleMenu: props.doToggleGrameneFilterMenu
   };
+  const containerClass = props.configuration.id === 'sorghum' ? 'sorghumbase-filter-container': 'gramene-filter-container';
   if (props.grameneFilters.rightIdx > 1) {
-    return <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-filter-container': 'gramene-filter-container'}>
-      <b>Filters</b>
-      <span style={{float:'right', cursor:'pointer'}} onClick={props.doClearGrameneFilters}><BsTrash/></span>
-      <Filter node={props.grameneFilters}
-                   moveCopyMode={props.grameneFilters.moveCopyMode}
-                   showMarked={props.grameneFilters.showMarked}
-                   actions={actions}/>
+    return <div className={containerClass}>
+      <CollapsibleSection title="Filters"
+        extra={<span style={{cursor:'pointer', marginRight:'0.5rem'}} onClick={(e)=>{e.stopPropagation(); props.doClearGrameneFilters()}}><BsTrash/></span>}>
+        <Filter node={props.grameneFilters}
+                     moveCopyMode={props.grameneFilters.moveCopyMode}
+                     showMarked={props.grameneFilters.showMarked}
+                     actions={actions}/>
+      </CollapsibleSection>
     </div>
   }
   else {
-    return <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-filter-container': 'gramene-filter-container'}>
-      <b>Filters</b>
-      <div className='gramene-filter gramene-filter-AND'>No filters defined</div>
+    return <div className={containerClass}>
+      <CollapsibleSection title="Filters">
+        <div className='gramene-filter gramene-filter-AND'>No filters defined</div>
+      </CollapsibleSection>
     </div>
   }
 };
@@ -226,21 +247,22 @@ const Results = connect(
 
 const ViewsCmp = props => (
   <div className={'gramene-view-container'}>
-    <b>Views</b>
-    {props.grameneViews.options.filter(view => view.show !== 'disabled').map((view,idx) => (
-      <div style={{textWrap:'nowrap'}} key={idx}>
-        <Switch onChange={()=>props.doToggleGrameneView(view.id)} checked={view.show === 'on'}
-                height={18}
-                width={30}
-                handleDiameter={16}
-                checkedIcon={false}
-                uncheckedIcon={false}
-        />
-        <span className={`gramene-view-span-${view.show}`} onClick={(e) => {
-          props.dontToggleGrameneView(view.id)
-        }}>{view.name}</span>
-      </div>
-    ))}
+    <CollapsibleSection title="Views">
+      {props.grameneViews.options.filter(view => view.show !== 'disabled').map((view,idx) => (
+        <div style={{textWrap:'nowrap'}} key={idx}>
+          <Switch onChange={()=>props.doToggleGrameneView(view.id)} checked={view.show === 'on'}
+                  height={18}
+                  width={30}
+                  handleDiameter={16}
+                  checkedIcon={false}
+                  uncheckedIcon={false}
+          />
+          <span className={`gramene-view-span-${view.show}`} onClick={(e) => {
+            props.dontToggleGrameneView(view.id)
+          }}>{view.name}</span>
+        </div>
+      ))}
+    </CollapsibleSection>
   </div>
 );
 
