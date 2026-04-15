@@ -268,3 +268,46 @@
     }
 }
 
+/* ── Taxonomy modal tree ─────────────────────────────────────────────────── */
+.tax-tree            { margin-top: 8px; font-size: 14px; }
+.tax-node            { border-radius: 2px; }
+.tax-row             { display: flex; align-items: center; gap: 4px; padding: 2px 4px; }
+.tax-chevron         { cursor: pointer; width: 14px; display: inline-flex; align-items: center; }
+.tax-chevron-spacer  { display: inline-block; width: 14px; }
+.tax-label           { }
+.tax-label-internal  { font-weight: 600; }
+.tax-sep             { color: #888; font-weight: normal; }
+.tax-count           { color: #555; font-size: 12px; margin-left: 4px; }
+.tax-self-leaf       { margin-left: 8px; font-size: 12px; color: #444; display: inline-flex; align-items: center; gap: 2px; }
+
+.tax-ellipsis        { cursor: help; color: #666; }
+.tax-ellipsis-full   { display: none; }
+.tax-ellipsis:hover .tax-ellipsis-short { display: none; }
+.tax-ellipsis:hover .tax-ellipsis-full  { display: inline; color: #333; }
+
+.tax-search               { position: relative; margin: 8px 0; }
+.tax-search-input         { width: 100%; padding: 4px 8px; font-size: 14px;
+                            border: 1px solid #bbb; border-radius: 3px; }
+.tax-search-results       { position: absolute; left: 0; right: 0; top: 100%;
+                            max-height: 280px; overflow-y: auto; z-index: 10;
+                            background: white; border: 1px solid #bbb;
+                            border-top: none; border-radius: 0 0 3px 3px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.tax-search-hit           { padding: 4px 8px; cursor: pointer; font-size: 13px; }
+.tax-search-hit:hover,
+.tax-search-hit-active    { background: #e3ecff; }
+.tax-search-name          { font-weight: 600; }
+.tax-search-syn           { color: #777; font-style: italic; }
+.tax-search-rank          { color: #0366d6; font-size: 11px; text-transform: uppercase;
+                            margin-left: 4px; }
+.tax-search-count         { color: #555; font-size: 12px; }
+.tax-search-empty         { padding: 6px 8px; color: #777; font-style: italic; font-size: 13px; }
+
+.tax-node-highlight       { outline: 2px solid #ffc107;
+                            animation: taxFlash 1.6s ease-out; }
+@keyframes taxFlash {
+  0%   { background-color: #fff3cd; }
+  100% { background-color: transparent; }
+}
+
+
