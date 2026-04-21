@@ -319,6 +319,42 @@ function fieldExperimentId(name) {
   return null;
 }
 
+const STAT_RANK = { l2fc: 0, logfc: 1, pval: 2 };
+
+function collapseDiffExprInSubgroups(subgroups, fieldsOut, collator) {
+  for (const taxGroup of subgroups) {
+    for (const expGroup of (taxGroup.subgroups || [])) {
+      const contrastMap = new Map();
+      const others = [];
+      for (const name of (expGroup.fields || [])) {
+        const f = fieldsOut[name];
+        if (!f || f.patternId !== 'diffexpr') { others.push(name); continue; }
+        const mg = f.matchGroups || [];
+        const key = `${mg[1]}|${mg[2]}`;
+        let arr = contrastMap.get(key);
+        if (!arr) { arr = []; contrastMap.set(key, arr); }
+        arr.push(name);
+      }
+      const newFields = [...others];
+      for (const names of contrastMap.values()) {
+        if (names.length === 1) { newFields.push(names[0]); continue; }
+        names.sort((a, b) => {
+          const ra = STAT_RANK[(fieldsOut[a].matchGroups || [])[3]] ?? 99;
+          const rb = STAT_RANK[(fieldsOut[b].matchGroups || [])[3]] ?? 99;
+          if (ra !== rb) return ra - rb;
+          return collator.compare(a, b);
+        });
+        const rep = names[0];
+        const repEntry = fieldsOut[rep];
+        const label = (repEntry.label || rep).replace(/\s+\((?:pval|logfc|l2fc)\)/, '');
+        fieldsOut[rep] = { ...repEntry, label, linkedFields: names.slice() };
+        newFields.push(rep);
+      }
+      expGroup.fields = newFields;
+    }
+  }
+}
+
 function buildExpressionSubgroups(fieldNames, fieldsOut, experimentTaxa, experimentTitles, speciesNames, collator) {
   const byTaxon = new Map();
   const orphans = [];
@@ -546,6 +582,9 @@ function enrichLabels(catalog, expressionStudies, expressionSamples, grameneSear
     const { subgroups, orphans } = buildExpressionSubgroups(
       list, fieldsOut, experimentTaxa, experimentTitles, speciesNames, collator
     );
+    if (g.id === 'differential') {
+      collapseDiffExprInSubgroups(subgroups, fieldsOut, collator);
+    }
     orphans.sort((a, b) => collator.compare(fieldsOut[a].label, fieldsOut[b].label));
     return { ...g, fields: orphans, subgroups };
   });

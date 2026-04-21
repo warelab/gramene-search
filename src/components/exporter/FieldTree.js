@@ -41,12 +41,16 @@ function filterGroup(group, q, catalog) {
 const FieldRow = ({ name, catalog, selectedSet, onToggle }) => {
   const f = catalog.fields[name];
   if (!f) return null;
+  const linked = f.linkedFields;
+  const checked = linked
+    ? linked.every(n => selectedSet.has(n))
+    : selectedSet.has(name);
   return (
     <li>
       <label title={name + (f.description ? '\n' + f.description : '')}>
         <input
           type="checkbox"
-          checked={selectedSet.has(name)}
+          checked={checked}
           onChange={() => onToggle(name)}
         />
         <span className="exporter-field-label">{f.label}</span>
@@ -59,17 +63,33 @@ const FieldRow = ({ name, catalog, selectedSet, onToggle }) => {
 const GroupNode = ({ group, depth, catalog, selectedSet, onToggle, onBulkSet, openMap, setOpen, forceOpen }) => {
   const matchingNames = collectMatchingFieldNames(group);
   const total = matchingNames.length;
-  const selectedCount = matchingNames.reduce((n, name) => n + (selectedSet.has(name) ? 1 : 0), 0);
+  const isAllLinkedSelected = (name) => {
+    const f = catalog.fields[name];
+    const linked = f && f.linkedFields;
+    if (linked) return linked.every(n => selectedSet.has(n));
+    return selectedSet.has(name);
+  };
+  const selectedCount = matchingNames.reduce((n, name) => n + (isAllLinkedSelected(name) ? 1 : 0), 0);
   const allSelected = total > 0 && selectedCount === total;
   const noneSelected = selectedCount === 0;
   const isOpen = forceOpen || openMap[group.id] || false;
   const visible = (group.matchingFields || []).slice(0, MAX_VISIBLE_PER_GROUP);
   const truncated = (group.matchingFields || []).length - visible.length;
 
+  const expandLinked = (names) => {
+    const out = [];
+    for (const n of names) {
+      const f = catalog.fields[n];
+      if (f && f.linkedFields) out.push(...f.linkedFields);
+      else out.push(n);
+    }
+    return out;
+  };
+
   const handleBulk = (e, selected) => {
     e.stopPropagation();
     if (matchingNames.length === 0) return;
-    onBulkSet(matchingNames, selected);
+    onBulkSet(expandLinked(matchingNames), selected);
   };
 
   return (
@@ -138,11 +158,21 @@ const GroupNode = ({ group, depth, catalog, selectedSet, onToggle, onBulkSet, op
 };
 
 const FieldTreeCmp = props => {
-  const { fieldCatalog: catalog, exporterSelectedFields, doToggleExporterField, doBulkSetExporterFields } = props;
-  const [query, setQuery] = useState('');
+  const { fieldCatalog: catalog, exporterSelectedFields, doToggleExporterField, doBulkSetExporterFields, query = '' } = props;
   const [openMap, setOpenMap] = useState({});
 
   const selectedSet = useMemo(() => new Set(exporterSelectedFields), [exporterSelectedFields]);
+
+  const handleToggle = (name) => {
+    const f = catalog && catalog.fields && catalog.fields[name];
+    const linked = f && f.linkedFields;
+    if (linked) {
+      const allSelected = linked.every(n => selectedSet.has(n));
+      doBulkSetExporterFields(linked, !allSelected);
+    } else {
+      doToggleExporterField(name);
+    }
+  };
 
   const q = query.trim().toLowerCase();
 
@@ -162,13 +192,6 @@ const FieldTreeCmp = props => {
 
   return (
     <div className="exporter-field-tree">
-      <input
-        type="search"
-        className="form-control exporter-field-search"
-        placeholder="Search fields…"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-      />
       <div className="exporter-field-tree-body">
         {filtered.map(group => (
           <GroupNode
@@ -177,7 +200,7 @@ const FieldTreeCmp = props => {
             depth={0}
             catalog={catalog}
             selectedSet={selectedSet}
-            onToggle={doToggleExporterField}
+            onToggle={handleToggle}
             onBulkSet={doBulkSetExporterFields}
             openMap={openMap}
             setOpen={setOpen}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { connect } from 'redux-bundler-react';
+import { BsArrowLeftShort, BsArrowRightShort } from 'react-icons/bs';
 import { buildTableData, toJSON } from './formatters';
 import { ANCESTOR_FIELD_MAP, collectAncestorIds } from './ancestorsResolver';
 
@@ -15,6 +16,8 @@ const PreviewCmp = props => {
     gramenePathways,
     ontologies,
     doSetExporterFormat,
+    doReorderExporterFields,
+    doClearExporterFields,
     doEnsureOntologyRecords,
     doRequestGramenePathways
   } = props;
@@ -64,10 +67,29 @@ const PreviewCmp = props => {
     ontologies
   };
 
+  const moveField = (name, delta) => {
+    const idx = fields.indexOf(name);
+    if (idx === -1) return;
+    const target = idx + delta;
+    if (target < 0 || target >= fields.length) return;
+    const next = [...fields];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    doReorderExporterFields(next);
+  };
+
   return (
     <div className="exporter-preview">
       <div className="exporter-preview-toolbar">
         <span className="exporter-preview-title"><b>Preview</b> (first 20 genes)</span>
+        <span className="exporter-preview-fields-count">
+          {fields.length} field{fields.length === 1 ? '' : 's'}
+          {fields.length > 0 && (
+            <button
+              className="btn btn-sm btn-link exporter-clear-btn"
+              onClick={doClearExporterFields}
+            >clear</button>
+          )}
+        </span>
         <span className="exporter-preview-format">
           <label>
             <input
@@ -92,7 +114,13 @@ const PreviewCmp = props => {
       </div>
       <div className="exporter-preview-body">
         {format === 'tsv' ? (
-          <TSVTable docs={docs} fields={fields} catalog={catalog} resolverCtx={resolverCtx}/>
+          <TSVTable
+            docs={docs}
+            fields={fields}
+            catalog={catalog}
+            resolverCtx={resolverCtx}
+            onMoveField={moveField}
+          />
         ) : (
           <pre className="exporter-preview-json">{toJSON(docs, fields, resolverCtx)}</pre>
         )}
@@ -101,16 +129,40 @@ const PreviewCmp = props => {
   );
 };
 
-const TSVTable = ({ docs, fields, catalog, resolverCtx }) => {
+const TSVTable = ({ docs, fields, catalog, resolverCtx, onMoveField }) => {
   const { header, headerKeys, rows } = buildTableData(docs, fields, catalog, resolverCtx);
+  const reorderableCount = fields.length;
   return (
     <div className="exporter-preview-tsv-scroll">
       <table className="exporter-preview-tsv">
         <thead>
           <tr>
-            {header.map((h, i) => (
-              <th key={headerKeys[i]} title={headerKeys[i]}>{h}</th>
-            ))}
+            {header.map((h, i) => {
+              const key = headerKeys[i];
+              const fieldIdx = fields.indexOf(key);
+              const reorderable = fieldIdx !== -1;
+              return (
+                <th key={key} title={key}>
+                  <div className="exporter-preview-th-inner">
+                    <button
+                      type="button"
+                      className="exporter-preview-reorder-btn"
+                      disabled={!reorderable || fieldIdx === 0}
+                      onClick={() => onMoveField(key, -1)}
+                      title="Move left"
+                    ><BsArrowLeftShort/></button>
+                    <span className="exporter-preview-th-label">{h}</span>
+                    <button
+                      type="button"
+                      className="exporter-preview-reorder-btn"
+                      disabled={!reorderable || fieldIdx === reorderableCount - 1}
+                      onClick={() => onMoveField(key, 1)}
+                      title="Move right"
+                    ><BsArrowRightShort/></button>
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -145,6 +197,8 @@ export default connect(
   'selectGramenePathways',
   'selectOntologies',
   'doSetExporterFormat',
+  'doReorderExporterFields',
+  'doClearExporterFields',
   'doEnsureOntologyRecords',
   'doRequestGramenePathways',
   PreviewCmp
