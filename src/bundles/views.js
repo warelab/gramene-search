@@ -58,13 +58,15 @@ const grameneViews = {
         //   name: 'GO terms',
         //   show: 'disabled'
         // }
-      ]
+      ],
+      touched: {}
     };
     return (state = initialState, {type, payload}) => {
       let newState;
       switch (type) {
         case 'GRAMENE_VIEW_TOGGLED':
           newState = Object.assign({},state);
+          newState.touched = { ...(state.touched || {}), [payload]: true };
           newState.options.forEach(view => {
             view.shouldScroll = false;
             if (view.id === payload) {
@@ -75,6 +77,7 @@ const grameneViews = {
           return newState;
         case 'GRAMENE_VIEW_CLICKED':
           newState = Object.assign({}, state);
+          newState.touched = { ...(state.touched || {}), [payload]: true };
           newState.options.forEach(view => {
             view.shouldScroll = false;
             if (view.id === payload) {
@@ -108,11 +111,18 @@ const grameneViews = {
     (raw, config) => {
       const overrides = (config && config.views) || null;
       if (!overrides) return raw;
+      const touched = raw.touched || {};
       return {
         ...raw,
         options: raw.options
           .filter(v => overrides[v.id] !== 'hidden')
-          .map(v => overrides[v.id] ? { ...v, show: overrides[v.id] } : v)
+          .map(v => {
+            const o = overrides[v.id];
+            if (!o) return v;
+            if (o === 'disabled') return { ...v, show: 'disabled' };
+            if (touched[v.id]) return v;
+            return { ...v, show: o };
+          })
       };
     }
   )
