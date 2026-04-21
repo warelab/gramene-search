@@ -194,7 +194,9 @@ const grameneFieldCatalog = createAsyncResourceBundle({
   staleAfter: 0,//5 * 60 * 1000,
   getPromise: ({ store }) => {
     const api = store.selectGrameneAPI();
-    const swaggerUrl = store.selectGrameneSwaggerURL();
+    const swaggerUrl = typeof store.selectGrameneSwaggerURL === 'function'
+      ? store.selectGrameneSwaggerURL()
+      : `${api}/swagger`;
     const sampleUrl = `${api}/search?q=${encodeURIComponent(SAMPLE_QUERY)}&rows=${SAMPLE_ROWS}&fl=*`;
     const experimentsUrl = `${api}/experiments?rows=-1`;
     const mapsUrl = `${api}/maps?rows=-1`;
