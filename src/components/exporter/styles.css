@@ -1,0 +1,380 @@
+.exporter-view {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+  gap: 1rem;
+  padding: 0.75rem;
+  min-height: 400px;
+}
+
+.exporter-pane {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.exporter-pane-header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  font-size: 0.9rem;
+}
+
+.exporter-pane-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.exporter-panel-empty {
+  padding: 1rem;
+  color: #888;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* --- FieldTree --- */
+
+.exporter-field-tree {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.exporter-field-search {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.exporter-field-tree-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.exporter-group {
+  margin-bottom: 0.25rem;
+}
+
+.exporter-group-header {
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  background: #eef1f4;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+.exporter-group-header:hover {
+  background: #e3e7ec;
+}
+
+.exporter-group-chevron {
+  display: inline-flex;
+  align-items: center;
+  color: #666;
+}
+
+.exporter-group-count {
+  font-size: 0.75rem;
+  color: #666;
+  background: #fff;
+  padding: 0 0.4rem;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.exporter-group-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.exporter-group-action {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  color: #333;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.exporter-group-action:hover:not(:disabled) {
+  background: #f0f4f8;
+  border-color: #88a;
+}
+
+.exporter-group-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.exporter-group-fields {
+  list-style: none;
+  margin: 0.25rem 0 0.5rem 1.25rem;
+  padding: 0;
+}
+
+.exporter-group-fields li {
+  padding: 0.1rem 0.25rem;
+  font-size: 0.85rem;
+}
+
+.exporter-group-fields label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.1rem 0.25rem;
+  border-radius: 2px;
+  width: 100%;
+}
+
+.exporter-group-fields label:hover {
+  background: #f0f4f8;
+}
+
+.exporter-field-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exporter-field-badge {
+  font-size: 0.7rem;
+  color: #888;
+  font-family: monospace;
+}
+
+.exporter-group-truncated {
+  color: #888;
+  font-size: 0.8rem;
+  padding-left: 0.5rem;
+}
+
+/* --- SelectedFields --- */
+
+.exporter-selected {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.exporter-selected-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.exporter-selected-count {
+  font-size: 0.75rem;
+  color: #666;
+  background: #eef1f4;
+  padding: 0 0.5rem;
+  border-radius: 10px;
+}
+
+.exporter-clear-btn {
+  margin-left: auto;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+.exporter-selected-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.exporter-selected-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.35rem;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.85rem;
+}
+
+.exporter-selected-index {
+  font-family: monospace;
+  color: #888;
+  min-width: 1.75rem;
+}
+
+.exporter-selected-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exporter-selected-group {
+  color: #888;
+}
+
+.exporter-selected-actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.exporter-selected-actions button {
+  padding: 0.1rem 0.35rem;
+  line-height: 1;
+}
+
+/* --- Right pane (selected + preview) --- */
+
+.exporter-right-pane {
+  max-height: 70vh;
+}
+
+.exporter-right-split {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.exporter-selected-section {
+  flex: 0 0 auto;
+  max-height: 35%;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.exporter-preview-section {
+  flex: 1;
+  overflow: hidden;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Preview --- */
+
+.exporter-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.exporter-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid #eee;
+  font-size: 0.85rem;
+}
+
+.exporter-preview-format label {
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+.exporter-preview-format input {
+  margin-right: 0.25rem;
+}
+
+.exporter-preview-status {
+  margin-left: auto;
+  color: #888;
+}
+
+.exporter-preview-status.error {
+  color: #c33;
+}
+
+.exporter-preview-body {
+  flex: 1;
+  overflow: auto;
+  background: #fafbfc;
+  border: 1px solid #eee;
+  border-radius: 3px;
+}
+
+.exporter-preview-empty {
+  padding: 1rem;
+  color: #888;
+  text-align: center;
+}
+
+.exporter-preview-tsv-scroll {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.exporter-preview-tsv {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  width: auto;
+}
+
+.exporter-preview-tsv th,
+.exporter-preview-tsv td {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #e5e7ea;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exporter-preview-tsv th {
+  background: #f0f3f6;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.exporter-preview-tsv tr:hover td {
+  background: #f4f7fa;
+}
+
+.exporter-preview-empty-row {
+  text-align: center;
+  color: #888;
+  padding: 1rem !important;
+}
+
+.exporter-preview-json {
+  margin: 0;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/* --- Export footer --- */
+
+.exporter-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  flex: 0 0 auto;
+}
+
+.exporter-footer-summary {
+  color: #555;
+}

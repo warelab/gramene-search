@@ -50,6 +50,7 @@ const panSites = [
     ga: 'G-ZTEQBFCRXZ',
     targetTaxonId: 3702,
     alertText: 'Main site',
+    showViews: true,
     details: {
       sequences: true,
       VEP: false,
@@ -284,6 +285,7 @@ const config = {
     dispatch({type: 'GRAMENE_HELP_TOGGLED', payload: null})
   },
   selectGrameneAPI: state => state.config.grameneData,
+  selectGrameneSwaggerURL: state => state.config.grameneSwagger || (state.config.grameneData + '/swagger'),
   selectEnsemblAPI: state => state.config.ensemblRest,
   selectTargetTaxonId: state => state.config.targetTaxonId,
   selectCuration: state => state.config.curation,
@@ -520,6 +522,7 @@ cache.getAll().then(initialData => {
     console.log('starting with locally cached data:', initialData)
   }
   const store = getStore(initialData);
+  window.store = store;
   const config = store.selectConfiguration();
   ReactGA.initialize(config.ga);
   if (initialData.hasOwnProperty('grameneMaps')) {

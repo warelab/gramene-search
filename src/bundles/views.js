@@ -39,6 +39,12 @@ const grameneViews = {
           name: 'Gene attributes',
           show: 'off',
           shouldScroll: false
+        },
+        {
+          id: 'export',
+          name: 'Data exporter',
+          show: 'off',
+          shouldScroll: false
         }
         // {
         //   id: 'domains',

@@ -11,6 +11,7 @@ import GeneAttribs from './results/GeneAttribs'
 import TaxonomyModal from './TaxonomyModal'
 import Expression from './results/Expression'
 import UserGeneLists from './results/UserGeneLists'
+import ExporterView from './exporter/ExporterView'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
@@ -39,7 +40,8 @@ const inventory = {
   taxonomy: TaxDist,
   attribs: GeneAttribs,
   expression: Expression,
-  userLists: UserGeneLists
+  userLists: UserGeneLists,
+  export: ExporterView
 };
 
 const StatusCmp = props => {
