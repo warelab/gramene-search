@@ -461,10 +461,43 @@
 .exporter-preview-tsv td {
   padding: 0.2rem 0.5rem;
   border: 1px solid #e5e7ea;
-  max-width: 280px;
+  max-width: 420px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.exporter-preview-tsv th {
+  position: relative;
+}
+
+.exporter-preview-col-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 2;
+}
+
+.exporter-preview-col-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.exporter-preview-col-resizer:hover::after,
+.exporter-preview-col-resizer:active::after {
+  background: #7a8aa0;
+  width: 2px;
 }
 
 .exporter-preview-tsv th {

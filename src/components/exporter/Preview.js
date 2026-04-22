@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { connect } from 'redux-bundler-react';
 import { BsArrowLeftShort, BsArrowRightShort, BsSliders } from 'react-icons/bs';
 import { buildTableData, toJSON } from './formatters';
@@ -149,9 +149,37 @@ const PreviewCmp = props => {
   );
 };
 
+const MIN_COL_WIDTH = 40;
+
 const TSVTable = ({ docs, fields, catalog, resolverCtx, onMoveField }) => {
   const { header, headerKeys, rows } = buildTableData(docs, fields, catalog, resolverCtx);
   const reorderableCount = fields.length;
+  const [colWidths, setColWidths] = useState({});
+  const thRefs = useRef({});
+
+  const startResize = (key) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const th = thRefs.current[key];
+    const startWidth = (th && th.getBoundingClientRect().width) || 100;
+    const startX = e.clientX;
+    const onMove = (ev) => {
+      const delta = ev.clientX - startX;
+      const next = Math.max(MIN_COL_WIDTH, startWidth + delta);
+      setColWidths(prev => ({ ...prev, [key]: next }));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      document.body.style.userSelect = '';
+    };
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
   return (
     <div className="exporter-preview-tsv-scroll">
       <table className="exporter-preview-tsv">
@@ -161,8 +189,10 @@ const TSVTable = ({ docs, fields, catalog, resolverCtx, onMoveField }) => {
               const key = headerKeys[i];
               const fieldIdx = fields.indexOf(key);
               const reorderable = fieldIdx !== -1;
+              const w = colWidths[key];
+              const thStyle = w ? { width: `${w}px`, maxWidth: `${w}px`, minWidth: `${w}px` } : undefined;
               return (
-                <th key={key} title={key}>
+                <th key={key} title={key} style={thStyle} ref={el => { thRefs.current[key] = el; }}>
                   <div className="exporter-preview-th-inner">
                     <button
                       type="button"
@@ -180,6 +210,12 @@ const TSVTable = ({ docs, fields, catalog, resolverCtx, onMoveField }) => {
                       title="Move right"
                     ><BsArrowRightShort/></button>
                   </div>
+                  <span
+                    className="exporter-preview-col-resizer"
+                    onPointerDown={startResize(key)}
+                    onDoubleClick={() => setColWidths(prev => { const n = { ...prev }; delete n[key]; return n; })}
+                    title="Drag to resize · double-click to reset"
+                  />
                 </th>
               );
             })}
@@ -188,9 +224,14 @@ const TSVTable = ({ docs, fields, catalog, resolverCtx, onMoveField }) => {
         <tbody>
           {rows.map((row, r) => (
             <tr key={r}>
-              {row.map((c, i) => (
-                <td key={headerKeys[i]} title={c}>{c}</td>
-              ))}
+              {row.map((c, i) => {
+                const key = headerKeys[i];
+                const w = colWidths[key];
+                const tdStyle = w ? { width: `${w}px`, maxWidth: `${w}px`, minWidth: `${w}px` } : undefined;
+                return (
+                  <td key={key} title={c} style={tdStyle}>{c}</td>
+                );
+              })}
             </tr>
           ))}
           {rows.length === 0 && (
