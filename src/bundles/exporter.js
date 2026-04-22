@@ -27,6 +27,7 @@ const exporter = {
     const initialState = {
       selectedFields: DEFAULT_FIELDS,
       format: 'tsv',
+      cutoffs: { exprMinTPM: 0.5, diffMaxPval: 0.05 },
       preview: { status: 'stale', data: null, error: null, requestId: 0, signature: null },
       download: { status: 'idle', progress: 0, total: 0, error: null, requestId: 0 }
     };
@@ -57,6 +58,8 @@ const exporter = {
         }
         case 'EXPORTER_FORMAT_SET':
           return { ...state, format: payload };
+        case 'EXPORTER_CUTOFFS_SET':
+          return { ...state, cutoffs: { ...state.cutoffs, ...(payload || {}) } };
         case 'EXPORTER_FIELDS_CLEARED':
           return { ...state, selectedFields: [] };
         case 'EXPORTER_PREVIEW_INVALIDATED':
@@ -137,6 +140,9 @@ const exporter = {
 
   doSetExporterFormat: fmt => ({ dispatch }) =>
     dispatch({ type: 'EXPORTER_FORMAT_SET', payload: fmt }),
+
+  doSetExporterCutoffs: cutoffs => ({ dispatch }) =>
+    dispatch({ type: 'EXPORTER_CUTOFFS_SET', payload: cutoffs }),
 
   doClearExporterFields: () => ({ dispatch }) =>
     dispatch({ type: 'EXPORTER_FIELDS_CLEARED' }),
@@ -227,6 +233,7 @@ const exporter = {
   selectExporter: state => state.exporter,
   selectExporterSelectedFields: state => state.exporter.selectedFields,
   selectExporterFormat: state => state.exporter.format,
+  selectExporterCutoffs: state => state.exporter.cutoffs,
   selectExporterPreview: state => state.exporter.preview,
   selectExporterDownload: state => state.exporter.download
 };

@@ -346,6 +346,87 @@
   color: #888;
 }
 
+.exporter-cutoffs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.exporter-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.exporter-modal {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  width: min(420px, 90vw);
+  display: flex;
+  flex-direction: column;
+}
+
+.exporter-modal-header {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid #eee;
+}
+
+.exporter-modal-close {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #666;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.exporter-modal-body {
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.exporter-modal-field label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.exporter-modal-field input {
+  font: inherit;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #c0c4ca;
+  border-radius: 3px;
+}
+
+.exporter-modal-field small {
+  color: #777;
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+.exporter-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-top: 1px solid #eee;
+}
+
 .exporter-preview-status.error {
   color: #c33;
 }

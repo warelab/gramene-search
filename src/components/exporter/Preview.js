@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { connect } from 'redux-bundler-react';
-import { BsArrowLeftShort, BsArrowRightShort } from 'react-icons/bs';
+import { BsArrowLeftShort, BsArrowRightShort, BsSliders } from 'react-icons/bs';
 import { buildTableData, toJSON } from './formatters';
 import { ANCESTOR_FIELD_MAP, collectAncestorIds } from './ancestorsResolver';
+import CutoffsModal from './CutoffsModal';
 
 const PreviewCmp = props => {
   const {
@@ -15,13 +16,16 @@ const PreviewCmp = props => {
     grameneTaxonomy,
     gramenePathways,
     ontologies,
+    exporterCutoffs,
     doSetExporterFormat,
     doReorderExporterFields,
     doClearExporterFields,
+    doSetExporterCutoffs,
     doEnsureOntologyRecords,
     doRequestGramenePathways
   } = props;
 
+  const [showCutoffs, setShowCutoffs] = useState(false);
   const docs = preview.data || [];
 
   const ancestorFieldsSelected = useMemo(
@@ -64,7 +68,8 @@ const PreviewCmp = props => {
     expressionSamples,
     taxonomy: grameneTaxonomy,
     pathways: gramenePathways,
-    ontologies
+    ontologies,
+    cutoffs: exporterCutoffs
   };
 
   const moveField = (name, delta) => {
@@ -110,8 +115,23 @@ const PreviewCmp = props => {
             /> JSON
           </label>
         </span>
+        <button
+          type="button"
+          className="btn btn-sm btn-light exporter-cutoffs-btn"
+          onClick={() => setShowCutoffs(true)}
+          title="Expression cutoffs"
+        >
+          <BsSliders/> Cutoffs
+        </button>
         {renderStatus()}
       </div>
+      {showCutoffs && (
+        <CutoffsModal
+          cutoffs={exporterCutoffs}
+          onApply={doSetExporterCutoffs}
+          onClose={() => setShowCutoffs(false)}
+        />
+      )}
       <div className="exporter-preview-body">
         {format === 'tsv' ? (
           <TSVTable
@@ -196,9 +216,11 @@ export default connect(
   'selectGrameneTaxonomy',
   'selectGramenePathways',
   'selectOntologies',
+  'selectExporterCutoffs',
   'doSetExporterFormat',
   'doReorderExporterFields',
   'doClearExporterFields',
+  'doSetExporterCutoffs',
   'doEnsureOntologyRecords',
   'doRequestGramenePathways',
   PreviewCmp

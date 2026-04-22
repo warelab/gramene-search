@@ -86,14 +86,17 @@ function findAssay(expressionSamples, experimentId, group) {
   return arr.find(a => a.group === group) || null;
 }
 
-export function resolveExpressionForDoc(doc, expressionFields, expressionStudies, expressionSamples) {
+export function resolveExpressionForDoc(doc, expressionFields, expressionStudies, expressionSamples, cutoffs) {
   const rows = [];
   const experimentIndex = buildExperimentIndex(expressionStudies);
+  const minTPM = cutoffs && cutoffs.exprMinTPM;
+  const minTPMActive = minTPM !== null && minTPM !== undefined && minTPM !== '' && Number.isFinite(+minTPM);
   for (const fieldName of expressionFields) {
     const parsed = parseExprFieldName(fieldName);
     if (!parsed) continue;
     const val = doc[fieldName];
     if (val === undefined || val === null) continue;
+    if (minTPMActive && (!Number.isFinite(+val) || +val < +minTPM)) continue;
     const exp = experimentIndex[parsed.experimentId];
     const assay = findAssay(expressionSamples, parsed.experimentId, parsed.group);
     rows.push({
@@ -108,7 +111,7 @@ export function resolveExpressionForDoc(doc, expressionFields, expressionStudies
   return rows;
 }
 
-export function resolveDiffExpressionForDoc(doc, diffExpressionFields, expressionStudies, expressionSamples) {
+export function resolveDiffExpressionForDoc(doc, diffExpressionFields, expressionStudies, expressionSamples, cutoffs) {
   const experimentIndex = buildExperimentIndex(expressionStudies);
   const byContrast = new Map();
   for (const fieldName of diffExpressionFields) {
@@ -131,8 +134,14 @@ export function resolveDiffExpressionForDoc(doc, diffExpressionFields, expressio
     if (parsed.stat === 'pval') entry.pval = val;
     else entry.l2fc = val; // l2fc or logfc
   }
+  const maxPval = cutoffs && cutoffs.diffMaxPval;
+  const maxPvalActive = maxPval !== null && maxPval !== undefined && maxPval !== '' && Number.isFinite(+maxPval);
   const rows = [];
   for (const entry of byContrast.values()) {
+    if (maxPvalActive) {
+      const pv = +entry.pval;
+      if (!Number.isFinite(pv) || pv > +maxPval) continue;
+    }
     const exp = experimentIndex[entry.experimentId];
     const assay1 = findAssay(expressionSamples, entry.experimentId, entry.group1);
     const assay2 = findAssay(expressionSamples, entry.experimentId, entry.group2);

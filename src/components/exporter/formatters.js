@@ -71,16 +71,17 @@ function diffRowToCells(dr) {
 function buildExpandedRows(docs, nonExpressionFields, expressionFields, diffExpressionFields, resolverCtx) {
   const expressionStudies = resolverCtx && resolverCtx.expressionStudies;
   const expressionSamples = resolverCtx && resolverCtx.expressionSamples;
+  const cutoffs = resolverCtx && resolverCtx.cutoffs;
   const hasExpr = expressionFields.length > 0;
   const hasDiff = diffExpressionFields.length > 0;
   const rows = [];
   for (const doc of (docs || [])) {
     const baseCells = buildTSVRow(doc, nonExpressionFields, resolverCtx);
     const exprRows = hasExpr
-      ? resolveExpressionForDoc(doc, expressionFields, expressionStudies, expressionSamples)
+      ? resolveExpressionForDoc(doc, expressionFields, expressionStudies, expressionSamples, cutoffs)
       : [];
     const diffRows = hasDiff
-      ? resolveDiffExpressionForDoc(doc, diffExpressionFields, expressionStudies, expressionSamples)
+      ? resolveDiffExpressionForDoc(doc, diffExpressionFields, expressionStudies, expressionSamples, cutoffs)
       : [];
     const exprCells = exprRows.length ? exprRows.map(exprRowToCells) : (hasExpr ? [EMPTY_EXPR_ROW] : [null]);
     const diffCells = diffRows.length ? diffRows.map(diffRowToCells) : (hasDiff ? [EMPTY_DIFF_ROW] : [null]);
