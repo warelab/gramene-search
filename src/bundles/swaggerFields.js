@@ -190,8 +190,8 @@ function buildCatalog(swagger, sampleDocs) {
 const grameneFieldCatalog = createAsyncResourceBundle({
   name: 'grameneFieldCatalog',
   actionBaseType: 'GRAMENE_FIELD_CATALOG',
-  persist: false,//true,
-  staleAfter: 0,//5 * 60 * 1000,
+  persist: true,
+  staleAfter: 5 * 60 * 1000,
   getPromise: ({ store }) => {
     const api = store.selectGrameneAPI();
     const swaggerUrl = typeof store.selectGrameneSwaggerURL === 'function'
