@@ -146,6 +146,8 @@
     "MAKER__QI2__attr_f": { "group": "MAKER", "label": "QI2: Fraction of splice sites confirmed by EST" },
     "MAKER__QI3__attr_f": { "group": "MAKER", "label": "QI3: Fraction of exons overlapping an EST" },
     "MAKER__QI4__attr_f": { "group": "MAKER", "label": "QI4: Fraction of exons overlapping EST or protein" },
+    "MAKER__QI5__attr_f": { "group": "MAKER", "label": "QI5: Fraction of splice sites confirmed by SNAP" },
+    "MAKER__QI6__attr_f": { "group": "MAKER", "label": "QI6: Fraction of exons overlapping a SNAP" },
     "MAKER__QI7__attr_i": { "group": "MAKER", "label": "QI7: Number of exons in the mRNA" },
     "MAKER__QI8__attr_i": { "group": "MAKER", "label": "QI8: Length of the 3' UTR" },
     "MAKER__QI9__attr_i": { "group": "MAKER", "label": "QI9: Length of the protein sequence" },
