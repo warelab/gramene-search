@@ -168,5 +168,5 @@
     "compara_idx", "compara_idx_multi",
     "_id", "annotations", "bins", "gene_structure",
     "homology", "location", "xrefs",
-    "domain_roots", "familyRoot__ancestors"
+    "domain_roots", "familyRoot__ancestors", "taxonomy__ancestors", "capabilities"
   ]}
