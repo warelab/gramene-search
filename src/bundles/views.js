@@ -115,7 +115,7 @@ const grameneViews = {
       const touched = raw.touched || {};
       const numFound = (search && search.response && search.response.numFound) || 0;
       const hasFilters = !!(filters && filters.rightIdx > 1);
-      const resultDependentIds = new Set(['taxonomy', 'list']);
+      const resultDependentIds = new Set(['taxonomy', 'list', 'export']);
       const autoDisable = (numFound === 0) || !hasFilters;
       const hasFirebase = !!(config && config.firebaseConfig);
 
@@ -137,6 +137,10 @@ const grameneViews = {
         if (touched[v.id]) return v;
         return { ...v, show: o };
       });
+      const anyOtherOn = options.some(v => v.id !== 'help' && v.show === 'on');
+      if (!anyOtherOn) {
+        options = options.map(v => v.id === 'help' ? { ...v, show: 'on' } : v);
+      }
       return { ...raw, options };
     }
   )
