@@ -1,6 +1,6 @@
 import {connect} from "redux-bundler-react";
-import React, { useEffect, useState } from 'react';
-import {Table, Form, Button, Alert, Spinner, Container, Row, Col} from 'react-bootstrap';
+import React, { useEffect, useMemo, useState } from 'react';
+import {Table, Form, Button, Alert, Spinner, Container, Row, Col, Modal} from 'react-bootstrap';
 import { firebaseApp } from "../utils";
 import {getAuth, onAuthStateChanged} from "firebase/auth";
 
@@ -8,17 +8,93 @@ const auth = getAuth(firebaseApp);
 
 const MAX_GENE_IDS = 1000; // Define the maximum number of gene IDs allowed
 
+const formatCreatedAt = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString();
+};
+
+const applySortFilter = (lists, search, sort) => {
+  const s = search.trim().toLowerCase();
+  let result = s
+    ? lists.filter(l => (l.label || '').toLowerCase().includes(s))
+    : lists.slice();
+  const { key, dir } = sort;
+  const mult = dir === 'asc' ? 1 : -1;
+  result.sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if (key === 'createdAt') {
+      av = av ? new Date(av).getTime() : 0;
+      bv = bv ? new Date(bv).getTime() : 0;
+    } else if (key === 'n_genes') {
+      av = av || 0;
+      bv = bv || 0;
+    } else {
+      av = (av || '').toString().toLowerCase();
+      bv = (bv || '').toString().toLowerCase();
+    }
+    if (av < bv) return -1 * mult;
+    if (av > bv) return 1 * mult;
+    return 0;
+  });
+  return result;
+};
+
+const SortHeader = ({ label, sortKey, sort, onToggle }) => {
+  const active = sort.key === sortKey;
+  const indicator = active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  return (
+    <th
+      style={{ cursor: 'pointer', userSelect: 'none', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}
+      onClick={() => onToggle(sortKey)}
+    >
+      {label}{indicator}
+    </th>
+  );
+};
+
+const stickyHeaderStyle = { position: 'sticky', top: 0, background: '#fff', zIndex: 1 };
+
 const GeneListDisplayComponent = props => {
   const [publicGeneLists, setPublicGeneLists] = useState([]);
   const [privateGeneLists, setPrivateGeneLists] = useState([]);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [user, setUser] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editIsPublic, setEditIsPublic] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState({ key: 'createdAt', dir: 'desc' });
   onAuthStateChanged(auth, (user) => setUser(user));
 
+  const toggleSort = (key) => setSort(s =>
+    s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }
+  );
+
+  const currentUid = user && user.uid;
+  const mergedLists = useMemo(() => {
+    const byId = new Map();
+    [...publicGeneLists, ...privateGeneLists].forEach(l => byId.set(l._id, l));
+    return Array.from(byId.values());
+  }, [publicGeneLists, privateGeneLists]);
+
+  const displayedLists = useMemo(
+    () => applySortFilter(mergedLists, search, sort),
+    [mergedLists, search, sort]
+  );
+
   const fetchPrivateGeneLists = async () => {
+    if (!user || typeof user.getIdToken !== 'function') {
+      setPrivateGeneLists([]);
+      setError(null);
+      setNotice('Log in to create and manage your personal gene lists.');
+      return;
+    }
     try {
       const token = await user.getIdToken();
-      // Replace this with actual fetch from your backend or storage
       const response = await fetch(`${props.api}/gene_lists?site=${props.site}&isPublic=false`, {
         method: 'GET',
         headers: {
@@ -30,7 +106,8 @@ const GeneListDisplayComponent = props => {
 
       if (response.ok) {
         setError(null);
-        setPrivateGeneLists(result); // array of saved gene lists
+        setNotice(null);
+        setPrivateGeneLists(result);
       } else {
         setError('Error fetching gene lists.');
       }
@@ -57,7 +134,6 @@ const GeneListDisplayComponent = props => {
 
   // Example functions for viewing and deleting lists
   const viewGeneList = (list) => {
-    alert(`Viewing gene list: ${list.label}`);
     props.addFilter({
       category: 'Gene List',
       fq_field: 'saved_search',
@@ -66,102 +142,207 @@ const GeneListDisplayComponent = props => {
     })
   };
 
-  const deleteGeneList = async (api,listId) => {
-    if (window.confirm('Are you sure you want to delete this gene list?')) {
-      // Replace with the actual delete request
-      try {
-        await fetch(`${api}/gene_lists/${listId}`, {
-          method: 'DELETE',
-        });
-        alert('Gene list deleted!');
-        // Optionally refetch the updated list
-      } catch (err) {
-        alert('Failed to delete gene list.');
+  const startEdit = (list) => {
+    setEditingId(list._id);
+    setEditLabel(list.label || '');
+    setEditIsPublic(!!list.isPublic);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditLabel('');
+    setEditIsPublic(false);
+  };
+
+  const saveEdit = async (listId) => {
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`${props.api}/gene_lists?listId=${encodeURIComponent(listId)}`, {
+        method: 'PATCH',
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ label: editLabel, isPublic: editIsPublic })
+      });
+      if (response.ok) {
+        cancelEdit();
+        setError(null);
+        await fetchPrivateGeneLists();
+        await fetchPublicGeneLists();
+      } else if (response.status === 401) {
+        setError('You must be signed in to edit a gene list.');
+      } else if (response.status === 404) {
+        setError('Gene list not found or you do not own it.');
+      } else if (response.status === 400) {
+        setError('Nothing to update — please enter a label.');
+      } else {
+        setError('Failed to update gene list.');
       }
+    } catch (err) {
+      setError('Failed to update gene list.');
     }
   };
 
-  // Fetch data when the component is mounted
+  const requestDelete = (list) => setDeleteTarget(list);
+  const cancelDelete = () => setDeleteTarget(null);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const listId = deleteTarget._id;
+    setDeleteTarget(null);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`${props.api}/gene_lists?listId=${encodeURIComponent(listId)}`, {
+        method: 'DELETE',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        await fetchPrivateGeneLists();
+        await fetchPublicGeneLists();
+      } else if (response.status === 401) {
+        alert('You must be signed in to delete a gene list.');
+      } else if (response.status === 404) {
+        alert('Gene list not found or you do not own it.');
+      } else {
+        alert('Failed to delete gene list.');
+      }
+    } catch (err) {
+      alert('Failed to delete gene list.');
+    }
+  };
+
+  // Fetch data when the component is mounted or after a save
   useEffect(() => {
     fetchPublicGeneLists();
-  }, []);
+  }, [props.refreshKey]);
   useEffect(() => {
     fetchPrivateGeneLists();
-  }, [user]);
+  }, [user, props.refreshKey]);
 
   return (
     <div className="gene-list-display-component">
-      <h4>Saved Gene Lists</h4>
-
       {error && (
         <Alert variant="danger">
           {error}
         </Alert>
       )}
 
-      {privateGeneLists.length > 0 && (
-        <Table striped bordered hover className="mt-4">
-          <thead>
-          <tr><th colspan={3}>My gene lists</th></tr>
-          <tr>
-            <th>List Name</th>
-            <th>Number of Genes</th>
-            <th>Actions</th>
-          </tr>
-          </thead>
-          <tbody>
-          {privateGeneLists.map((list, index) => (
-            <tr key={index}>
-              <td>{list.label}</td>
-              <td>{list.n_genes || 0}</td>
-              <td>
-                <Button variant="info" onClick={() => viewGeneList(list)}>
-                  View
-                </Button>
-                <Button variant="danger" onClick={() => deleteGeneList(props.api, list._id)} className="ml-2">
-                  Delete
-                </Button>
-              </td>
-            </tr>
-          ))}
-          </tbody>
-        </Table>
+      {notice && (
+        <Alert variant="info">
+          {notice}
+        </Alert>
       )}
 
-      {publicGeneLists.length > 0 ? (
-        <Table striped bordered hover className="mt-4">
+      {mergedLists.length > 0 ? (
+        <div className="mt-4">
+          <div className="d-flex justify-content-end mb-2">
+            <Form.Control
+              type="search"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ maxWidth: 220 }}
+              size="sm"
+            />
+          </div>
+          <div style={{ maxHeight: 500, overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: 4 }}>
+          <Table striped hover className="mb-0">
           <thead>
           <tr>
-            <th colSpan={3}>Public gene lists</th>
-          </tr>
-          <tr>
-            <th>List Name</th>
-            <th>Number of Genes</th>
-            <th>Actions</th>
+            <SortHeader label="List Name" sortKey="label" sort={sort} onToggle={toggleSort} />
+            <SortHeader label="Owner" sortKey="owner" sort={sort} onToggle={toggleSort} />
+            <SortHeader label="Genes" sortKey="n_genes" sort={sort} onToggle={toggleSort} />
+            <SortHeader label="Created" sortKey="createdAt" sort={sort} onToggle={toggleSort} />
+            <th style={stickyHeaderStyle}>Actions</th>
           </tr>
           </thead>
           <tbody>
-          {publicGeneLists.map((list, index) => (
-            <tr key={index}>
-              <td>{list.label}</td>
-              <td>{list.n_genes || 0}</td>
-              <td>
-                <Button variant="info" onClick={() => viewGeneList(list)}>
-                  View
-                </Button>
-                <Button variant="danger" onClick={() => deleteGeneList(props.api, list._id)} className="ml-2">
-                  Delete
-                </Button>
-              </td>
-            </tr>
-          ))}
+          {displayedLists.map((list, index) => {
+            const isMine = currentUid && list.uid === currentUid;
+            const ownerLabel = isMine ? 'You' : (list.owner || 'Unknown');
+            return editingId === list._id ? (
+              <tr key={index}>
+                <td>
+                  <Form.Control
+                    type="text"
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    placeholder="List name"
+                  />
+                  <Form.Check
+                    type="switch"
+                    id={`edit-public-${list._id}`}
+                    label="Public"
+                    checked={editIsPublic}
+                    onChange={() => setEditIsPublic(!editIsPublic)}
+                    className="mt-2"
+                  />
+                </td>
+                <td>{ownerLabel}</td>
+                <td>{list.n_genes || 0}</td>
+                <td>{formatCreatedAt(list.createdAt)}</td>
+                <td>
+                  <Button variant="primary" size="sm" onClick={() => saveEdit(list._id)}>
+                    Save
+                  </Button>
+                  <Button variant="outline-secondary" size="sm" onClick={cancelEdit} className="ml-2">
+                    Cancel
+                  </Button>
+                </td>
+              </tr>
+            ) : (
+              <tr key={index}>
+                <td>{list.label}{list.isPublic ? ' (public)' : ''}</td>
+                <td>{ownerLabel}</td>
+                <td>{list.n_genes || 0}</td>
+                <td>{formatCreatedAt(list.createdAt)}</td>
+                <td>
+                  <Button variant="outline-secondary" size="sm" onClick={() => viewGeneList(list)}>
+                    View
+                  </Button>
+                  {isMine && (
+                    <Button variant="outline-secondary" size="sm" onClick={() => startEdit(list)} className="ml-2">
+                      Edit
+                    </Button>
+                  )}
+                  {isMine && (
+                    <Button variant="outline-danger" size="sm" onClick={() => requestDelete(list)} className="ml-2">
+                      Delete
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
           </tbody>
-        </Table>
+          </Table>
+          </div>
+        </div>
       ) : (
         <Alert variant="warning" className="mt-4">
           No saved gene lists found.
         </Alert>
       )}
+
+      <Modal show={!!deleteTarget} onHide={cancelDelete} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete gene list?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to delete
+          {deleteTarget ? <> <strong>{deleteTarget.label}</strong></> : ' this gene list'}?
+          This action cannot be undone.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={cancelDelete} autoFocus>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
@@ -258,6 +439,13 @@ const GeneListComponent = props => {
       }
       const result = await response.json();
       console.log(result);
+      setGeneList('');
+      setListHash(null);
+      setValidatedList([]);
+      setValidationError([]);
+      setListName('');
+      setListIsPublic(false);
+      if (props.onListSaved) props.onListSaved();
 
     } catch (error) {
       console.error("There was an problem with fetch", error)
@@ -266,8 +454,6 @@ const GeneListComponent = props => {
 
   return (
     <div className="gene-list-component">
-      <h4>Gene List Validator</h4>
-
       <Form>
         {/* Input for Gene List */}
         <Form.Group controlId="geneList">
@@ -309,18 +495,25 @@ const GeneListComponent = props => {
 
       {/* Display validation summary */}
       {!loading && listHash && (
-        <div className="validation-summary mt-4">
-          <h3>Validation Summary</h3>
-          <Alert variant="info">
-            <p>hash: <code>{listHash}</code></p>
-            <p>Items Validated: {validatedList.length}</p>
-            <p>Items Not Validated: {validationError.length}</p>
-          </Alert>
-          <ul>
-            {validationError.map((errorItem, index) => (
-              <li key={index}>{errorItem}</li>
-            ))}
-          </ul>
+        <div className="validation-summary mt-3 p-3 border rounded bg-light">
+          <div>
+            <span className="text-success">
+              <strong>{validatedList.length}</strong> valid
+            </span>
+            {validationError.length > 0 && (
+              <div className="text-danger mt-1">
+                <strong>{validationError.length}</strong> not found
+              </div>
+            )}
+          </div>
+          {validationError.length > 0 && (
+            <details className="mt-2">
+              <summary style={{cursor: 'pointer'}}>Show unrecognized IDs</summary>
+              <pre className="small mt-2 mb-0" style={{maxHeight: 150, overflow: 'auto'}}>
+                {validationError.join('\n')}
+              </pre>
+            </details>
+          )}
         </div>
       )}
 
@@ -343,10 +536,10 @@ const GeneListComponent = props => {
             />
           </Form.Group>
           {user ?
-            <Button variant="success" onClick={handleSaveList}>
+            <Button variant="primary" onClick={handleSaveList}>
               Save Gene List
             </Button>
-            : <Button variant="dark" disabled>Login Required</Button> }
+            : <Button variant="secondary" disabled>Login Required</Button> }
         </div>
       )}
     </div>
@@ -354,11 +547,13 @@ const GeneListComponent = props => {
 };
 
 const UserGeneListsComponent = props => {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleListSaved = () => setRefreshKey(k => k + 1);
   return (
     <Container fluid>
       <Row>
-        <Col><GeneListComponent api={props.configuration.grameneData} site={props.configuration.id}/></Col>
-        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id} addFilter={props.doAcceptGrameneSuggestion}/></Col>
+        <Col><GeneListComponent api={props.configuration.grameneData} site={props.configuration.id} onListSaved={handleListSaved}/></Col>
+        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id} addFilter={props.doAcceptGrameneSuggestion} refreshKey={refreshKey}/></Col>
       </Row>
     </Container>
   )
