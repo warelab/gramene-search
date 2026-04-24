@@ -9,7 +9,9 @@ import {
   ANCESTOR_FIELD_MAP,
   isAncestorField,
   formatAncestorsCellTSV,
-  formatAncestorsJSON
+  formatAncestorsJSON,
+  resolveAncestorsForDoc,
+  ANCESTOR_EXTRA_COLUMNS
 } from './ancestorsResolver';
 
 function scrubTSV(s) {
@@ -46,6 +48,7 @@ export function buildTSVRow(doc, fieldNames, resolverCtx) {
 
 const EMPTY_EXPR_ROW = EXPRESSION_EXTRA_COLUMNS.map(() => '');
 const EMPTY_DIFF_ROW = DIFFEXPRESSION_EXTRA_COLUMNS.map(() => '');
+const EMPTY_ANC_ROW = ANCESTOR_EXTRA_COLUMNS.map(() => '');
 
 function exprRowToCells(er) {
   return [
@@ -68,29 +71,56 @@ function diffRowToCells(dr) {
   ];
 }
 
-function buildExpandedRows(docs, nonExpressionFields, expressionFields, diffExpressionFields, resolverCtx) {
+function ancRowToCells(ar) {
+  return [
+    scrubTSV(ar.hierarchy),
+    scrubTSV(ar.term_id),
+    scrubTSV(ar.term_name),
+    scrubTSV(ar.term_type)
+  ];
+}
+
+function splitPlainAndAncestor(nonExpressionFields) {
+  const ancestorFields = [];
+  const plainFields = [];
+  for (const n of nonExpressionFields) {
+    if (isAncestorField(n)) ancestorFields.push(n);
+    else plainFields.push(n);
+  }
+  return { ancestorFields, plainFields };
+}
+
+function buildExpandedRows(docs, plainFields, ancestorFields, expressionFields, diffExpressionFields, resolverCtx) {
   const expressionStudies = resolverCtx && resolverCtx.expressionStudies;
   const expressionSamples = resolverCtx && resolverCtx.expressionSamples;
   const cutoffs = resolverCtx && resolverCtx.cutoffs;
   const hasExpr = expressionFields.length > 0;
   const hasDiff = diffExpressionFields.length > 0;
+  const hasAnc = ancestorFields.length > 0;
   const rows = [];
   for (const doc of (docs || [])) {
-    const baseCells = buildTSVRow(doc, nonExpressionFields, resolverCtx);
+    const baseCells = buildTSVRow(doc, plainFields, resolverCtx);
+    const ancRows = hasAnc
+      ? resolveAncestorsForDoc(doc, ancestorFields, resolverCtx)
+      : [];
     const exprRows = hasExpr
       ? resolveExpressionForDoc(doc, expressionFields, expressionStudies, expressionSamples, cutoffs)
       : [];
     const diffRows = hasDiff
       ? resolveDiffExpressionForDoc(doc, diffExpressionFields, expressionStudies, expressionSamples, cutoffs)
       : [];
+    const ancCells = ancRows.length ? ancRows.map(ancRowToCells) : (hasAnc ? [EMPTY_ANC_ROW] : [null]);
     const exprCells = exprRows.length ? exprRows.map(exprRowToCells) : (hasExpr ? [EMPTY_EXPR_ROW] : [null]);
     const diffCells = diffRows.length ? diffRows.map(diffRowToCells) : (hasDiff ? [EMPTY_DIFF_ROW] : [null]);
-    for (const e of exprCells) {
-      for (const d of diffCells) {
-        const out = [...baseCells];
-        if (e) out.push(...e);
-        if (d) out.push(...d);
-        rows.push(out);
+    for (const a of ancCells) {
+      for (const e of exprCells) {
+        for (const d of diffCells) {
+          const out = [...baseCells];
+          if (a) out.push(...a);
+          if (e) out.push(...e);
+          if (d) out.push(...d);
+          rows.push(out);
+        }
       }
     }
   }
@@ -99,27 +129,30 @@ function buildExpandedRows(docs, nonExpressionFields, expressionFields, diffExpr
 
 export function toTSV(docs, fieldNames, catalog, resolverCtx) {
   const { expressionFields, diffExpressionFields, nonExpressionFields } = partitionFields(fieldNames, catalog);
+  const { ancestorFields, plainFields } = splitPlainAndAncestor(nonExpressionFields);
 
-  if (expressionFields.length === 0 && diffExpressionFields.length === 0) {
+  if (expressionFields.length === 0 && diffExpressionFields.length === 0 && ancestorFields.length === 0) {
     const header = buildTSVHeader(fieldNames, catalog).join('\t');
     const rows = (docs || []).map(d => buildTSVRow(d, fieldNames, resolverCtx).join('\t'));
     return [header, ...rows].join('\n');
   }
 
   const header = [
-    ...buildTSVHeader(nonExpressionFields, catalog),
+    ...buildTSVHeader(plainFields, catalog),
+    ...(ancestorFields.length ? ANCESTOR_EXTRA_COLUMNS : []),
     ...(expressionFields.length ? EXPRESSION_EXTRA_COLUMNS : []),
     ...(diffExpressionFields.length ? DIFFEXPRESSION_EXTRA_COLUMNS : [])
   ].join('\t');
 
-  const rows = buildExpandedRows(docs, nonExpressionFields, expressionFields, diffExpressionFields, resolverCtx);
+  const rows = buildExpandedRows(docs, plainFields, ancestorFields, expressionFields, diffExpressionFields, resolverCtx);
   return [header, ...rows.map(r => r.join('\t'))].join('\n');
 }
 
 export function buildTableData(docs, fieldNames, catalog, resolverCtx) {
   const { expressionFields, diffExpressionFields, nonExpressionFields } = partitionFields(fieldNames, catalog);
+  const { ancestorFields, plainFields } = splitPlainAndAncestor(nonExpressionFields);
 
-  if (expressionFields.length === 0 && diffExpressionFields.length === 0) {
+  if (expressionFields.length === 0 && diffExpressionFields.length === 0 && ancestorFields.length === 0) {
     return {
       header: buildTSVHeader(fieldNames, catalog),
       headerKeys: fieldNames.slice(),
@@ -128,16 +161,18 @@ export function buildTableData(docs, fieldNames, catalog, resolverCtx) {
   }
 
   const header = [
-    ...buildTSVHeader(nonExpressionFields, catalog),
+    ...buildTSVHeader(plainFields, catalog),
+    ...(ancestorFields.length ? ANCESTOR_EXTRA_COLUMNS : []),
     ...(expressionFields.length ? EXPRESSION_EXTRA_COLUMNS : []),
     ...(diffExpressionFields.length ? DIFFEXPRESSION_EXTRA_COLUMNS : [])
   ];
   const headerKeys = [
-    ...nonExpressionFields,
+    ...plainFields,
+    ...(ancestorFields.length ? ANCESTOR_EXTRA_COLUMNS : []),
     ...(expressionFields.length ? EXPRESSION_EXTRA_COLUMNS : []),
     ...(diffExpressionFields.length ? DIFFEXPRESSION_EXTRA_COLUMNS : [])
   ];
-  const rows = buildExpandedRows(docs, nonExpressionFields, expressionFields, diffExpressionFields, resolverCtx);
+  const rows = buildExpandedRows(docs, plainFields, ancestorFields, expressionFields, diffExpressionFields, resolverCtx);
   return { header, headerKeys, rows };
 }
 
