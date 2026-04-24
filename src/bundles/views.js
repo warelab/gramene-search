@@ -58,13 +58,15 @@ const grameneViews = {
         //   name: 'GO terms',
         //   show: 'disabled'
         // }
-      ]
+      ],
+      touched: {}
     };
     return (state = initialState, {type, payload}) => {
       let newState;
       switch (type) {
         case 'GRAMENE_VIEW_TOGGLED':
           newState = Object.assign({},state);
+          newState.touched = { ...(state.touched || {}), [payload]: true };
           newState.options.forEach(view => {
             view.shouldScroll = false;
             if (view.id === payload) {
@@ -75,6 +77,7 @@ const grameneViews = {
           return newState;
         case 'GRAMENE_VIEW_CLICKED':
           newState = Object.assign({}, state);
+          newState.touched = { ...(state.touched || {}), [payload]: true };
           newState.options.forEach(view => {
             view.shouldScroll = false;
             if (view.id === payload) {
@@ -105,15 +108,40 @@ const grameneViews = {
   selectGrameneViews: createSelector(
     'selectRawGrameneViews',
     'selectConfiguration',
-    (raw, config) => {
+    'selectGrameneSearch',
+    'selectGrameneFilters',
+    (raw, config, search, filters) => {
       const overrides = (config && config.views) || null;
-      if (!overrides) return raw;
-      return {
-        ...raw,
-        options: raw.options
-          .filter(v => overrides[v.id] !== 'hidden')
-          .map(v => overrides[v.id] ? { ...v, show: overrides[v.id] } : v)
-      };
+      const touched = raw.touched || {};
+      const numFound = (search && search.response && search.response.numFound) || 0;
+      const hasFilters = !!(filters && filters.rightIdx > 1);
+      const resultDependentIds = new Set(['taxonomy', 'list', 'export']);
+      const autoDisable = (numFound === 0) || !hasFilters;
+      const hasFirebase = !!(config && config.firebaseConfig);
+
+      let options = raw.options;
+      if (!hasFirebase) {
+        options = options.filter(v => v.id !== 'userLists');
+      }
+      if (overrides) {
+        options = options.filter(v => overrides[v.id] !== 'hidden');
+      }
+      options = options.map(v => {
+        if (resultDependentIds.has(v.id) && autoDisable) {
+          return { ...v, show: 'off' };
+        }
+        if (!overrides) return v;
+        const o = overrides[v.id];
+        if (!o) return v;
+        if (o === 'disabled') return { ...v, show: 'disabled' };
+        if (touched[v.id]) return v;
+        return { ...v, show: o };
+      });
+      const anyOtherOn = options.some(v => v.id !== 'help' && v.show === 'on');
+      if (!anyOtherOn) {
+        options = options.map(v => v.id === 'help' ? { ...v, show: 'on' } : v);
+      }
+      return { ...raw, options };
     }
   )
 };

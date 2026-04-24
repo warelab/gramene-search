@@ -125,7 +125,6 @@
     padding-left: 5px;
     cursor: pointer;
     vertical-align: text-bottom;
-    color: darkgray;
 }
 .gramene-view li {
     display: block;
@@ -142,7 +141,6 @@
 }
 .gramene-view-off {
     border-left-color: #ff6d68;
-    color: grey;
 }
 .gramene-view-disabled {
     color: darkgray;

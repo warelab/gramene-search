@@ -40,12 +40,14 @@ export async function runExporterDownload({ dispatch, store, requestId, signal, 
   const expressionSamples = store.selectExpressionSamples();
   const ancestorFields = fields.filter(n => ANCESTOR_FIELD_MAP[n]);
 
+  const cutoffs = store.selectExporterCutoffs && store.selectExporterCutoffs();
   const buildResolverCtx = () => ({
     expressionStudies,
     expressionSamples,
     taxonomy: store.selectGrameneTaxonomy(),
     pathways: store.selectGramenePathways(),
-    ontologies: store.selectOntologies()
+    ontologies: store.selectOntologies(),
+    cutoffs
   });
 
   const ensureAncestorRecords = async (docs) => {

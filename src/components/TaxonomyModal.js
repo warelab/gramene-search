@@ -42,7 +42,7 @@ function compressChain(node, tax, maps) {
   while (true) {
     const kids = (cur.children || [])
       .map(cid => tax[cid])
-      .filter(c => c && c.leafIds.length > 0);
+      .filter(c => c && c.leafIds && c.leafIds.length > 0);
     if (kids.length !== 1) break;
     if (maps[cur._id]) break;
     cur = kids[0];
