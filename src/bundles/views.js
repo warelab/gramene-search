@@ -1,3 +1,5 @@
+import { createSelector } from 'redux-bundler';
+
 const grameneViews = {
   name: 'grameneViews',
   getReducer: () => {
@@ -37,7 +39,13 @@ const grameneViews = {
         {
           id: 'attribs',
           name: 'Gene attributes',
-          show: 'disabled',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'export',
+          name: 'Data exporter',
+          show: 'off',
           shouldScroll: false
         }
         // {
@@ -93,7 +101,21 @@ const grameneViews = {
   doCancelShouldScroll: () => ({dispatch, getState}) => {
     dispatch({type: 'GRAMENE_VIEW_SCROLLED', payload: null})
   },
-  selectGrameneViews: state => state.grameneViews
+  selectRawGrameneViews: state => state.grameneViews,
+  selectGrameneViews: createSelector(
+    'selectRawGrameneViews',
+    'selectConfiguration',
+    (raw, config) => {
+      const overrides = (config && config.views) || null;
+      if (!overrides) return raw;
+      return {
+        ...raw,
+        options: raw.options
+          .filter(v => overrides[v.id] !== 'hidden')
+          .map(v => overrides[v.id] ? { ...v, show: overrides[v.id] } : v)
+      };
+    }
+  )
 };
 
 export default grameneViews;

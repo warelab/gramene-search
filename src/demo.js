@@ -1,3 +1,4 @@
+import './static/style.css'
 import React from 'react'
 import { Provider, connect } from 'redux-bundler-react'
 import { render } from 'react-dom'
@@ -40,15 +41,16 @@ const subsitelut = {
 const panSites = [
   {
     id: 'main',
-    name: 'Gramene Main',
+    name: 'Gramene Plants',
     url: 'https://www.gramene.org',
     ensemblURL: 'https://ensembl.gramene.org',
     ensemblSite: 'https://ensembl.gramene.org',
-    ensemblRest: 'https://data.gramene.org/ensembl68',
-    grameneData: 'https://data.gramene.org/v68',
+    ensemblRest: 'https://data.gramene.org/ensembl69',
+    grameneData: 'https://data.gramene.org/v69',
     ga: 'G-ZTEQBFCRXZ',
     targetTaxonId: 3702,
     alertText: 'Main site',
+    showViews: true,
     details: {
       sequences: true,
       VEP: false,
@@ -60,25 +62,25 @@ const panSites = [
       xrefs: true
     },
     panSite : {
-      sorghum_bicolor : {
-        url: "https://sorghumbase.org/genes?idList=",
-        name: "SorghumBase",
-        svg: "./static/images/sorghum_logo.svg"
-      },
-      vitis_vinifera : {
-        url: "https://vitis.gramene.org?idList=",
-        name: "Gramene Grapevine",
-        svg: "./static/images/grapevine_logo.svg"
-      },
       oryza_sativa : {
-        url: "https://oryza.gramene.org?idList=",
+        url: "https://oryza.gramene.org",
         name: "Gramene Oryza",
         svg: "./static/images/oryza_logo.svg"
       },
       zea_mays : {
-        url: "https://maize-pangenome.gramene.org?idList=",
+        url: "https://maize-pangenome.gramene.org",
         name: "Gramene Maize",
         svg: "./static/images/maize_logo.svg"
+      },
+      vitis_vinifera : {
+        url: "https://vitis.gramene.org",
+        name: "Gramene Grapevine",
+        svg: "./static/images/grapevine_logo.svg"
+      },
+      sorghum_bicolor : {
+        url: "https://sorghumbase.org/genes",
+        name: "SorghumBase",
+        svg: "./static/images/sorghum_logo.svg"
       }
     }
   },
@@ -88,15 +90,16 @@ const panSites = [
     url: 'https://maize-pangenome.gramene.org',
     ensemblURL: 'https://maize-pangenome-ensembl.gramene.org',
     ensemblSite: 'https://maize-pangenome-ensembl.gramene.org',
-    ensemblRest: 'https://data.gramene.org/pansite-ensembl-87',
-    grameneData: 'https://data.gramene.org/maize_v4',
+    ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
+    grameneData: 'https://data.gramene.org/maize_v5',
     targetTaxonId: 4577,
     ga: "G-Y7ZYG1R8QT",
     showViews: true,
+    noGRIN: true,
     not_downtime: 'The search interface will be undergoing maintenance on Tuesday, July 20 from 3:00 - 4:00 PM EDT',
     details: {
       sequences: true,
-      VEP: false,
+      VEP: true,
       location: true,
       expression: true,
       homology: true,
@@ -134,14 +137,15 @@ const panSites = [
     id: 'sorghum',
     name: 'Sorghumbase',
     url: 'https://www.sorghumbase.org',
-    ensemblURL: 'https://ensembl-dev.sorghumbase.org',
-    ensemblSite: 'https://ensembl-dev.sorghumbase.org',
+    ensemblURL: 'https://ensembl.sorghumbase.org',
+    ensemblSite: 'https://ensembl.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.sorghumbase.org/sorghum_v9',
+    grameneData: 'https://data.sorghumbase.org/sorghum_v10',
     ga: 'G-L5KXDCCZ16',
-    targetTaxonId: 4558003,
-    alertText: 'Click the search icon in the menu bar or type / to search',
-    showViews: false,
+    targetTaxonId: 4558001,
+    alertText: 'Click the search icon in the menu bar or type /',
+    showViews: true,
+    partialCompara: true,
     details: {
       sequences: true,
       VEP: true,
@@ -227,7 +231,7 @@ const panSites = [
     ensemblSite: 'https://oryza-ensembl.gramene.org',
     ensemblURL: 'https://oryza-ensembl.gramene.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.gramene.org/oryza_v8',
+    grameneData: 'https://data.gramene.org/oryza_v9',
     targetTaxonId: 3702,
     alertText: 'Rice site',
     showViews: true,
@@ -281,6 +285,7 @@ const config = {
     dispatch({type: 'GRAMENE_HELP_TOGGLED', payload: null})
   },
   selectGrameneAPI: state => state.config.grameneData,
+  selectGrameneSwaggerURL: state => state.config.grameneSwagger || (state.config.grameneData + '/swagger'),
   selectEnsemblAPI: state => state.config.ensemblRest,
   selectTargetTaxonId: state => state.config.targetTaxonId,
   selectCuration: state => state.config.curation,
@@ -297,28 +302,26 @@ const getStore = composeBundles(
 const GeneSearchUI = (store) => (
   <Provider store={store}>
     <div className="row no-margin no-padding">
-      <div className="col-md-2 no-padding">
+      <div className="col-12 col-md-2 no-padding">
         <Status/>
         <Filters/>
         <Views/>
       </div>
-      <div className="col-md-10 no-padding">
+      <div className="col-12 col-md-10 no-padding">
         <Results/>
       </div>
     </div>
   </Provider>
 );
 const SearchViewsCmp = props => (
-    <div className="no-margin no-padding">
-      <div style={{width:250}}>
-        <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
-          <Status/>
-          <Filters/>
-          {props.configuration.showViews && <Views/>}
-          {/*<Auth/>*/}
-        </div>
+    <div className="no-margin no-padding search-views-layout">
+      <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
+        <Status/>
+        <Filters/>
+        {props.configuration.showViews && <Views/>}
+        <Auth/>
       </div>
-      <div style={{width:"calc(100% - 250px", left:250, position:'relative'}}>
+      <div className="search-views-content">
         <Results/>
       </div>
     </div>
@@ -419,7 +422,7 @@ const SearchUI_ = (store) => (
 );
 
 const SearchMenu = props => (
-  <div id="searchbar-parent" style={{width:'500px'}}>
+  <div id="searchbar-parent" style={{maxWidth:'500px', width:'100%'}}>
     <div id="searchbar">
       {/*<Form inline>*/}
         <SearchBar/>
@@ -463,14 +466,13 @@ const demo = (store) => (
           <Navbar.Brand href="/">
             <img
               src={`/static/images/${subsite}_logo.svg`}
-              height="80"
-              className="d-inline-block align-top"
+              className="d-inline-block align-top gramene-navbar-logo"
               alt="Gene Search"
             />
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="mr-auto">
+            <Nav className="me-auto">
               <Switch>
                 <Route exact path="/" component={SearchMenu} />
                 <Route>
@@ -520,6 +522,7 @@ cache.getAll().then(initialData => {
     console.log('starting with locally cached data:', initialData)
   }
   const store = getStore(initialData);
+  window.store = store;
   const config = store.selectConfiguration();
   ReactGA.initialize(config.ga);
   if (initialData.hasOwnProperty('grameneMaps')) {

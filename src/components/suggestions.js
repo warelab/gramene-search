@@ -38,6 +38,27 @@ function getLowestCommonAncestorName(tids, taxonomy) {
   });
   return taxonomy[lca[0]].short_name;
 }
+
+const TryPan = (props) => {
+  const query = props.query;
+  const pan = props.pan;
+  return <div className="suggestion-panlink">
+    <a target="_blank" href={pan.url + "?suggestion=" + query}>
+      <img src={pan.svg} title={`Search at ${pan.name}`}/>
+    </a>
+  </div>;
+};
+
+const TryAnotherSite = props => {
+  const query = props.query;
+  const config = props.config;
+  let sites = Object.keys(config.panSite);
+  return <div>
+    <Alert variant={'info'}>Don't see what you're looking for? Search for <b>{query}</b> on one of our sister sites</Alert>
+    {sites.map((p, idx) => <TryPan key={idx} query={query} pan={config.panSite[p]}/>)}
+  </div>
+}
+
 const Suggestions = props => {
   let suggestions = props.grameneSuggestions;
   if (suggestions && suggestions.grouped) {
@@ -69,6 +90,7 @@ const Suggestions = props => {
                   onClick={() => {logAction(sugg2); props.doAcceptSuggestion(sugg2); props.doAcceptGrameneSuggestion(sugg2)}}>
             {`All genes that contain a word that starts with "${props.suggestionsQuery}"`}
           </Button>
+          <TryAnotherSite query={props.suggestionsQuery} config={props.configuration}/>
         </div>
       );
     }
@@ -92,6 +114,7 @@ const Suggestions = props => {
                 )}
               </div>
             })}
+          <TryAnotherSite query={props.suggestionsQuery} config={props.configuration}/>
         </div>
       );
     }
@@ -105,6 +128,7 @@ export default connect(
   'selectGrameneSuggestions',
   'selectSuggestionsQuery',
   'selectGrameneTaxonomy',
+  'selectConfiguration',
   'doAcceptSuggestion',
   'doAcceptGrameneSuggestion',
   Suggestions

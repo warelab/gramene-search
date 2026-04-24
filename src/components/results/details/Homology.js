@@ -57,6 +57,14 @@ class Homology extends React.Component {
       name: `Paralogs of ${this.gene.name}`
     }))
   }
+  searchSupertree() {
+    this.props.doReplaceGrameneFilters(suggestionToFilters({
+      category: 'Gene Tree',
+      fq_field: 'supertree_attr_s',
+      fq_value: this.gene.homology.supertree,
+      name: this.gene.homology.supertree
+    }))
+  }
   orthologList() {
     return this.orthoParaList('ortholog');
   }
@@ -111,6 +119,14 @@ class Homology extends React.Component {
         count: this.paralogs.length,
         handleClick: this.filterParalogs.bind(this)
       });
+    }
+    if (this.gene.homology.supertree) {
+      x.push({
+        name: `Supertree`,
+        category: `Gene Tree`,
+        count: this.gene.homology.supertree,
+        handleClick: this.searchSupertree.bind(this)
+      })
     }
     return x;
   }

@@ -19,15 +19,71 @@ class Pathways extends React.Component {
     this.taxonomy = treesClient.taxonomy.tree(Object.values(props.grameneTaxonomy))
     this.gene = props.geneDocs[props.searchResult.id];
     this.holderId = 'displayHolder' + this.gene._id;
-    this.state = {};
+    this.state = { treeVisible: true, height: 500 };
+  }
+
+  getTreeWidth() {
+    return this.state.treeVisible ? 250 : 0;
+  }
+
+  getDiagramWidth() {
+    // Account for toggle button (24px) and 1px border
+    const toggleWidth = 25;
+    const treeWidth = this.getTreeWidth();
+    return this.divWrapper.clientWidth - treeWidth - toggleWidth - 1;
   }
 
   initDiagram() {
     this.diagram = Reactome.Diagram.create({
-      proxyPrefix: reactomeURL, //'//plantreactome.gramene.org', //'//plantreactomedev.oicr.on.ca', ////cord3084-pc7.science.oregonstate.edu', // reactomedev.oicr.on.ca
+      proxyPrefix: reactomeURL,
       placeHolder: this.holderId,
-      width: this.divWrapper.clientWidth - 350 - 1,
-      height: 500
+      width: this.getDiagramWidth(),
+      height: this.state.height
+    });
+  }
+
+  startResize(e) {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = this.state.height;
+
+    const onMouseMove = (moveEvent) => {
+      const newHeight = Math.max(200, startHeight + (moveEvent.clientY - startY));
+      this.setState({ height: newHeight });
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      // Recreate diagram at new height
+      if (this.currentPathwayId && this.diagram) {
+        this.diagram.detach();
+        this.diagram = null;
+        this.loadedDiagram = null;
+        this.loadDiagram(this.currentPathwayId);
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  toggleTree() {
+    // Use the synchronously-tracked ID, not the async onDiagramLoaded one
+    const savedDiagram = this.currentPathwayId;
+    if (this.diagram) {
+      this.diagram.detach();
+      this.diagram = null;
+      this.loadedDiagram = null;
+    }
+    this.setState({ treeVisible: !this.state.treeVisible }, () => {
+      // Use requestAnimationFrame to ensure DOM has updated before
+      // reinitializing the diagram with the new available width
+      requestAnimationFrame(() => {
+        if (savedDiagram) {
+          this.loadDiagram(savedDiagram);
+        }
+      });
     });
   }
 
@@ -37,6 +93,7 @@ class Pathways extends React.Component {
   }
 
   loadDiagram(pathwayId, reactionId) {
+    this.currentPathwayId = pathwayId;
     if (!this.diagram) this.initDiagram();
     this.diagram.loadDiagram(pathwayId);
 
@@ -59,6 +116,18 @@ class Pathways extends React.Component {
         // this.initDiagram()
       }.bind(this));
     }
+    this._handleResize = _.debounce(() => {
+      if (this.currentPathwayId && this.divWrapper) {
+        const savedDiagram = this.currentPathwayId;
+        if (this.diagram) {
+          this.diagram.detach();
+          this.diagram = null;
+          this.loadedDiagram = null;
+        }
+        this.loadDiagram(savedDiagram);
+      }
+    }, 300);
+    window.addEventListener('resize', this._handleResize);
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -120,6 +189,10 @@ class Pathways extends React.Component {
   componentWillUnmount() {
     // DocActions.noLongerNeedDocs('pathways', this.pathwayIds);
     if (this.diagram) this.diagram.detach();
+    if (this._handleResize) {
+      window.removeEventListener('resize', this._handleResize);
+      this._handleResize.cancel();
+    }
   }
 
   getHierarchy(docs) {
@@ -298,10 +371,29 @@ class Pathways extends React.Component {
       ];
       searchFilter = <Explore key="explore" explorations={filters}/>;
     }
+    const treeWidth = this.getTreeWidth();
     return (
-      <div ref={(div) => {this.divWrapper = div;}}>
-        <div style={{width:350, height: 500, overflow:'scroll', float:'left'}}>{this.renderHierarchy()}</div>
-        <div id={this.holderId}/>
+      <div ref={(div) => {this.divWrapper = div;}} className="pathways-container">
+        <div className="pathways-layout" style={{height: this.state.height}}>
+          <button
+            className="pathways-tree-toggle"
+            onClick={() => this.toggleTree()}
+            title={this.state.treeVisible ? 'Hide pathway hierarchy' : 'Show pathway hierarchy'}
+          >
+            {this.state.treeVisible ? '◀' : '▶'}
+          </button>
+          {this.state.treeVisible && (
+            <div className="pathways-tree-panel">
+              {this.renderHierarchy()}
+            </div>
+          )}
+          <div className="pathways-diagram-panel" id={this.holderId}/>
+        </div>
+        <div
+          className="pathways-resize-handle"
+          onMouseDown={(e) => this.startResize(e)}
+          title="Drag to resize"
+        />
         {searchFilter}
         {reactomeLink}
       </div>

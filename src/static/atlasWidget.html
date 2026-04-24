@@ -13,14 +13,15 @@
   const queryString = location.search;
   const urlParams = new URLSearchParams(queryString);
   const genes = urlParams.get('genes');
-  const experiment = urlParams.get('reference');
+  const experiment = urlParams.get('experiment');
+  const localAPI = urlParams.get('localAPI');
   const options = {
     target: "heatmapContainer",
-    query: { gene: genes }
+    query: { gene: genes },
+    disableGoogleAnalytics: true,
+    experiment: experiment || false,
+    atlasUrl: localAPI ? "https://data.sorghumbase.org/auth_testing/gxa/" : "https://www.ebi.ac.uk/gxa/"
   };
-  if (+experiment === 1) {
-    options["experiment"] = "reference"
-  }
   expressionAtlasHeatmapHighcharts.render(options);
 </script>
 </body>

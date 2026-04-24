@@ -7,39 +7,19 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./VEP.css";
+import { study_info } from '../../../vepStudyInfo';
 
 const ggURL = {
-  IRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
+  xIRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
+  IRRI: 'https://www.irri.org/genesys-rice#/a/',
   ARS: 'https://npgsweb.ars-grin.gov/gringlobal/accessiondetail.aspx?id=',
   ICRISAT: 'https://genebank.icrisat.org/IND/PassportSummary?ID=',
-  sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php'
+  sorbmutdb: 'https://www.depts.ttu.edu/igcast/sorbmutdb.php',
+  maizeGDB: 'https://wgs.maizegdb.org/',
+  NCBI: 'https://www.ncbi.nlm.nih.gov/biosample/?term='
 };
 
 const rice_studies = {'1': {label: 'Rice 3K', type: 'NAT'}};
-const study_info = {
-  'sorghum_bicolor': {
-    '1': {label: 'Purdue EMS', type: 'EMS'},
-    '2': {label: 'USDA Lubbock EMS', type: 'EMS'},
-    '3': {label: 'Lozano', type: 'NAT'},
-    '4': {label: 'USDA Lubbock EMS', type: 'EMS'},
-    '5': {label: 'Boatwright SAP', type: 'NAT'},
-    '7': {label: 'Kumar BAP', type: 'NAT'},
-    '8': {label: 'Lasky landraces', type: 'NAT'},
-    '9': {label: 'Sorghum Genomics Toolbox', type: 'NAT'}
-  },
-  'oryza_sativa': {
-    '7': {label: 'Rice 3K', type: 'NAT'},
-    '29': {label: 'Rice USDA mini core', type: 'NAT'},
-    '38': {label: 'RAPDB 2024', type: 'NAT'},
-  },
-  'oryza_aus': rice_studies,
-  'oryza_sativa117425': rice_studies,
-  'oryza_sativa125827': rice_studies,
-  'oryza_sativaazucena': rice_studies,
-  'oryza_sativair64': rice_studies,
-  'oryza_sativamh63': rice_studies,
-  'oryza_sativazs97': rice_studies
-};
 const AccessionLink = ({germplasm, gene_id}) => {
   const genebank = germplasm.stock_center;
   const url = ggURL[genebank];
@@ -59,7 +39,20 @@ const AccessionLink = ({germplasm, gene_id}) => {
       </form>
     );
   }
+  if (germplasm.pop_id === '15' && germplasm.stock_center === 'NOT FOUND') {
+    return <a target="_blank" href={ggURL['maizeGDB']}>{germplasm.pub_id} (SNPVersity)</a>
+  }
   return <span>{germplasm.pub_id}</span>
+}
+function compareGermplasm(a, b) {
+  const aSub = a?.germplasm?.subpop ?? '';
+  const bSub = b?.germplasm?.subpop ?? '';
+  const subCmp = aSub.localeCompare(bSub, 'en', { sensitivity: 'accent' });
+  if (subCmp !== 0) return subCmp;
+
+  const aPub = a?.germplasm?.pub_id ?? '';
+  const bPub = b?.germplasm?.pub_id ?? '';
+  return aPub.localeCompare(bPub, 'en', { sensitivity: 'accent' });
 }
 function group_germplasm(gene, germplasmLUT, vep_obj) {
   let accessionTable = [];
@@ -67,7 +60,7 @@ function group_germplasm(gene, germplasmLUT, vep_obj) {
     const parts = key.split("__");
     if (parts[0] === "VEP") {
       if (parts[1] !== "merged") {
-        accessions.forEach(ens_id => {
+        accessions.filter(ens_id => germplasmLUT.hasOwnProperty(ens_id)).forEach(ens_id => {
           const germplasm = germplasmLUT[ens_id][0];
           const pop = study_info[parts[3]][parts[4]];
           const conseq = parts[1].replaceAll("_"," ");
@@ -99,7 +92,7 @@ function group_germplasm(gene, germplasmLUT, vep_obj) {
       status: status,
       tally: tally
     });
-    groups[group].forEach(acc => {
+    groups[group].sort(compareGermplasm).forEach(acc => {
       id++;
       grouped.push({
         id: id,
@@ -116,7 +109,7 @@ function group_germplasm(gene, germplasmLUT, vep_obj) {
   return grouped;
 }
 const THRESHOLD = 5;
-const GridWithGroups = ({groups,gene_id}) => {
+const GridWithGroups = ({groups,gene_id,doGrin}) => {
   const [rowData, setRowData] = useState(groups);
 
   const initialExpanded = {};
@@ -153,7 +146,7 @@ const GridWithGroups = ({groups,gene_id}) => {
 
   // Define columns with a custom renderer for the summary rows
   const columnDefs = [
-    { field: 'pop', headerName: 'Study/Population', flex: 1,
+    { field: 'pop', headerName: 'Study/Population', flex: 1, minWidth: 120,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -161,7 +154,7 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'conseq', headerName: 'VEP consequence', flex: 1,
+    { field: 'conseq', headerName: 'VEP consequence', flex: 1, minWidth: 130,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -169,7 +162,7 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'status', headerName: 'Allele status', flex: 1,
+    { field: 'status', headerName: 'Allele status', flex: 1, minWidth: 100,
       cellRenderer: (params) => {
         if (params.data.summary || params.data.tally === 1) {
           return params.value;
@@ -177,11 +170,11 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'accession', headerName: 'Order Germplasm', flex: 1,
+    { field: 'accession', headerName: doGrin ? 'Order Germplasm' : 'Accession', flex: 1, minWidth: 140,
       headerComponent: (props) => {
         return (
           <div style={{display: 'flex', alignItems: 'center'}}>
-            <i className="fas fa-shopping-cart"></i>&nbsp;
+            {doGrin && <i className="fas fa-shopping-cart">&nbsp;</i>}
             <span>{props.displayName}</span>
           </div>
         );
@@ -202,14 +195,19 @@ const GridWithGroups = ({groups,gene_id}) => {
         return null;
       }
     },
-    { field: 'synonym', headerName: 'Synonym', filter:false, sortable:false, flex: 1, cellRenderer: (params) => {
-      console.log(params.data);
+    { field: 'synonym', headerName: 'Synonym', filter:false, sortable:false, flex: 1, minWidth: 110, cellRenderer: (params) => {
       if (params.data.accession) {
         return params.data.accession.germplasm.ens_id
       }
       return null;
     }},
-    { field: 'search', headerName: 'All LOF Genes', sortable:false, filter:false, flex: 1,
+    { field: 'subpop', headerName: 'Subpopulation', filter:false, sortable: false, flex: 1, minWidth: 110, cellRenderer: (params) => {
+      if (params.data.accession && params.data.accession.germplasm.subpop && params.data.accession.germplasm.subpop !== "?") {
+        return params.data.accession.germplasm.subpop
+      }
+      return null;
+      }},
+    { field: 'search', headerName: 'All LOF Genes', sortable:false, filter:false, flex: 1, minWidth: 100,
       cellRenderer: (params) => {
         if (params.data.accession) {
           const currentURL = new URL(window.location.href);
@@ -242,17 +240,19 @@ const GridWithGroups = ({groups,gene_id}) => {
   const nVisible = getVisibleRowData().length;
   const tableHeight = 50 + Math.min(nVisible, 10) * 42;
   return (
-    <div
-      className="ag-theme-quartz"
-      style={{ height: tableHeight, width: "100%", maxWidth: "1200px" }}
-    >
-      <AgGridReact
-        rowData={getVisibleRowData()}
-        columnDefs={columnDefs}
-        getRowNodeId={(data) => data.id}
-        animateRows={true}
-        defaultColDef={defaultColDef}
-      />
+    <div style={{ overflowX: "auto", width: "100%", maxWidth: "1200px" }}>
+      <div
+        className="ag-theme-quartz"
+        style={{ height: tableHeight, minWidth: "810px", width: "100%" }}
+      >
+        <AgGridReact
+          rowData={getVisibleRowData()}
+          columnDefs={columnDefs}
+          getRowNodeId={(data) => data.id}
+          animateRows={true}
+          defaultColDef={defaultColDef}
+        />
+      </div>
     </div>
   );
 };
@@ -267,7 +267,7 @@ const Detail = props => {
       <div >Explore other variants within this gene in the <a target="_blank"
          href={`${props.configuration.ensemblURL}/${gene.system_name}/Gene/Variation_Gene/Image?db=core;g=${props.searchResult.id}`}>
         Variant image</a> page in the Ensembl genome browser.</div>
-      <GridWithGroups groups={...groups} gene_id={gene._id}/>
+      <GridWithGroups groups={...groups} gene_id={gene._id} doGrin={!props.configuration.hasOwnProperty('noGRIN')}/>
     </div>
   } else {
     props.doRequestVEP(gene._id);

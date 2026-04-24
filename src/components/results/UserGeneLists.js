@@ -9,20 +9,44 @@ const auth = getAuth(firebaseApp);
 const MAX_GENE_IDS = 1000; // Define the maximum number of gene IDs allowed
 
 const GeneListDisplayComponent = props => {
-  const [savedGeneLists, setSavedGeneLists] = useState([]);
+  const [publicGeneLists, setPublicGeneLists] = useState([]);
+  const [privateGeneLists, setPrivateGeneLists] = useState([]);
   const [error, setError] = useState(null);
   const [user, setUser] = useState({});
   onAuthStateChanged(auth, (user) => setUser(user));
 
-  // Fetch saved gene lists from a backend or local storage
-  const fetchSavedGeneLists = async () => {
+  const fetchPrivateGeneLists = async () => {
     try {
+      const token = await user.getIdToken();
       // Replace this with actual fetch from your backend or storage
-      const response = await fetch(`${props.api}/gene-lists`);
+      const response = await fetch(`${props.api}/gene_lists?site=${props.site}&isPublic=false`, {
+        method: 'GET',
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
       const result = await response.json();
 
       if (response.ok) {
-        setSavedGeneLists(result.savedLists); // Assuming savedLists is an array of saved gene lists
+        setError(null);
+        setPrivateGeneLists(result); // array of saved gene lists
+      } else {
+        setError('Error fetching gene lists.');
+      }
+    } catch (err) {
+      setError('Failed to fetch private gene lists. Please try again later.');
+    }
+  };
+  // Fetch saved gene lists from a backend or local storage
+  const fetchPublicGeneLists = async () => {
+    try {
+      // Replace this with actual fetch from your backend or storage
+      const response = await fetch(`${props.api}/gene_lists?site=${props.site}&isPublic=true`);
+      const result = await response.json();
+
+      if (response.ok) {
+        setPublicGeneLists(result); // array of saved gene lists
       } else {
         setError('Error fetching gene lists.');
       }
@@ -31,10 +55,39 @@ const GeneListDisplayComponent = props => {
     }
   };
 
+  // Example functions for viewing and deleting lists
+  const viewGeneList = (list) => {
+    alert(`Viewing gene list: ${list.label}`);
+    props.addFilter({
+      category: 'Gene List',
+      fq_field: 'saved_search',
+      fq_value: list.hash,
+      name: list.label
+    })
+  };
+
+  const deleteGeneList = async (api,listId) => {
+    if (window.confirm('Are you sure you want to delete this gene list?')) {
+      // Replace with the actual delete request
+      try {
+        await fetch(`${api}/gene_lists/${listId}`, {
+          method: 'DELETE',
+        });
+        alert('Gene list deleted!');
+        // Optionally refetch the updated list
+      } catch (err) {
+        alert('Failed to delete gene list.');
+      }
+    }
+  };
+
   // Fetch data when the component is mounted
   useEffect(() => {
-    fetchSavedGeneLists();
+    fetchPublicGeneLists();
   }, []);
+  useEffect(() => {
+    fetchPrivateGeneLists();
+  }, [user]);
 
   return (
     <div className="gene-list-display-component">
@@ -46,9 +99,10 @@ const GeneListDisplayComponent = props => {
         </Alert>
       )}
 
-      {savedGeneLists.length > 0 ? (
+      {privateGeneLists.length > 0 && (
         <Table striped bordered hover className="mt-4">
           <thead>
+          <tr><th colspan={3}>My gene lists</th></tr>
           <tr>
             <th>List Name</th>
             <th>Number of Genes</th>
@@ -56,15 +110,46 @@ const GeneListDisplayComponent = props => {
           </tr>
           </thead>
           <tbody>
-          {savedGeneLists.map((list, index) => (
+          {privateGeneLists.map((list, index) => (
             <tr key={index}>
-              <td>{list.name}</td>
-              <td>{list.genes.length}</td>
+              <td>{list.label}</td>
+              <td>{list.n_genes || 0}</td>
               <td>
                 <Button variant="info" onClick={() => viewGeneList(list)}>
                   View
                 </Button>
-                <Button variant="danger" onClick={() => deleteGeneList(props.api, list.id)} className="ml-2">
+                <Button variant="danger" onClick={() => deleteGeneList(props.api, list._id)} className="ml-2">
+                  Delete
+                </Button>
+              </td>
+            </tr>
+          ))}
+          </tbody>
+        </Table>
+      )}
+
+      {publicGeneLists.length > 0 ? (
+        <Table striped bordered hover className="mt-4">
+          <thead>
+          <tr>
+            <th colSpan={3}>Public gene lists</th>
+          </tr>
+          <tr>
+            <th>List Name</th>
+            <th>Number of Genes</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          {publicGeneLists.map((list, index) => (
+            <tr key={index}>
+              <td>{list.label}</td>
+              <td>{list.n_genes || 0}</td>
+              <td>
+                <Button variant="info" onClick={() => viewGeneList(list)}>
+                  View
+                </Button>
+                <Button variant="danger" onClick={() => deleteGeneList(props.api, list._id)} className="ml-2">
                   Delete
                 </Button>
               </td>
@@ -80,27 +165,6 @@ const GeneListDisplayComponent = props => {
     </div>
   );
 };
-
-// Example functions for viewing and deleting lists
-const viewGeneList = (list) => {
-  alert(`Viewing gene list: ${list.name}\nGenes: ${list.genes.join(', ')}`);
-};
-
-const deleteGeneList = async (api,listId) => {
-  if (window.confirm('Are you sure you want to delete this gene list?')) {
-    // Replace with the actual delete request
-    try {
-      await fetch(`${api}/gene-lists/${listId}`, {
-        method: 'DELETE',
-      });
-      alert('Gene list deleted!');
-      // Optionally refetch the updated list
-    } catch (err) {
-      alert('Failed to delete gene list.');
-    }
-  }
-};
-
 
 const GeneListComponent = props => {
   const [geneList, setGeneList] = useState('');
@@ -149,7 +213,7 @@ const GeneListComponent = props => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ids: geneArray }),
+        body: JSON.stringify(geneArray),
       });
 
       const result = await response.json();
@@ -175,13 +239,14 @@ const GeneListComponent = props => {
       label: listName,
       hash: listHash,
       site: props.site,
+      n_genes: validatedList.length,
       isPublic: listIsPublic
     };
     const queryString = new URLSearchParams(queryParams).toString();
 
     const token = await user.getIdToken();
     try {
-      const response = await fetch(`${props.api}/gene_list?${queryString}`, {
+      const response = await fetch(`${props.api}/gene_lists?${queryString}`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
@@ -293,7 +358,7 @@ const UserGeneListsComponent = props => {
     <Container fluid>
       <Row>
         <Col><GeneListComponent api={props.configuration.grameneData} site={props.configuration.id}/></Col>
-        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id}/></Col>
+        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id} addFilter={props.doAcceptGrameneSuggestion}/></Col>
       </Row>
     </Container>
   )
@@ -301,5 +366,6 @@ const UserGeneListsComponent = props => {
 
 export default connect(
   'selectConfiguration',
+  'doAcceptGrameneSuggestion',
   UserGeneListsComponent
 );

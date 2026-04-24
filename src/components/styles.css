@@ -1,45 +1,61 @@
-.gramene-sidebar {
-    position: fixed;
-    background-color: #557b74;
+/* ── Main search layout: sidebar + content ──────────────────────────────── */
+.search-views-layout {
+    display: flex;
+    align-items: flex-start;
+}
+
+.search-views-content {
+    flex: 1 1 0;
+    min-width: 0; /* prevent flex children from overflowing */
+}
+
+.gramene-sidebar,
+.sorghumbase-sidebar {
+    flex: 0 0 250px;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
     padding-left: 8px;
     padding-right: 8px;
     padding-bottom: 8px;
-    width: 250px;
+}
+
+.gramene-sidebar {
+    background-color: #557b74;
 }
 .sorghumbase-sidebar {
-    position: fixed;
     background-color: #a03e34;
-    padding-left: 8px;
-    padding-right: 8px;
-    padding-bottom: 8px;
-    width: 250px;
 }
-.gramene-auth-container {
-    background-color: #fff3a9;
-    padding-left: 4px;
-    padding-bottom: 4px;
+
+/* ── Mobile: stack sidebar above content ────────────────────────────────── */
+@media (max-width: 767px) {
+    .search-views-layout {
+        flex-direction: column;
+    }
+    .gramene-sidebar,
+    .sorghumbase-sidebar {
+        flex: 0 0 auto;
+        position: static;
+        width: 100%;
+        max-height: none;
+        overflow-y: visible;
+    }
+    .search-views-content {
+        width: 100%;
+    }
 }
-.sorghumbase-auth-container {
-    background-color: #fff3a9;
-    padding-left: 4px;
-    padding-bottom: 4px;
-}
-.gramene-filter-container {
-    background-color: #fff3a9;
-    padding-left: 4px;
-    padding-bottom: 4px;
-}
+.gramene-auth-container,
+.sorghumbase-auth-container,
+.gramene-filter-container,
 .sorghumbase-filter-container {
-    background-color: #fff3a9;
-    padding-left: 4px;
-    padding-bottom: 4px;
 }
 .gramene-filter {
     padding-left: 4px;
     padding-right: 4px;
     padding-bottom: 4px;
     background-color: white;
-    font-size: small;
+    font-size: 0.875rem; /* ~14px — explicit instead of 'small' keyword */
 }
 .gramene-filter span:hover {
     font-weight:bolder;
@@ -72,7 +88,7 @@
 .gramene-filter-menu li {
     display: block;
     cursor: pointer;
-    padding-left: 15px;
+    padding: 8px 8px 8px 15px; /* vertical padding makes tap targets ~36px+ */
 }
 .gramene-filter-menu li:hover {
     background-color: #feff96;
@@ -92,10 +108,6 @@
 }
 
 .gramene-view-container {
-    background-color: #fff3a9;
-    padding-left: 4px;
-    padding-right: 4px;
-    padding-bottom: 4px;
 }
 .gramene-view {
     padding-left: 0px;
@@ -146,4 +158,156 @@
     background-color: #6c757d;
     border-color: #6c757d;
 }
+
+/* ── Collapsible sidebar sections ─────────────────────────────────────── */
+.sidebar-section {
+    margin-bottom: 4px;
+}
+
+.sidebar-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 4px 2px 6px;
+    color: cornsilk;
+    user-select: none;
+    border-top: 3px solid;
+}
+
+/* Dark background + matching top border per site */
+.gramene-sidebar .sidebar-section-header {
+    background-color: #557b74;
+    border-top-color: #3d5b55;
+}
+.sorghumbase-sidebar .sidebar-section-header {
+    background-color: #a03e34;
+    border-top-color: #7a2f27;
+}
+
+.sidebar-section-header:hover {
+    background: rgba(255,255,255,0.1);
+}
+.gramene-sidebar .sidebar-section-header:hover {
+    background-color: #4a6d66;
+}
+.sorghumbase-sidebar .sidebar-section-header:hover {
+    background-color: #8c352d;
+}
+
+.sidebar-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: cornsilk;
+}
+
+.sidebar-section-toggle {
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+.sidebar-section-toggle svg {
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.sidebar-section-body {
+    background-color: #fff3a9;
+    padding: 4px;
+}
+
+/* ── Mobile: compact sidebar when stacked at top ─────────────────────── */
+@media (max-width: 767px) {
+    /* Tighten sidebar padding */
+    .gramene-sidebar,
+    .sorghumbase-sidebar {
+        padding: 4px 8px;
+    }
+
+    /* Views: display as a compact inline flow */
+    .gramene-view {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 8px;
+        padding: 2px 4px;
+    }
+    .gramene-view li {
+        display: inline-flex;
+        align-items: center;
+        padding-left: 4px;
+        margin-bottom: 0;
+        font-size: 0.8rem;
+        border-left-width: 4px;
+    }
+
+    /* View header: smaller */
+    .gramene-view-header {
+        font-size: small;
+        padding: 2px 0;
+    }
+
+    /* Filters: compact */
+    .gramene-filter {
+        font-size: 0.8rem;
+        padding: 2px 4px;
+    }
+    .gramene-filter-menu li {
+        padding: 4px 4px 4px 10px;
+    }
+
+    /* Suggestion buttons: reasonable tap area */
+    #gramene-suggestion button {
+        padding: 0.35rem 0.6rem;
+        margin-bottom: 2px;
+        font-size: 0.8rem;
+    }
+
+    /* Prevent iOS zoom-on-focus (requires >= 16px) without forcing extra height */
+    #search-input {
+        font-size: 1rem;
+    }
+}
+
+/* ── Taxonomy modal tree ─────────────────────────────────────────────────── */
+.tax-tree            { margin-top: 8px; font-size: 14px; }
+.tax-node            { border-radius: 2px; }
+.tax-row             { display: flex; align-items: center; gap: 4px; padding: 2px 4px; }
+.tax-chevron         { cursor: pointer; width: 14px; display: inline-flex; align-items: center; }
+.tax-chevron-spacer  { display: inline-block; width: 14px; }
+.tax-label           { }
+.tax-label-internal  { font-weight: 600; }
+.tax-sep             { color: #888; font-weight: normal; }
+.tax-count           { color: #555; font-size: 12px; margin-left: 4px; }
+.tax-self-leaf       { margin-left: 8px; font-size: 12px; color: #444; display: inline-flex; align-items: center; gap: 2px; }
+
+.tax-ellipsis        { cursor: help; color: #666; }
+.tax-ellipsis-full   { display: none; }
+.tax-ellipsis:hover .tax-ellipsis-short { display: none; }
+.tax-ellipsis:hover .tax-ellipsis-full  { display: inline; color: #333; }
+
+.tax-search               { position: relative; margin: 8px 0; }
+.tax-search-input         { width: 100%; padding: 4px 8px; font-size: 14px;
+                            border: 1px solid #bbb; border-radius: 3px; }
+.tax-search-results       { position: absolute; left: 0; right: 0; top: 100%;
+                            max-height: 280px; overflow-y: auto; z-index: 10;
+                            background: white; border: 1px solid #bbb;
+                            border-top: none; border-radius: 0 0 3px 3px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.tax-search-hit           { padding: 4px 8px; cursor: pointer; font-size: 13px; }
+.tax-search-hit:hover,
+.tax-search-hit-active    { background: #e3ecff; }
+.tax-search-name          { font-weight: 600; }
+.tax-search-syn           { color: #777; font-style: italic; }
+.tax-search-rank          { color: #0366d6; font-size: 11px; text-transform: uppercase;
+                            margin-left: 4px; }
+.tax-search-count         { color: #555; font-size: 12px; }
+.tax-search-empty         { padding: 6px 8px; color: #777; font-style: italic; font-size: 13px; }
+
+.tax-node-highlight       { outline: 2px solid #ffc107;
+                            animation: taxFlash 1.6s ease-out; }
+@keyframes taxFlash {
+  0%   { background-color: #fff3cd; }
+  100% { background-color: transparent; }
+}
+
 

@@ -1,0 +1,172 @@
+{
+  "groups": {
+    "core":         { "label": "Core identifiers",       "order": 0 },
+    "location":     { "label": "Genomic location",       "order": 1 },
+    "structure":    { "label": "Gene structure",         "order": 2 },
+    "homology":     { "label": "Homology",               "order": 3 },
+    "expression":   { "label": "Gene expression",        "order": 4 },
+    "differential": { "label": "Differential expression","order": 5 },
+    "hierarchical": { "label": "Hierarchical annotations","order": 6 },
+    "pathways":     { "label": "Pathways",               "order": 7 },
+    "GO":           { "label": "Gene Ontology",          "order": 7 },
+    "PO":           { "label": "Plant Ontology",         "order": 8 },
+    "lof":          { "label": "Loss of function alleles","order": 9 },
+    "MAKER":        { "label": "MAKER transcript metrics","order": 10 },
+    "xrefs":        { "label": "External references",    "order": 11 },
+    "other":        { "label": "Other",                  "order": 99 }
+  },
+
+  "patterns": [
+    {
+      "id": "homology",
+      "match": "^homology__(.+)$",
+      "group": "homology",
+      "multiValued": true,
+      "labelTemplate": "Homology: $1"
+    },
+    {
+      "id": "pathways",
+      "match": "^pathways__(.+)$",
+      "group": "pathways",
+      "multiValued": true,
+      "labelTemplate": "Pathway: $1"
+    },
+    {
+      "id": "maker",
+      "match": "^MAKER__(.+)__attr_([a-z])$",
+      "group": "MAKER",
+      "labelTemplate": "MAKER: $1"
+    },
+    {
+      "id": "xrefs",
+      "match": "^(.+)__xrefs$",
+      "group": "xrefs",
+      "multiValued": true,
+      "labelTemplate": "$1 (xrefs)"
+    },
+    {
+      "id": "expr",
+      "match": "^(E[-_][A-Za-z0-9_-]+?)_g(\\d+)__expr$",
+      "group": "expression",
+      "expression": true,
+      "labelTemplate": "$1 · g$2"
+    },
+    {
+      "id": "diffexpr",
+      "match": "^(E[-_][A-Za-z0-9_-]+?)_g(\\d+)_g(\\d+)_(pval|logfc|l2fc)_attr_([a-z])$",
+      "group": "differential",
+      "diffExpression": true,
+      "labelTemplate": "$1 · g$2 vs g$3 · $4"
+    },
+    {
+      "id": "bins",
+      "match": "^(fixed|uniform)_([0-9a-zA-Z]+)__bin$",
+      "group": "bins",
+      "is_hidden": true,
+      "labelTemplate": "$1 bin ($2)"
+    },
+    {
+      "id": "neighbors",
+      "match": ".*neighbors_[0-9]+$",
+      "group": "neighbors",
+      "is_hidden": true,
+      "labelTemplate": "neighbors"
+    },
+    {
+      "id": "vep_merged",
+      "match": "^VEP__merged__(NAT|EMS)__attr_ss$",
+      "group": "lof",
+      "multiValued": true,
+      "labelTemplate": "Merged $1 accessions"
+    },
+    {
+      "id": "vep_detail",
+      "match": "^VEP__(.+?)__(homo|het)__(.+?)__(\\d+)__attr_ss$",
+      "group": "lof",
+      "multiValued": true,
+      "labelTemplate": "$1 ($2) $3/$4"
+    },
+    {
+      "id": "generic_attr",
+      "match": "^(.+)__attr_([a-z])$",
+      "group": "other",
+      "labelTemplate": "$1"
+    }
+  ],
+
+  "fields": {
+    "id":          { "group": "core", "label": "Gene ID", "order": 1 },
+    "name":        { "group": "core", "label": "Name", "order": 2 },
+    "description": { "group": "core", "label": "Description", "order": 4 },
+    "summary":     { "group": "core", "label": "Summary", "order": 5 },
+    "synonyms":    { "group": "core", "label": "Synonyms", "multiValued": true, "order": 3 },
+    "biotype":     { "group": "core", "label": "Biotype", "order": 6 },
+    "taxon_id":    { "group": "core", "label": "Taxon ID", "order": 8 },
+    "system_name": { "group": "core", "label": "System name", "order": 7 },
+    "db_type":     { "group": "core", "label": "DB type", "order": 9 },
+
+    "closest_rep_id":          { "group": "homology", "label": "Closest representative ID", "order": 1 },
+    "closest_rep_name":        { "group": "homology", "label": "Closest representative name", "order": 2 },
+    "closest_rep_identity":    { "group": "homology", "label": "Closest representative identity", "order": 3 },
+    "closest_rep_taxon_id":    { "group": "homology", "label": "Closest representative taxon", "order": 4 },
+    "closest_rep_description": { "group": "homology", "label": "Closest representative description", "order": 5 },
+    "model_rep_id":          { "group": "homology", "label": "Model representative ID", "order": 6 },
+    "model_rep_name":        { "group": "homology", "label": "Model representative name", "order": 7 },
+    "model_rep_identity":    { "group": "homology", "label": "Model representative identity", "order": 8 },
+    "model_rep_taxon_id":    { "group": "homology", "label": "Model representative taxon", "order": 9 },
+    "model_rep_description": { "group": "homology", "label": "Model representative description", "order": 10 },
+
+    "gene_tree": { "group": "homology", "label": "Gene tree ID", "order": 11 },
+    "pan_tree":  { "group": "homology", "label": "Pan-gene tree ID", "order": 14 },
+
+    "capabilities": { "group": "other", "label": "Capabilities", "multiValued": true },
+
+    "map":    { "group": "location", "label": "Map", "order": 1 },
+    "region": { "group": "location", "label": "Region", "order": 2 },
+    "start":  { "group": "location", "label": "Start", "order": 3 },
+    "end":    { "group": "location", "label": "End", "order": 4 },
+    "strand": { "group": "location", "label": "Strand", "order": 5 },
+
+    "GO__ancestors":           { "group": "hierarchical", "label": "GO terms",   "multiValued": true, "order": 1 },
+    "PO__ancestors":           { "group": "hierarchical", "label": "PO terms",   "multiValued": true, "order": 2 },
+    "TO__ancestors":           { "group": "hierarchical", "label": "TO terms",   "multiValued": true, "order": 3 },
+    "QTL_TO__ancestors":       { "group": "hierarchical", "label": "QTL traits (TO)", "multiValued": true, "order": 7 },
+    "domains__ancestors":      { "group": "hierarchical", "label": "Domains",    "multiValued": true, "order": 4 },
+    "taxonomy__ancestors":     { "group": "hierarchical", "label": "Taxonomy",   "multiValued": true, "order": 6 },
+    "supertree_attr_s":        { "group": "homology",  "label": "Supertree", "order": 13 },
+    "gene_tree_root_taxon_id": { "group": "homology",  "label": "Gene tree root taxon", "order": 12 },
+    "protein__length":         { "group": "structure", "label": "Protein length" },
+    "transcript__count":       { "group": "structure", "label": "Transcript count" },
+    "transcript__exons":       { "group": "structure", "label": "Exon count" },
+    "transcript__length":      { "group": "structure", "label": "Transcript length" },
+    "expressed_in_gxa_attr_ss": { "group": "expression", "label": "Expressed in GXA", "multiValued": true },
+
+    "MAKER__AED__attr_f": { "group": "MAKER", "label": "AED", "description": "Annotation Edit Distance" },
+    "MAKER__QI1__attr_i": { "group": "MAKER", "label": "Length of the 5' UTR" },
+    "MAKER__QI2__attr_f": { "group": "MAKER", "label": "Fraction of splice sites confirmed by EST" },
+    "MAKER__QI3__attr_f": { "group": "MAKER", "label": "Fraction of exons overlapping an EST" },
+    "MAKER__QI4__attr_f": { "group": "MAKER", "label": "Fraction of exons overlapping EST or protein" },
+    "MAKER__QI7__attr_i": { "group": "MAKER", "label": "Number of exons in the mRNA" },
+    "MAKER__QI8__attr_i": { "group": "MAKER", "label": "Length of the 3' UTR" },
+    "MAKER__QI9__attr_i": { "group": "MAKER", "label": "Length of the protein sequence" },
+
+    "homology__all_orthologs":            { "group": "homology", "label": "All orthologs",            "multiValued": true, "order": 15 },
+    "homology__ortholog_one2one":         { "group": "homology", "label": "1:1 orthologs",            "multiValued": true, "order": 16 },
+    "homology__ortholog_one2many":        { "group": "homology", "label": "1:many orthologs",         "multiValued": true, "order": 17 },
+    "homology__ortholog_many2many":       { "group": "homology", "label": "Many:many orthologs",      "multiValued": true, "order": 18 },
+    "homology__syntenic_ortholog_one2one":{ "group": "homology", "label": "Syntenic 1:1 orthologs",   "multiValued": true, "order": 19 },
+    "homology__within_species_paralog":   { "group": "homology", "label": "Within-species paralogs",  "multiValued": true, "order": 20 },
+
+    "pathways__ancestors": { "group": "hierarchical", "label": "Pathways", "multiValued": true, "order": 5 },
+
+    "canonical_transcript__attr_s": { "group": "structure", "label": "Canonical transcript ID" }
+  },
+
+  "hidden": [
+    "_version_", "_terms", "score",
+    "gene_idx", "gene_idx_multi", "species_idx",
+    "compara_idx", "compara_idx_multi",
+    "_id", "annotations", "bins", "gene_structure",
+    "homology", "location", "xrefs",
+    "domain_roots", "familyRoot__ancestors"
+  ]}

@@ -132,7 +132,7 @@ const Publications = ({searchResult, geneDocs}) => (
     <Title key="title">Curated publications</Title>
     <Description key="description">Functions described in the literature:</Description>
     <Content key="content">
-      <table className="xrefs table">
+      <table className="xrefs xrefs-pubs table">
         <thead>
         <tr>
           <th className="xref-10-col">PubMed link</th>

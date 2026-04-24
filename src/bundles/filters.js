@@ -266,7 +266,9 @@ const grameneFilters = {
         case 'GRAMENE_SEARCH_FETCH_FINISHED':
           return Object.assign({}, state, {status: 'finished'});
         case 'GRAMENE_GENOMES_UPDATED':
-          return Object.assign({}, state, {status: 'search'});
+          if (state.status === 'ready') {
+            return Object.assign({}, state, {status: 'search'});
+          }
         case 'URL_UPDATED':
           if (state.status === 'ready') {
             return Object.assign({}, initialState, {children:[]})
@@ -464,11 +466,22 @@ grameneFilters.reactGrameneFilters = createSelector(
         }
         return { type: 'BATCH_ACTIONS', actions: actions };
       }
-      if (queryObject.hasOwnProperty('suggestion')) {
+      if (queryObject.hasOwnProperty('sugg')) {
         return {
           type: 'BATCH_ACTIONS', actions: [
             {type: 'GRAMENE_SEARCH_CLEARED'},
-            {type: 'GRAMENE_FILTER_ADDED', payload: JSON.parse(queryObject.suggestion)}
+            {type: 'GRAMENE_FILTER_ADDED', payload: JSON.parse(queryObject.sugg)}
+          ]
+        };
+      }
+      if (queryObject.hasOwnProperty('suggestion')) {
+        const url = new URL(myUrl.href);
+        url.search = '';
+        return {
+          type: 'BATCH_ACTIONS', actions: [
+            {type: 'URL_UPDATED', payload: {url: url.href, replace:false}},
+            {type: 'GRAMENE_SEARCH_CLEARED'},
+            {type: 'SUGGESTIONS_QUERY_CHANGED', payload: {query: queryObject.suggestion}}
           ]
         };
       }

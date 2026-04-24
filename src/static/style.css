@@ -1,8 +1,18 @@
 .subsite-header {
     background-color: #fcfeec;
-    height: 45px;
+    min-height: 45px;
     font-size: small;
 }
 .mdview h2 {
     scroll-margin-top: 120px;
+}
+
+/* Navbar logo: tall on desktop, shorter on mobile */
+.gramene-navbar-logo {
+    height: 60px;
+}
+@media (max-width: 767px) {
+    .gramene-navbar-logo {
+        height: 36px;
+    }
 }

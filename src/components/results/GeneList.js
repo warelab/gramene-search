@@ -52,7 +52,7 @@ const PanLink = (props) => {
   const gene = props.gene;
   const pan = props.pan;
   return <div className="gene-panlink">
-    <a target="_blank" href={pan.url + gene.id}>
+    <a target="_blank" href={pan.url + "?idList=" + gene.id}>
       <img src={pan.svg} title={`View this gene at ${pan.name}`}/>
     </a>
   </div>;
@@ -295,7 +295,7 @@ class Gene extends React.Component {
               </h3>
             </div>
             {searchResult.synonyms && <small className="gene-synonyms">{searchResult.synonyms.join(', ')}</small>}
-            {(numWordsInDescription > 1 || searchResult.can_show.pubs) && <p className="gene-description">{searchResult.description}</p>}
+            {searchResult.description !== "unknown" && (numWordsInDescription > 1 || searchResult.can_show.pubs) && <p className="gene-description">{searchResult.description}</p>}
           </div>
           {this.renderMetadata()}
         </div>

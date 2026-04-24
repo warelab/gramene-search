@@ -1,98 +1,126 @@
-/*
+/* ===== Pathways layout ===== */
 
-<classNamePrefix>-root
-
-The outer container
-
-*/
-.tree-view-root {
+.pathways-layout {
+    display: flex;
+    align-items: stretch;
 }
 
-/*
+.pathways-tree-toggle {
+    flex: 0 0 auto;
+    width: 24px;
+    border: 1px solid #ccc;
+    border-right: none;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    border-radius: 4px 0 0 4px;
+}
+.pathways-tree-toggle:hover {
+    background: #e0e0e0;
+    color: #333;
+}
 
-<classNamePrefix>-root
+.pathways-tree-panel {
+    flex: 0 0 250px;
+    width: 250px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid #ccc;
+    border-right: none;
+}
 
-The outer container for a single node
+.pathways-diagram-panel {
+    flex: 1 1 auto;
+    min-width: 0;
+}
 
-*/
+.pathways-resize-handle {
+    height: 6px;
+    background: #e0e0e0;
+    border: 1px solid #ccc;
+    border-top: none;
+    cursor: ns-resize;
+    transition: background 0.15s;
+}
+.pathways-resize-handle:hover {
+    background: #179ed3;
+}
+
+/* ===== Compact tree items (react-simple-tree-menu overrides) ===== */
+
+.pathways-tree-panel .rstm-tree-item-group {
+    border-top: none;
+}
+
+.pathways-tree-panel .rstm-tree-item {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    border-bottom: 1px solid #eee;
+}
+/* Override inline padding-left set by react-simple-tree-menu.
+   The library uses: 0.75 + iconSize*(hasNodes?0:1) + level*1.75 rem
+   We shrink the per-level indent from 1.75rem to 0.75rem */
+.pathways-tree-panel .rstm-tree-item-level0 { padding-left: 0.4rem !important; }
+.pathways-tree-panel .rstm-tree-item-level0 > .rstm-toggle-icon { margin-left: 0; }
+.pathways-tree-panel .rstm-tree-item-level1 { padding-left: 1.15rem !important; }
+.pathways-tree-panel .rstm-tree-item-level2 { padding-left: 1.9rem !important; }
+.pathways-tree-panel .rstm-tree-item-level3 { padding-left: 2.65rem !important; }
+.pathways-tree-panel .rstm-tree-item-level4 { padding-left: 3.4rem !important; }
+.pathways-tree-panel .rstm-tree-item-level5 { padding-left: 4.15rem !important; }
+.pathways-tree-panel .rstm-tree-item-level6 { padding-left: 4.9rem !important; }
+.pathways-tree-panel .rstm-tree-item-level7 { padding-left: 5.65rem !important; }
+
+.pathways-tree-panel .rstm-tree-item--active {
+    color: white;
+    background: #179ed3;
+    border-bottom-color: #127aa8;
+}
+
+.pathways-tree-panel .rstm-toggle-icon-symbol {
+    width: 1rem;
+    height: 1rem;
+    line-height: 1rem;
+    font-size: 0.7rem;
+}
+
+/* ===== Legacy tree-view classes ===== */
+
+.tree-view-root {}
+
 .tree-view-node {
-    margin-left: 10px;
+    margin-left: 8px;
 }
 
-
-/*
-
-<classNamePrefix>-node-collapse-toggle.collapse-spacer
-
-Used to provide spacing when a parent node has no children
-
-*/
 .tree-view-node-collapse-toggle.collapse-spacer {
-    width: 14px;
+    width: 12px;
     display: inline-block;
 }
 
-/*
-<classNamePrefix>-node-collapse-toggle.<expandIconClass>
-
-The class to use for the icon that expands a collapsed parent node
-
-*/
-
-
-/*
-
-<classNamePrefix>-node-collapse-toggle.<collapseIconClass>
-
-The class to use for the icon that collapses an expanded parent node
-
-*/
-
 .tree-view-node-collapse-toggle {
-    margin-right: 3px;
-    width: 14px;
+    margin-right: 2px;
+    width: 12px;
 }
 
-/*
-
-<classNamePrefix>-node-label
-
-*/
 .tree-view-node-label {
     font-size: smaller;
-    margin-left: 3px;
+    margin-left: 2px;
     padding: 1px;
     border: 1px solid #fff;
 }
 
-/*
-
-<classNamePrefix>-node-label.selected
-
-*/
 .tree-view-node-label.selected {
     border: 1px solid #003f81;
     border-radius: 3px;
     background-color: #808080;
 }
 
-/*
-
-<classNamePrefix>-node-checkbox
-
-The class for a node checkbox
-
-*/
-
 .tree-view-node-checkbox {}
-
-/*
-
-<classNamePrefix>-node-children
-
-The class for the element that wraps a nodes children (if any exist)
-
-*/
-
 .tree-view-node-children {}
 

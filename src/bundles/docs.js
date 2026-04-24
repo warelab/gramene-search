@@ -126,6 +126,7 @@ const grameneDocs = {
           else {
             newState.desiredSamples[payload] = {status: 'need'}
           }
+          return newState;
       }
       return state;
     }
@@ -178,6 +179,9 @@ const grameneDocs = {
                 node.taxon_name = maps[node.taxon_id].display_name
               }
               else if (node.taxon_id === 1100004558) {
+                node.taxon_name = "Sorghum bicolor"
+              }
+              if (node.taxon_id === 45580023 && node.hasOwnProperty('children')) {
                 node.taxon_name = "Sorghum bicolor"
               }
               if (node.taxon_id === 45770001 && node.hasOwnProperty('children')) {

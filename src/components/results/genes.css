@@ -16,23 +16,28 @@
     border-collapse: collapse;
     border-spacing: 0;
     border-color: grey;
-    table-layout: fixed;
+    table-layout: auto;
+    width: 100%;
 }
-.xref-name-col {
-    width: 20%;
+/* Col 1 (PubMed link) and col 2 (Curation source): shrink to content */
+table.xrefs th:nth-child(1),
+table.xrefs td:nth-child(1),
+table.xrefs th:nth-child(2),
+table.xrefs td:nth-child(2) {
+    width: 1%;
+    white-space: nowrap;
 }
-.xref-value-col {
-    width: 80%;
+/* Col 3 (Title/Description): fill remaining space */
+table.xrefs th:nth-child(3),
+table.xrefs td:nth-child(3) {
+    width: 100%;
 }
-.xref-80-col {
-    width: 80%;
-}
-.xref-70-col {
-    width: 70%;
-}
-.xref-10-col {
-    width: 10%;
-}
+/* Legacy column-width classes — kept for other tables that use them */
+.xref-name-col { white-space: nowrap; }
+.xref-value-col { }
+.xref-80-col { }
+.xref-70-col { }
+.xref-10-col { white-space: nowrap; }
 .xref-id-list {
     padding-left: 0;
     list-style: none;
@@ -68,19 +73,95 @@
     font-size: small;
 }
 .gene-extras {
-    float: right;
     border: dashed 1px blue;
 }
 .gene-panlink {
-    float:right;
+    float: right;
+    margin-left: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 .gene-panlink img {
     height: 60px;
     width: auto;
+    max-width: 100%;
     vertical-align: top;
 }
+.suggestion-panlink img {
+    height: 60px;
+    width: auto;
+    max-width: 100%;
+}
+@media (max-width: 1200px) {
+    .gene-panlink img,
+    .suggestion-panlink img {
+        height: 30px;
+    }
+}
+@media (max-width: 767px) {
+    /* Allow the ortholog/TAIR box to stack below the gene title on mobile.
+       It stays inside .result-gene-summary, so it still appears above .gene-detail-tabs. */
+    .result-gene-summary {
+        flex-wrap: wrap;
+    }
+    .result-gene-title-body {
+        flex: 1 1 100%;
+    }
+    .model-ortholog,
+    .closest-ortholog,
+    .gene-summary-tair {
+        flex: 1 1 100%;
+        max-width: 100%;
+        width: auto;
+        margin-left: 0;
+        margin-top: 8px;
+    }
+    /* Stack ortholog box contents vertically on narrow screens */
+    .model-ortholog,
+    .closest-ortholog {
+        grid-template-columns: 1fr;
+    }
+    .model-ortholog h3.gene-id,
+    .closest-ortholog h3.gene-id {
+        grid-column: 1;
+        grid-row: 2;
+    }
+    .model-ortholog .gene-species,
+    .closest-ortholog .gene-species {
+        grid-column: 1;
+        grid-row: 3;
+        text-align: left;
+    }
+    .model-ortholog .rep-identity,
+    .closest-ortholog .rep-identity {
+        grid-column: 1;
+        grid-row: 4;
+        text-align: left;
+    }
+    .model-ortholog p,
+    .closest-ortholog p {
+        grid-row: 5;
+    }
+    /* Show descriptions on mobile (no hover available) */
+    .model-ortholog p,
+    .closest-ortholog p {
+        display: block;
+    }
+    /* PanLink: stop floating, display inline next to gene title */
+    .gene-panlink {
+        float: none;
+        display: inline;
+        margin-left: 0.25rem;
+        margin-bottom: 0;
+        vertical-align: middle;
+    }
+    /* Papers table only: hide "Curation source" column on small screens */
+    table.xrefs-pubs th:nth-child(2),
+    table.xrefs-pubs td:nth-child(2) {
+        display: none;
+    }
+}
 .gene-curation {
-    float:right;
+    flex-shrink: 0;
     margin-top: 20px;
     border: 1px solid grey;
 }
@@ -99,8 +180,27 @@
 .gene-detail-tabs {
     display: flex;
     flex-wrap: wrap;
-    white-space: nowrap;
-    width: 80em;
+    width: 100%;
+}
+/* Tab items: 4-per-row by default, overrides Bootstrap col-md-1 (8.33%) */
+.gene-detail-tabs > div {
+    flex: 0 0 25%;
+    width: 25%;
+    max-width: 25%;
+    box-sizing: border-box;
+    padding: 6px 4px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* At wide viewports, all 8 fit comfortably in one row */
+@media (min-width: 992px) {
+    .gene-detail-tabs > div {
+        flex: 0 0 12.5%;
+        width: 12.5%;
+        max-width: 12.5%;
+    }
 }
 .gene-detail-tab-closed {
     color: darkgreen;
@@ -131,6 +231,7 @@
     display: flex;
     flex-flow: row nowrap;
     justify-content: flex-start;
+    align-items: flex-start;
 }
 .result-gene-summary .species-name {
     white-space: nowrap;
@@ -138,17 +239,75 @@
 }
 .result-gene-title-body {
     flex: 1 1 auto;
-    width: 1036px;
+    max-width: 1036px;
+    width: 100%;
 }
 .model-ortholog, .closest-ortholog, .gene-summary-tair {
     cursor: pointer;
-    flex: 1 1 auto;
-    width: 500px;
+    flex: 0 0 auto;
+    max-width: 380px;
+    width: 380px;
     font-size: smaller;
     margin-top: 10px;
-    padding: 0 1rem;
+    padding: 0.25rem 0.5rem 0.5rem;
     margin-left: 1rem;
     border: 1px solid darkorange;
+}
+
+/* Ortholog boxes: grid — title row, then gene name left / species+identity right */
+.model-ortholog, .closest-ortholog {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 0.5rem;
+    align-items: center;
+}
+
+/* Gene name: left column, smaller font to fit alongside species */
+.model-ortholog h3.gene-id,
+.closest-ortholog h3.gene-id {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+    font-size: 1.5em;
+    overflow-wrap: break-word;
+    word-break: break-all;
+    min-width: 0;
+}
+
+/* Species: right column, top of the pair */
+.model-ortholog .gene-species,
+.closest-ortholog .gene-species {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+    align-self: end;
+}
+
+/* Identity: right column, below species (same row group as gene name) */
+.model-ortholog .rep-identity,
+.closest-ortholog .rep-identity {
+    grid-column: 2;
+    grid-row: 3;
+    text-align: right;
+    margin-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    align-self: start;
+}
+
+/* Description: hidden by default; show on hover/focus */
+.model-ortholog p,
+.closest-ortholog p {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    display: none;
+    margin: 0.25rem 0 0;
+}
+.model-ortholog:hover p,
+.model-ortholog:focus p,
+.closest-ortholog:hover p,
+.closest-ortholog:focus p {
+    display: block;
 }
 
 .model-ortholog {
@@ -182,12 +341,13 @@
 .closest-ortholog::before,
 .model-ortholog::before,
 .gene-summary-tair::before {
-    position: relative;
-    float: right;
-    margin-top: -12px;
-    margin-right: 6px;
+    display: block;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: center;
     border: dotted 1px;
-    padding: 0 1rem;
+    padding: 0 0.5rem;
+    margin: -0.25rem -0.5rem 0.25rem;  /* bleed to box edges */
     background: #fff;
 }
 
@@ -207,7 +367,7 @@
 }
 
 .rep-identity {
-    float: right;
+    margin-left: auto;
     padding-right: 10px;
     padding-top: 5px;
     font-style: italic;

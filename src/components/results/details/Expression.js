@@ -1,52 +1,23 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import {connect} from "redux-bundler-react";
-import {Tabs, Tab} from 'react-bootstrap';
+import {Tabs, Tab, Form, Row, Col} from 'react-bootstrap';
 import BAR, {haveBAR} from "gramene-efp-browser";
 
 function DynamicIframe(props) {
   // Create a ref for the iframe element
   const iframeRef = useRef(null);
+  const [iframeHeight, setIframeHeight] = useState(500); // Default height
 
-  // Function to resize iframe height
-  const resizeIframe = () => {
-    if (iframeRef.current) {
-      const iframe = iframeRef.current;
-      const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
-      iframe.style.height = 44 + innerDoc.body.scrollHeight + 'px';
-    }
-  };
-
-  // Resize iframe when content loads
   useEffect(() => {
-    resizeIframe();
-  }, []); // Empty dependency array ensures it only runs once after initial render
-
-  // Optional: Resize iframe when window is resized
-  useEffect(() => {
-    window.addEventListener('resize', resizeIframe);
-    return () => {
-      window.removeEventListener('resize', resizeIframe);
-    };
-  }, []); // Empty dependency array ensures it only runs once after initial render
-
-  // Resize iframe when content changes
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const observer = new MutationObserver(resizeIframe);
-    const checkElement = () => {
-      const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
-      const targetElement = innerDoc.querySelector('#heatmapContainer');
-      if (targetElement) {
-        observer.observe(targetElement, { attributes: true, childList: true, subtree: true });
-      } else {
-        setTimeout(checkElement, 200); // Check again after 100 milliseconds
+    const handleMessage = (event) => {
+      if (event.data.type === 'heightChange') {
+        setIframeHeight(event.data.height + 44);
       }
     };
-    checkElement();
 
-    return () => observer.disconnect();
+    window.addEventListener("message", handleMessage);
+
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   return (
@@ -54,41 +25,96 @@ function DynamicIframe(props) {
       ref={iframeRef}
       src={props.url}
       title="Dynamic Iframe"
-      style={{ width: '100%', border: 'none' }}
+      style={{ width: '100%', height: `${iframeHeight}px`, border: 'none' }}
     />
   );
 }
 
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
-  let paralogs_url;
-  let gene_url = `/static/atlasWidget.html?reference=0&genes=${gene.atlas_id || gene._id}`;
+  const [atlasExperiment, setAtlasExperiment] = useState(null);
+  const [atlasExperimentList, setAtlasExperimentList] = useState([]);
+  const [atlasFacets, setAtlasFacets] = useState(null);
+  const [isLocal, setIsLocal] = useState(false);
+  const [activeTab, setActiveTab] = useState('gene');
 
-  if (props.paralogExpression && props.paralogExpression[gene._id]) {
-    let paralogs = props.paralogExpression[gene._id].map(p => p.atlas_id || p.id);
-    if (paralogs.length > 1) {
-      paralogs_url= `/static/atlasWidget.html?reference=1&genes=${paralogs.join(' ')}`;
+  const handleLocalAPIChange = (event) => {
+    setIsLocal(event.target.checked);
+  };
+  useEffect(() => {
+    const tid = Math.floor(gene.taxon_id / 1000);
+    if (props.expressionStudies[tid]) {
+      let facets={Differential: {}, Baseline: {}};
+      let eList = props.expressionStudies[tid].sort((a,b) => {
+        const a_name = `${a.type}:${a.description || a._id}`;
+        const b_name = `${b.type}:${b.description || b._id}`;
+        return a_name < b_name ? -1 : 1;
+      });
+      if (props.searchResult.hasOwnProperty('expressed_in_gxa_attr_ss')) {
+        const in_gxa = new Set(props.searchResult.expressed_in_gxa_attr_ss);
+        eList = eList.filter(e => in_gxa.has(e._id))
+      }
+      eList.forEach(e => {e.factors.forEach(factor => facets[e.type][factor] = 1);});
+      setAtlasExperimentList(eList);
+      setAtlasFacets(facets);
+      let refExp = eList.filter(e => e.isRef);
+      if (refExp.length === 1) {
+        setAtlasExperiment(refExp[0]._id);
+      } else {
+        // no reference experiment - choose first
+        setAtlasExperiment(eList[0]._id);
+      }
     }
+  }, [props.expressionStudies]);
+
+  let paralogs_url;
+  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
+  let paralogs = [];
+  if (props.grameneParalogs && props.grameneParalogs[gene._id]) {
+    paralogs = props.grameneParalogs[gene._id];
+  } else if (gene.homology) {
+    props.doRequestParalogs(gene._id, gene.homology.supertree, gene.taxon_id);
   }
-  else {
-    props.doRequestParalogExpression(gene._id)
+  // if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
+  //   paralogs = gene.homology.homologous_genes.within_species_paralog;
+  // }
+  if (paralogs.length > 0 && atlasExperiment) {
+    paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
   }
-  return <Tabs>
+  return <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
     {paralogs_url &&
-      <Tab tabClassName="gxa" eventKey="paralogs" title="Reference Study (all paralogs)">
-        <DynamicIframe url={paralogs_url}/>
+      <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
+        <Form.Select aria-label='experiment selector'
+                     placeholder='Select experiment'
+                     onChange={(e) => setAtlasExperiment(e.target.value)}>
+          { atlasExperimentList.map((e,idx) =>
+            <option key={idx} value={e._id}>{e.type}: {e.description || e._id}</option>
+          )}
+        </Form.Select>
+        {activeTab === "paralogs" && <DynamicIframe url={paralogs_url}/> }
       </Tab>
     }
-    <Tab tabClassName="gxa" eventKey="gene" title="All Studies"><DynamicIframe url={gene_url}/></Tab>
+    <Tab tabClassName="gxa" eventKey="gene" title="All Studies" key="gxa">
+      {/*<Form.Check*/}
+      {/*  type="switch"*/}
+      {/*  id="localAPI"*/}
+      {/*  label="Local API"*/}
+      {/*  checked={isLocal}*/}
+      {/*  onChange={handleLocalAPIChange}*/}
+      {/*/>*/}
+      {activeTab === "gene" && <DynamicIframe url={gene_url}/> }
+    </Tab>
     {haveBAR(gene) &&
-      <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser"><BAR gene={gene}/></Tab>
+      <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser" key="bar"><BAR gene={gene}/></Tab>
     }
   </Tabs>
 };
 
 export default connect(
-  'selectParalogExpression',
-  'doRequestParalogExpression',
+  'selectGrameneParalogs',
+  'selectExpressionStudies',
+  'doRequestParalogs',
+  //'doRequestParalogExpression',
   Detail
 );
 
