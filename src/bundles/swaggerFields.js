@@ -2,10 +2,27 @@ import { createAsyncResourceBundle, createSelector } from 'redux-bundler';
 import overlay from '../fieldCatalog.overlay.json';
 import { study_info as VEP_STUDY_INFO } from '../vepStudyInfo';
 
-const SAMPLE_QUERY = 'capabilities:expression';
-const SAMPLE_ROWS = 500;
-const DIFFEXPR_FL = 'id,*_pval_attr_f,*_logfc_attr_f,*_l2fc_attr_f';
-const DIFFEXPR_ROWS_PER_TAXON = 50;
+// Fields matched by these globs are multi-valued in Solr.
+const MULTIVALUED_PATTERNS = [
+  /__expr$/,
+  /__ancestors$/,
+  /__xrefs$/,
+  /^VEP__/,
+  /^homology__/
+];
+
+function parseCsvHeader(text) {
+  if (!text) return [];
+  const line = text.split(/\r?\n/, 1)[0] || '';
+  return line
+    .split(',')
+    .map(s => s.trim().replace(/^"|"$/g, ''))
+    .filter(Boolean);
+}
+
+function synthesizedValue(name) {
+  return MULTIVALUED_PATTERNS.some(re => re.test(name)) ? [0] : 0;
+}
 
 function applyTemplate(tpl, match) {
   if (!tpl) return null;
@@ -66,43 +83,14 @@ function inferType(value) {
   return typeof value;
 }
 
-function extractSwaggerFields(swagger) {
-  const defs = (swagger && swagger.definitions) || {};
-  const out = {};
-  const collect = (schemaName, prefix = '') => {
-    const def = defs[schemaName];
-    if (!def || !def.properties) return;
-    for (const [prop, spec] of Object.entries(def.properties)) {
-      const fullName = prefix ? `${prefix}.${prop}` : prop;
-      let type = spec.type || 'object';
-      if (spec.$ref) type = 'ref:' + spec.$ref.split('/').pop();
-      if (spec.type === 'array') {
-        const inner = spec.items || {};
-        type = 'array<' + (inner.type || (inner.$ref ? inner.$ref.split('/').pop() : 'unknown')) + '>';
-      }
-      out[fullName] = {
-        name: fullName,
-        type,
-        description: spec.description || '',
-        source: 'swagger'
-      };
-    }
-  };
-  collect('Result');
-  collect('GeneDocument');
-  return out;
-}
-
-function buildCatalog(swagger, sampleDocs) {
+function buildCatalog(sampleDocs) {
   const hidden = new Set(overlay.hidden || []);
   const overlayFields = overlay.fields || {};
   const patterns = overlay.patterns || [];
   const groupsMeta = overlay.groups || {};
 
-  const swaggerFields = extractSwaggerFields(swagger);
-
-  // Union keys across sample docs + swagger keys
-  const keys = new Set(Object.keys(swaggerFields));
+  // Union keys from overlay.fields (hardcoded catalog entries) and sample docs.
+  const keys = new Set(Object.keys(overlayFields));
   const sampleValues = {};
   for (const doc of (sampleDocs || [])) {
     for (const [k, v] of Object.entries(doc)) {
@@ -120,11 +108,10 @@ function buildCatalog(swagger, sampleDocs) {
     if (classified && classified.isHidden) continue;
     const sampleVal = sampleValues[name];
     const sampleType = sampleVal !== undefined ? inferType(sampleVal) : null;
-    const swaggerEntry = swaggerFields[name];
 
     const group = (overlayEntry && overlayEntry.group)
       || (classified && classified.group)
-      || (swaggerEntry ? 'core' : 'other');
+      || 'other';
 
     let label = (overlayEntry && overlayEntry.label)
       || (classified && classified.label)
@@ -149,13 +136,13 @@ function buildCatalog(swagger, sampleDocs) {
       tsvHeader,
       group,
       order: overlayEntry && overlayEntry.order != null ? overlayEntry.order : null,
-      description: (overlayEntry && overlayEntry.description) || (swaggerEntry && swaggerEntry.description) || '',
-      type: sampleType || (swaggerEntry && swaggerEntry.type) || 'unknown',
+      description: (overlayEntry && overlayEntry.description) || '',
+      type: sampleType || 'unknown',
       multiValued,
       patternId: classified ? classified.patternId : null,
       matchGroups: classified ? classified.matchGroups : null,
       expression: !!(classified && classified.expression),
-      source: overlayEntry ? 'overlay' : (swaggerEntry ? 'swagger' : 'sample')
+      source: overlayEntry ? 'overlay' : 'sample'
     };
   }
 
@@ -181,7 +168,6 @@ function buildCatalog(swagger, sampleDocs) {
 
   return {
     fetchedAt: Date.now(),
-    swaggerInfo: swagger && swagger.info ? swagger.info : null,
     groups,
     fields
   };
@@ -194,58 +180,13 @@ const grameneFieldCatalog = createAsyncResourceBundle({
   staleAfter: 5 * 60 * 1000,
   getPromise: ({ store }) => {
     const api = store.selectGrameneAPI();
-    const swaggerUrl = typeof store.selectGrameneSwaggerURL === 'function'
-      ? store.selectGrameneSwaggerURL()
-      : `${api}/swagger`;
-    const sampleUrl = `${api}/search?q=${encodeURIComponent(SAMPLE_QUERY)}&rows=${SAMPLE_ROWS}&fl=*`;
-    const experimentsUrl = `${api}/experiments?rows=-1`;
-    const mapsUrl = `${api}/maps?rows=-1`;
-    return Promise.all([
-      fetch(swaggerUrl).then(r => r.json()).catch(() => null),
-      fetch(sampleUrl).then(r => r.json()).catch(() => null),
-      fetch(experimentsUrl).then(r => r.json()).catch(() => []),
-      fetch(mapsUrl).then(r => r.json()).catch(() => [])
-    ]).then(([swagger, sample, experiments, maps]) => {
-      const docs = (sample && sample.response && sample.response.docs) || [];
-      // Determine which species (anchor taxa) have differential experiments,
-      // then for each run a narrow discovery query scoped to that species'
-      // strain taxa so we actually surface their diffexpr field names.
-      const diffTaxa = [...new Set(
-        (experiments || [])
-          .filter(e => e && e.type === 'Differential' && e.taxon_id)
-          .map(e => e.taxon_id)
-      )];
-      const strainsByAnchor = {};
-      for (const m of (maps || [])) {
-        const anchor = m && m.anchor_taxon_id;
-        if (!anchor) continue;
-        (strainsByAnchor[anchor] = strainsByAnchor[anchor] || []).push(m.taxon_id);
-      }
-      const discoveryFetches = diffTaxa.map(t => {
-        const strains = strainsByAnchor[t] || [t];
-        const fq = `taxon_id:(${strains.join(' OR ')})`;
-        const url = `${api}/search?q=${encodeURIComponent(SAMPLE_QUERY)}`
-          + `&rows=${DIFFEXPR_ROWS_PER_TAXON}`
-          + `&fl=${encodeURIComponent(DIFFEXPR_FL)}`
-          + `&fq=${encodeURIComponent(fq)}`;
-        return fetch(url).then(r => r.json()).catch(() => null);
-      });
-      return Promise.all(discoveryFetches).then(results => {
-        const diffDocs = results.flatMap(r => (r && r.response && r.response.docs) || []);
-        return buildCatalog(swagger, [...docs, ...diffDocs]);
-      });
-    });
+    const url = `${api}/search?q=*:*&rows=0&wt=csv&fl=*`;
+    return fetch(url)
+      .then(r => r.text())
+      .then(text => parseCsvHeader(text))
+      .catch(() => null);
   }
 });
-
-grameneFieldCatalog.reactGrameneFieldCatalog = createSelector(
-  'selectGrameneFieldCatalogShouldUpdate',
-  (shouldUpdate) => {
-    if (shouldUpdate) {
-      return { actionCreator: 'doFetchGrameneFieldCatalog' };
-    }
-  }
-);
 
 function assayFactorLabel(assay) {
   if (!assay) return '';
@@ -592,13 +533,51 @@ function enrichLabels(catalog, expressionStudies, expressionSamples, grameneSear
   return { ...catalog, fields: fieldsOut, groups };
 }
 
+function filterCatalogByPresentFields(catalog, present) {
+  if (!catalog || !catalog.fields || !present) return catalog;
+  const filteredFields = {};
+  for (const [name, f] of Object.entries(catalog.fields)) {
+    if (present.has(name)) filteredFields[name] = f;
+  }
+  const hasContent = (g) =>
+    (g.fields && g.fields.length > 0) ||
+    (g.subgroups && g.subgroups.some(hasContent));
+  const filterGroup = (g) => {
+    const fields = (g.fields || []).filter(n => present.has(n));
+    const subgroups = (g.subgroups || [])
+      .map(filterGroup)
+      .filter(hasContent);
+    return { ...g, fields, subgroups };
+  };
+  const groups = (catalog.groups || []).map(filterGroup).filter(hasContent);
+  return { ...catalog, fields: filteredFields, groups };
+}
+
 grameneFieldCatalog.selectFieldCatalog = createSelector(
   'selectGrameneFieldCatalog',
   'selectExpressionStudies',
   'selectExpressionSamples',
   'selectGrameneSearch',
   'selectGrameneMaps',
-  enrichLabels
+  (fieldNames, studies, samples, search, maps) => {
+    if (!fieldNames || !fieldNames.length) return null;
+    const present = new Set(fieldNames);
+    // Build a synthetic doc from the discovered field names; values carry the
+    // right JS type so inferType picks the correct multiValued/type (arrays
+    // for multi-valued fields, scalars otherwise). Derive pval/logfc
+    // companions from every l2fc field.
+    const doc = {};
+    for (const name of present) {
+      doc[name] = synthesizedValue(name);
+      if (/_l2fc_attr_f$/.test(name)) {
+        doc[name.replace('_l2fc_', '_pval_')] = 0;
+        doc[name.replace('_l2fc_', '_logfc_')] = 0;
+      }
+    }
+    const catalog = buildCatalog([doc]);
+    const enriched = enrichLabels(catalog, studies, samples, search, maps);
+    return filterCatalogByPresentFields(enriched, present);
+  }
 );
 
 grameneFieldCatalog.selectFieldCatalogGroups = createSelector(

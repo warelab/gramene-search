@@ -12,12 +12,18 @@ const ExporterViewCmp = props => {
   const {
     fieldCatalog: catalog,
     grameneFieldCatalogIsLoading: isLoading,
-    grameneFieldCatalogRaw: raw
+    grameneFieldCatalogRaw: raw,
+    grameneFieldCatalogShouldUpdate: shouldUpdate,
+    doFetchGrameneFieldCatalog
   } = props;
   const [fieldQuery, setFieldQuery] = useState('');
   const [leftPct, setLeftPct] = useState(50);
   const [dragging, setDragging] = useState(false);
   const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (shouldUpdate) doFetchGrameneFieldCatalog();
+  }, [shouldUpdate, doFetchGrameneFieldCatalog]);
 
   const onPointerMove = useCallback((e) => {
     const el = containerRef.current;
@@ -103,5 +109,7 @@ export default connect(
   'selectFieldCatalog',
   'selectGrameneFieldCatalogIsLoading',
   'selectGrameneFieldCatalogRaw',
+  'selectGrameneFieldCatalogShouldUpdate',
+  'doFetchGrameneFieldCatalog',
   ExporterViewCmp
 );

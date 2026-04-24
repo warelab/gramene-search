@@ -127,8 +127,8 @@ const grameneViews = {
         options = options.filter(v => overrides[v.id] !== 'hidden');
       }
       options = options.map(v => {
-        if (autoDisable && resultDependentIds.has(v.id)) {
-          return { ...v, show: 'disabled' };
+        if (resultDependentIds.has(v.id) && autoDisable) {
+          return { ...v, show: 'off' };
         }
         if (!overrides) return v;
         const o = overrides[v.id];
