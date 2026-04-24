@@ -108,22 +108,32 @@ const grameneViews = {
   selectGrameneViews: createSelector(
     'selectRawGrameneViews',
     'selectConfiguration',
-    (raw, config) => {
+    'selectGrameneSearch',
+    'selectGrameneFilters',
+    (raw, config, search, filters) => {
       const overrides = (config && config.views) || null;
-      if (!overrides) return raw;
       const touched = raw.touched || {};
-      return {
-        ...raw,
-        options: raw.options
-          .filter(v => overrides[v.id] !== 'hidden')
-          .map(v => {
-            const o = overrides[v.id];
-            if (!o) return v;
-            if (o === 'disabled') return { ...v, show: 'disabled' };
-            if (touched[v.id]) return v;
-            return { ...v, show: o };
-          })
-      };
+      const numFound = (search && search.response && search.response.numFound) || 0;
+      const hasFilters = !!(filters && filters.rightIdx > 1);
+      const resultDependentIds = new Set(['taxonomy', 'list']);
+      const autoDisable = (numFound === 0) || !hasFilters;
+
+      let options = raw.options;
+      if (overrides) {
+        options = options.filter(v => overrides[v.id] !== 'hidden');
+      }
+      options = options.map(v => {
+        if (autoDisable && resultDependentIds.has(v.id)) {
+          return { ...v, show: 'disabled' };
+        }
+        if (!overrides) return v;
+        const o = overrides[v.id];
+        if (!o) return v;
+        if (o === 'disabled') return { ...v, show: 'disabled' };
+        if (touched[v.id]) return v;
+        return { ...v, show: o };
+      });
+      return { ...raw, options };
     }
   )
 };
