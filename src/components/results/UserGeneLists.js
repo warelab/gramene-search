@@ -1,10 +1,8 @@
 import {connect} from "redux-bundler-react";
 import React, { useEffect, useMemo, useState } from 'react';
 import {Table, Form, Button, Alert, Spinner, Container, Row, Col, Modal} from 'react-bootstrap';
-import { firebaseApp } from "../utils";
+import { getFirebaseApp } from "../utils";
 import {getAuth, onAuthStateChanged} from "firebase/auth";
-
-const auth = getAuth(firebaseApp);
 
 const MAX_GENE_IDS = 1000; // Define the maximum number of gene IDs allowed
 
@@ -68,7 +66,8 @@ const GeneListDisplayComponent = props => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState({ key: 'createdAt', dir: 'desc' });
-  onAuthStateChanged(auth, (user) => setUser(user));
+  const auth = props.auth;
+  if (auth) onAuthStateChanged(auth, (user) => setUser(user));
 
   const toggleSort = (key) => setSort(s =>
     s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }
@@ -87,6 +86,12 @@ const GeneListDisplayComponent = props => {
   );
 
   const fetchPrivateGeneLists = async () => {
+    if (!auth) {
+      setPrivateGeneLists([]);
+      setError(null);
+      setNotice(null);
+      return;
+    }
     if (!user || typeof user.getIdToken !== 'function') {
       setPrivateGeneLists([]);
       setError(null);
@@ -357,7 +362,8 @@ const GeneListComponent = props => {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false); // New loading state
   const [user, setUser] = useState({});
-  onAuthStateChanged(auth, (user) => setUser(user));
+  const auth = props.auth;
+  if (auth) onAuthStateChanged(auth, (user) => setUser(user));
 
   // Function to handle gene list input
   const handleGeneListChange = (event) => {
@@ -549,11 +555,23 @@ const GeneListComponent = props => {
 const UserGeneListsComponent = props => {
   const [refreshKey, setRefreshKey] = useState(0);
   const handleListSaved = () => setRefreshKey(k => k + 1);
+  const firebaseConfig = props.configuration && props.configuration.firebaseConfig;
+  const auth = useMemo(() => {
+    const app = getFirebaseApp(firebaseConfig);
+    return app ? getAuth(app) : null;
+  }, [firebaseConfig]);
+  if (!auth) {
+    return (
+      <Alert variant="info">
+        User gene lists are not available on this site.
+      </Alert>
+    );
+  }
   return (
     <Container fluid>
       <Row>
-        <Col><GeneListComponent api={props.configuration.grameneData} site={props.configuration.id} onListSaved={handleListSaved}/></Col>
-        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id} addFilter={props.doAcceptGrameneSuggestion} refreshKey={refreshKey}/></Col>
+        <Col><GeneListComponent api={props.configuration.grameneData} site={props.configuration.id} auth={auth} onListSaved={handleListSaved}/></Col>
+        <Col><GeneListDisplayComponent api={props.configuration.grameneData} site={props.configuration.id} auth={auth} addFilter={props.doAcceptGrameneSuggestion} refreshKey={refreshKey}/></Col>
       </Row>
     </Container>
   )

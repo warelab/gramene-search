@@ -117,8 +117,12 @@ const grameneViews = {
       const hasFilters = !!(filters && filters.rightIdx > 1);
       const resultDependentIds = new Set(['taxonomy', 'list']);
       const autoDisable = (numFound === 0) || !hasFilters;
+      const hasFirebase = !!(config && config.firebaseConfig);
 
       let options = raw.options;
+      if (!hasFirebase) {
+        options = options.filter(v => v.id !== 'userLists');
+      }
       if (overrides) {
         options = options.filter(v => overrides[v.id] !== 'hidden');
       }

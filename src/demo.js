@@ -140,12 +140,20 @@ const panSites = [
     ensemblURL: 'https://ensembl.sorghumbase.org',
     ensemblSite: 'https://ensembl.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.sorghumbase.org/sorghum_v10',
+    grameneData: 'https://data.sorghumbase.org/auth_testing',
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558001,
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
     partialCompara: true,
+    firebaseConfig: {
+      apiKey: "AIzaSyCyTJmxfWgfuhI6-8uqocSiE9KOWUlkgkk",
+      authDomain: "gramene-auth.firebaseapp.com",
+      projectId: "gramene-auth",
+      storageBucket: "gramene-auth.appspot.com",
+      messagingSenderId: "590873346270",
+      appId: "1:590873346270:web:f76a31a93619e69439824f"
+    },
     details: {
       sequences: true,
       VEP: true,

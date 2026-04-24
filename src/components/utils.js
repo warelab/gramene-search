@@ -1,15 +1,11 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCyTJmxfWgfuhI6-8uqocSiE9KOWUlkgkk",
-  authDomain: "gramene-auth.firebaseapp.com",
-  projectId: "gramene-auth",
-  storageBucket: "gramene-auth.appspot.com",
-  messagingSenderId: "590873346270",
-  appId: "1:590873346270:web:f76a31a93619e69439824f"
+export const getFirebaseApp = (config) => {
+  if (!config) return null;
+  const name = config.projectId || '[DEFAULT]';
+  if (getApps().some(a => a.name === name)) return getApp(name);
+  return initializeApp(config, name);
 };
-
-export const firebaseApp = initializeApp(firebaseConfig);
 
 export const suggestionToFilters = (suggestion) => {
   return {

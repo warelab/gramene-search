@@ -1,16 +1,21 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Button, Modal } from 'react-bootstrap'
 import { connect } from "redux-bundler-react";
-import { firebaseApp } from "./utils";
+import { getFirebaseApp } from "./utils";
 import { getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { BsChevronDown, BsChevronRight } from 'react-icons/bs';
-
-const auth = getAuth(firebaseApp);
 
 const provider = new GoogleAuthProvider();
 
 const Auth = props => {
+  const firebaseConfig = props.configuration && props.configuration.firebaseConfig;
+  const auth = useMemo(() => {
+    const app = getFirebaseApp(firebaseConfig);
+    return app ? getAuth(app) : null;
+  }, [firebaseConfig]);
   const [user, setUser] = useState({});
+  const [open, setOpen] = useState(true);
+  if (!auth) return null;
   onAuthStateChanged(auth, (user) => setUser(user));
 
   function handleLogin() {
@@ -29,7 +34,6 @@ const Auth = props => {
       console.log(err)
     });
   }
-  const [open, setOpen] = useState(true);
   return (
     <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-auth-container': 'gramene-auth-container'}>
       <div className="sidebar-section">
