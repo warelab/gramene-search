@@ -20,6 +20,7 @@ const PAGE_SIZE = 200;
 let pivotPendingId = 0;
 const fetchPending = {}; // per-taxon request id
 const attrsPending = {}; // per-taxon request id for available attrs
+const existencePending = {}; // per-taxon request id for field-existence check
 
 function pivotSignature(store) {
   const q = store.selectGrameneFiltersQueryString();
@@ -57,7 +58,11 @@ const exprViz = {
         rows: [],
         availableAttrs: null,
         attrsSignature: null,
-        attrsRequestId: 0
+        attrsRequestId: 0,
+        fieldExistence: null,
+        existenceStatus: 'idle',
+        existenceSignature: null,
+        existenceRequestId: 0
       };
     }
 
@@ -178,6 +183,33 @@ const exprViz = {
           };
         }
 
+        case 'EXPRVIZ_EXISTENCE_STARTED': {
+          const t = ensureTaxon(state, payload.taxon);
+          return {
+            ...state,
+            byTaxon: {
+              ...state.byTaxon,
+              [payload.taxon]: {
+                ...t,
+                existenceStatus: 'loading',
+                existenceRequestId: payload.requestId,
+                existenceSignature: payload.signature
+              }
+            }
+          };
+        }
+        case 'EXPRVIZ_EXISTENCE_SUCCEEDED': {
+          const t = state.byTaxon[payload.taxon];
+          if (!t || payload.requestId !== t.existenceRequestId) return state;
+          return {
+            ...state,
+            byTaxon: {
+              ...state.byTaxon,
+              [payload.taxon]: { ...t, existenceStatus: 'ready', fieldExistence: payload.counts }
+            }
+          };
+        }
+
         case 'GRAMENE_SEARCH_CLEARED': {
           // Search context changed — invalidate pivot and any loaded rows.
           // Selected fields are kept so the user can re-run the load.
@@ -188,7 +220,10 @@ const exprViz = {
               rows: [],
               fetch: { status: 'idle', offset: 0, total: 0, signature: null, requestId: 0, error: null },
               availableAttrs: null,
-              attrsSignature: null
+              attrsSignature: null,
+              fieldExistence: null,
+              existenceStatus: 'idle',
+              existenceSignature: null
             };
           }
           return {
@@ -306,6 +341,56 @@ const exprViz = {
         });
     };
     fetchPage(0);
+  },
+
+  // Per-candidate-field non-null counts under the current q + taxon. Used by
+  // FieldsModal to hide fields that have no data in the current result set
+  // before the user picks. Uses stats.field (the swagger whitelist drops
+  // facet.query) batched across multiple GETs to stay under URL limits.
+  doFetchExprVizFieldExistence: (taxon, fields) => ({ dispatch, store }) => {
+    if (!fields || fields.length === 0) return;
+    const q = store.selectGrameneFiltersQueryString();
+    const fieldsKey = fields.slice().sort().join(',');
+    const signature = `${q}|${taxon}|${fieldsKey}`;
+    const ev = store.selectExprViz();
+    const t = ev.byTaxon[taxon];
+    if (t && t.fieldExistence && t.existenceSignature === signature) return;
+
+    const requestId = (existencePending[taxon] = (existencePending[taxon] || 0) + 1);
+    dispatch({ type: 'EXPRVIZ_EXISTENCE_STARTED', payload: { taxon, requestId, signature } });
+
+    const api = store.selectGrameneAPI();
+    const BATCH_SIZE = 40;
+    const batches = [];
+    for (let i = 0; i < fields.length; i += BATCH_SIZE) {
+      batches.push(fields.slice(i, i + BATCH_SIZE));
+    }
+
+    Promise.all(batches.map(batch => {
+      const params = new URLSearchParams();
+      params.append('q', q);
+      params.append('fq', `taxon_id:${taxon}`);
+      params.append('rows', '0');
+      params.append('stats', 'true');
+      batch.forEach(f => params.append('stats.field', f));
+      return fetch(`${api}/search?${params.toString()}`)
+        .then(r => r.json())
+        .then(json => {
+          const sf = (json && json.stats && json.stats.stats_fields) || {};
+          const out = {};
+          for (const f of Object.keys(sf)) {
+            const s = sf[f];
+            out[f] = s && typeof s.count === 'number' ? s.count : 0;
+          }
+          return out;
+        });
+    }))
+      .then(results => {
+        if (requestId !== existencePending[taxon]) return;
+        const counts = Object.assign({}, ...results);
+        dispatch({ type: 'EXPRVIZ_EXISTENCE_SUCCEEDED', payload: { taxon, requestId, counts } });
+      })
+      .catch(() => { /* swallow — non-fatal; modal falls back to showing all */ });
   },
 
   reactExprVizPivot: createSelector(

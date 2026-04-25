@@ -1,70 +1,100 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { connect } from 'redux-bundler-react';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, ToggleButton, ToggleButtonGroup } from 'react-bootstrap';
 
-// Build candidate sample-group rows for a taxon's studies.
-// Each row corresponds to one expression column: <studyId>_<group>__expr
-// Columns are dynamic — union of factor/characteristic types across rows.
-function buildRows(studyIds, expressionSamples, fieldCatalog) {
-  if (!expressionSamples) return { rows: [], factorTypes: [], charTypes: [] };
+function speciesTaxonId(tid) {
+  const n = +tid;
+  return n > 1000000 ? Math.floor(n / 1000) : n;
+}
+
+const EXPERIMENT_KEYS = [
+  { key: 'exp:study', label: 'Study' },
+  { key: 'exp:type', label: 'Study type' },
+  { key: 'exp:organism', label: 'Organism' }
+];
+
+// One record per expression field (one sample group within one study).
+// `props` is a flat map of property-key → value used for filtering and display.
+function buildFieldRecords(taxon, studyIds, expressionStudies, expressionSamples, fieldCatalog, grameneMaps) {
+  const records = [];
   const factorTypes = new Set();
   const charTypes = new Set();
-  const rows = [];
+  if (!expressionSamples || !expressionStudies) return { records, factorTypes: [], charTypes: [] };
+
+  const studyById = {};
+  const list = expressionStudies[taxon] || expressionStudies[speciesTaxonId(taxon)] || [];
+  list.forEach(s => { studyById[s._id] = s; });
+
   for (const studyId of studyIds) {
+    const study = studyById[studyId];
+    if (!study) continue;
     const samples = expressionSamples[studyId];
     if (!samples) continue;
-    // Group by sample.group; one row per group.
+
     const byGroup = {};
-    for (const s of samples) {
-      if (!byGroup[s.group]) byGroup[s.group] = s;
-    }
+    for (const s of samples) if (!byGroup[s.group]) byGroup[s.group] = s;
+
     for (const group of Object.keys(byGroup)) {
       const sample = byGroup[group];
       const fieldName = `${studyId.replace(/-/g, '_')}_${group}__expr`;
-      if (fieldCatalog && fieldCatalog.fields && !fieldCatalog.fields[fieldName]) {
-        // skip rows with no corresponding catalog field
-        continue;
-      }
-      const factors = {};
+      if (fieldCatalog && fieldCatalog.fields && !fieldCatalog.fields[fieldName]) continue;
+
+      const props = {};
+      props['exp:study'] = study.description || studyId;
+      props['exp:type'] = study.type || '(unknown)';
+      const taxon_id = study.taxon_id;
+      const taxName = grameneMaps && (grameneMaps[taxon_id] || grameneMaps[speciesTaxonId(taxon_id)]);
+      props['exp:organism'] = (taxName && taxName.display_name) || String(taxon_id);
+
+      const usedFactorTypes = new Set();
       (sample.factor || []).forEach(f => {
-        factors[f.type] = f.label;
+        props[`fac:${f.type}`] = f.label;
         factorTypes.add(f.type);
+        usedFactorTypes.add(f.type);
       });
-      const characteristics = {};
       (sample.characteristic || []).forEach(c => {
-        if (factors[c.type] != null) return; // factor takes precedence
-        characteristics[c.type] = c.label;
+        if (usedFactorTypes.has(c.type)) return; // factor takes precedence
+        props[`char:${c.type}`] = c.label;
         charTypes.add(c.type);
       });
-      rows.push({
-        fieldName,
-        studyId,
-        group,
-        replicates: samples.filter(s => s.group === group).length,
-        factors,
-        characteristics
-      });
+
+      records.push({ fieldName, studyId, group, props });
     }
   }
   return {
-    rows,
+    records,
     factorTypes: Array.from(factorTypes).sort(),
     charTypes: Array.from(charTypes).sort()
   };
 }
 
-function rowMatches(row, q) {
-  if (!q) return true;
-  const ql = q.toLowerCase();
-  if (row.fieldName.toLowerCase().includes(ql)) return true;
-  for (const v of Object.values(row.factors)) if (String(v).toLowerCase().includes(ql)) return true;
-  for (const v of Object.values(row.characteristics)) if (String(v).toLowerCase().includes(ql)) return true;
-  return false;
+function fieldMatches(field, selections, excludeKey) {
+  for (const key of Object.keys(selections)) {
+    if (key === excludeKey) continue;
+    const values = selections[key];
+    if (!values || values.size === 0) continue;
+    const v = field.props[key];
+    if (v == null || !values.has(v)) return false;
+  }
+  return true;
 }
 
-function speciesTaxonId(tid) {
-  const n = +tid;
-  return n > 1000000 ? Math.floor(n / 1000) : n;
+function valueCounts(records, key, selections) {
+  const counts = new Map();
+  for (const f of records) {
+    if (!fieldMatches(f, selections, key)) continue;
+    const v = f.props[key];
+    if (v == null) continue;
+    counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  return counts;
+}
+
+function labelForKey(key, tree) {
+  for (const grp of tree) {
+    for (const t of grp.types) if (t.key === key) return t.label;
+  }
+  return key;
 }
 
 const FieldsModalCmp = props => {
@@ -73,13 +103,14 @@ const FieldsModalCmp = props => {
     exprViz,
     expressionStudies,
     expressionSamples,
+    grameneMaps,
     doToggleExprVizFieldsModal,
-    doSetExprVizFields
+    doSetExprVizFields,
+    doFetchExprVizFieldExistence
   } = props;
 
   const taxon = Object.keys(exprViz.byTaxon).find(t => exprViz.byTaxon[t].fieldsModalOpen);
   const open = !!taxon;
-
   const availableAttrs = taxon && exprViz.byTaxon[taxon] && exprViz.byTaxon[taxon].availableAttrs;
 
   const studyIds = useMemo(() => {
@@ -93,99 +124,235 @@ const FieldsModalCmp = props => {
     return ids;
   }, [taxon, expressionStudies, availableAttrs]);
 
-  const { rows, factorTypes, charTypes } = useMemo(
-    () => buildRows(studyIds, expressionSamples, fieldCatalog),
-    [studyIds, expressionSamples, fieldCatalog]
+  const allRecords = useMemo(
+    () => buildFieldRecords(taxon, studyIds, expressionStudies, expressionSamples, fieldCatalog, grameneMaps),
+    [taxon, studyIds, expressionStudies, expressionSamples, fieldCatalog, grameneMaps]
   );
 
-  const [pending, setPending] = useState(new Set());
-  const [filter, setFilter] = useState('');
+  const candidateFields = useMemo(
+    () => allRecords.records.map(r => r.fieldName),
+    [allRecords]
+  );
 
+  // Trigger the field-existence facet check whenever the modal is open and
+  // the candidate field list is known. The bundle caches per (q, taxon, fields).
+  useEffect(() => {
+    if (open && taxon && candidateFields.length > 0) {
+      doFetchExprVizFieldExistence(taxon, candidateFields);
+    }
+  }, [open, taxon, candidateFields, doFetchExprVizFieldExistence]);
+
+  const fieldExistence = taxon && exprViz.byTaxon[taxon] && exprViz.byTaxon[taxon].fieldExistence;
+  const existenceStatus = taxon && exprViz.byTaxon[taxon] && exprViz.byTaxon[taxon].existenceStatus;
+
+  // Once existence counts are loaded, drop fields with no data in the current
+  // result set. Until then, render with the full candidate set so the modal
+  // doesn't flash empty during the precheck.
+  const { records, factorTypes, charTypes } = useMemo(() => {
+    if (!fieldExistence) return allRecords;
+    const live = new Set(Object.keys(fieldExistence).filter(f => fieldExistence[f] > 0));
+    const filtered = allRecords.records.filter(r => live.has(r.fieldName));
+    const factorTypes = new Set();
+    const charTypes = new Set();
+    for (const r of filtered) {
+      for (const k of Object.keys(r.props)) {
+        if (k.startsWith('fac:')) factorTypes.add(k.slice(4));
+        else if (k.startsWith('char:')) charTypes.add(k.slice(5));
+      }
+    }
+    return {
+      records: filtered,
+      factorTypes: Array.from(factorTypes).sort(),
+      charTypes: Array.from(charTypes).sort()
+    };
+  }, [allRecords, fieldExistence]);
+
+  const propTree = useMemo(() => [
+    { group: 'experiment', label: 'Experiment', types: EXPERIMENT_KEYS },
+    { group: 'factors', label: 'Factors', types: factorTypes.map(t => ({ key: `fac:${t}`, label: t })) },
+    { group: 'characteristics', label: 'Characteristics', types: charTypes.map(t => ({ key: `char:${t}`, label: t })) }
+  ], [factorTypes, charTypes]);
+
+  const [selections, setSelections] = useState({});
+  const [expandedKey, setExpandedKey] = useState(null);
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [valueSort, setValueSort] = useState('count');
+  const [orderedSelectedKeys, setOrderedSelectedKeys] = useState([]);
+
+  // Distinct values per property type, ignoring the type's own selection but
+  // applying every other selected type. Counts shown next to a property type
+  // reflect "how many distinct values exist among the fields currently
+  // matching the rest of the filter."
+  const valueSetByKey = useMemo(() => {
+    const allKeys = new Set();
+    for (const r of records) for (const k of Object.keys(r.props)) allKeys.add(k);
+    const m = {};
+    for (const key of allKeys) {
+      const set = new Set();
+      for (const r of records) {
+        if (!fieldMatches(r, selections, key)) continue;
+        const v = r.props[key];
+        if (v != null) set.add(v);
+      }
+      m[key] = set;
+    }
+    return m;
+  }, [records, selections]);
+
+  // Reset state when modal (re)opens for a taxon.
   useEffect(() => {
     if (open && taxon) {
-      setPending(new Set(exprViz.byTaxon[taxon].selectedFields || []));
-      setFilter('');
+      setSelections({});
+      setExpandedKey(null);
+      setCollapsedGroups({});
+      setOrderedSelectedKeys([]);
     }
   }, [open, taxon]);
 
+  // Keep orderedSelectedKeys in sync with selections (preserves the order in
+  // which the user first selected each property type).
+  useEffect(() => {
+    setOrderedSelectedKeys(prev => {
+      const active = Object.keys(selections);
+      const activeSet = new Set(active);
+      const kept = prev.filter(k => activeSet.has(k));
+      const newOnes = active.filter(k => !prev.includes(k));
+      return [...kept, ...newOnes];
+    });
+  }, [selections]);
+
+  const matchingFields = useMemo(
+    () => records.filter(r => fieldMatches(r, selections, null)),
+    [records, selections]
+  );
+
   if (!open) return null;
 
-  const filtered = filter ? rows.filter(r => rowMatches(r, filter)) : rows;
-
-  const toggle = name => {
-    setPending(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name); else next.add(name);
+  const toggleValue = (key, value) => {
+    setSelections(prev => {
+      const next = { ...prev };
+      const set = new Set(next[key] || []);
+      if (set.has(value)) set.delete(value); else set.add(value);
+      if (set.size === 0) delete next[key]; else next[key] = set;
       return next;
     });
   };
 
-  const selectShown = () => setPending(prev => {
-    const next = new Set(prev);
-    filtered.forEach(r => next.add(r.fieldName));
-    return next;
-  });
+  const clearTypeSelection = (key) => {
+    setSelections(prev => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
 
-  const deselectShown = () => setPending(prev => {
-    const next = new Set(prev);
-    filtered.forEach(r => next.delete(r.fieldName));
-    return next;
-  });
+  const toggleGroup = (g) => setCollapsedGroups(prev => ({ ...prev, [g]: !prev[g] }));
+
+  const renderValues = (key) => {
+    const counts = valueCounts(records, key, selections);
+    let entries = Array.from(counts.entries());
+    if (valueSort === 'name') entries.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+    else entries.sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+    const sel = selections[key] || new Set();
+
+    return (
+      <div className="exprviz-tree-values">
+        <div className="exprviz-values-toolbar">
+          <ToggleButtonGroup
+            type="radio"
+            name={`exprviz-vsort-${key}`}
+            size="sm"
+            value={valueSort}
+            onChange={setValueSort}
+          >
+            <ToggleButton id={`exprviz-vsort-name-${key}`} value="name" variant="outline-secondary">Name</ToggleButton>
+            <ToggleButton id={`exprviz-vsort-count-${key}`} value="count" variant="outline-secondary">Count</ToggleButton>
+          </ToggleButtonGroup>
+          {sel.size > 0 && (
+            <Button size="sm" variant="link" onClick={() => clearTypeSelection(key)}>clear</Button>
+          )}
+        </div>
+        {entries.map(([v, c]) => (
+          <label key={v} className="exprviz-tree-value">
+            <input type="checkbox" checked={sel.has(v)} onChange={() => toggleValue(key, v)} />
+            <span className="exprviz-tree-value-label" title={v}>{v}</span>
+            <span className="exprviz-tree-value-count">{c}</span>
+          </label>
+        ))}
+        {entries.length === 0 && <em className="exprviz-tree-empty">No values</em>}
+      </div>
+    );
+  };
 
   return (
     <Modal show={open} onHide={() => doToggleExprVizFieldsModal(taxon, false)} size="xl" scrollable>
       <Modal.Header closeButton>
-        <Modal.Title>Select expression fields ({rows.length} groups across {studyIds.length} studies)</Modal.Title>
+        <Modal.Title>
+          Filter expression fields ({matchingFields.length} of {records.length} match)
+          {existenceStatus === 'loading' && (
+            <span className="exprviz-modal-loading"> · checking field availability…</span>
+          )}
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <div className="exprviz-fields-toolbar">
-          <Form.Control
-            size="sm"
-            placeholder="Filter on factor / characteristic / field name…"
-            value={filter}
-            onChange={e => setFilter(e.target.value)}
-          />
-          <span className="exprviz-fields-count">
-            {pending.size} selected · showing {filtered.length}/{rows.length}
-          </span>
-          <Button size="sm" variant="link" onClick={selectShown}>select shown</Button>
-          <Button size="sm" variant="link" onClick={deselectShown}>deselect shown</Button>
-          <Button size="sm" variant="link" onClick={() => setPending(new Set())}>clear</Button>
-        </div>
-        <div className="exprviz-fields-table-wrap">
-          <table className="exprviz-fields-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Study</th>
-                <th>Group</th>
-                <th>Reps</th>
-                {factorTypes.map(t => <th key={'f-' + t} className="exprviz-col-factor">{t}</th>)}
-                {charTypes.map(t => <th key={'c-' + t} className="exprviz-col-char">{t}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(r => (
-                <tr key={r.fieldName}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={pending.has(r.fieldName)}
-                      onChange={() => toggle(r.fieldName)}
-                    />
-                  </td>
-                  <td title={r.fieldName}>{r.studyId}</td>
-                  <td>{r.group}</td>
-                  <td>{r.replicates}</td>
-                  {factorTypes.map(t => <td key={'f-' + t}>{r.factors[t] || ''}</td>)}
-                  {charTypes.map(t => <td key={'c-' + t}>{r.characteristics[t] || ''}</td>)}
+        <div className="exprviz-fields-layout">
+          <div className="exprviz-tree">
+            {propTree.map(grp => (
+              <div key={grp.group} className="exprviz-tree-group">
+                <div className="exprviz-tree-group-header" onClick={() => toggleGroup(grp.group)}>
+                  <span className="exprviz-tree-caret">{collapsedGroups[grp.group] ? '▶' : '▼'}</span>
+                  <strong>{grp.label}</strong>
+                </div>
+                {!collapsedGroups[grp.group] && grp.types.length === 0 && (
+                  <div className="exprviz-tree-empty"><em>(none)</em></div>
+                )}
+                {!collapsedGroups[grp.group] && grp.types.map(t => {
+                  const numValues = (valueSetByKey[t.key] && valueSetByKey[t.key].size) || 0;
+                  if (numValues === 0) return null;
+                  const sel = selections[t.key];
+                  const selCount = sel ? sel.size : 0;
+                  const isExpanded = expandedKey === t.key;
+                  return (
+                    <div key={t.key} className={`exprviz-tree-type${selCount > 0 ? ' is-active' : ''}`}>
+                      <div
+                        className="exprviz-tree-type-header"
+                        onClick={() => setExpandedKey(isExpanded ? null : t.key)}
+                      >
+                        <span className="exprviz-tree-caret">{isExpanded ? '▾' : '▸'}</span>
+                        <span className="exprviz-tree-type-label">{t.label}</span>
+                        <span className="exprviz-tree-type-count">
+                          {selCount > 0 ? `${selCount}/${numValues}` : numValues}
+                        </span>
+                      </div>
+                      {isExpanded && renderValues(t.key)}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          <div className="exprviz-fields-preview">
+            <table className="exprviz-fields-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  {orderedSelectedKeys.map(k => <th key={k}>{labelForKey(k, propTree)}</th>)}
                 </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={4 + factorTypes.length + charTypes.length}><em>No matching sample groups.</em></td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {matchingFields.map(f => (
+                  <tr key={f.fieldName}>
+                    <td title={f.fieldName}>{f.fieldName.replace(/__expr$/, '')}</td>
+                    {orderedSelectedKeys.map(k => <td key={k}>{f.props[k] || ''}</td>)}
+                  </tr>
+                ))}
+                {matchingFields.length === 0 && (
+                  <tr><td colSpan={1 + orderedSelectedKeys.length}><em>No matching fields</em></td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </Modal.Body>
       <Modal.Footer>
@@ -194,12 +361,13 @@ const FieldsModalCmp = props => {
         </Button>
         <Button
           variant="primary"
+          disabled={matchingFields.length === 0}
           onClick={() => {
-            doSetExprVizFields(taxon, Array.from(pending));
+            doSetExprVizFields(taxon, matchingFields.map(f => f.fieldName));
             doToggleExprVizFieldsModal(taxon, false);
           }}
         >
-          Apply
+          Apply ({matchingFields.length} fields)
         </Button>
       </Modal.Footer>
     </Modal>
@@ -211,7 +379,9 @@ export default connect(
   'selectExprViz',
   'selectExpressionStudies',
   'selectExpressionSamples',
+  'selectGrameneMaps',
   'doToggleExprVizFieldsModal',
   'doSetExprVizFields',
+  'doFetchExprVizFieldExistence',
   FieldsModalCmp
 );

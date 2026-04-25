@@ -25,6 +25,16 @@
   margin-left: 0.5rem;
 }
 
+.exprviz-warning {
+  color: #b06000;
+  background: #fff8e0;
+  border: 1px solid #f0d080;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  cursor: help;
+}
+
 .exprviz-body {
   display: flex;
   flex-direction: column;
@@ -87,21 +97,115 @@
   height: 100%;
 }
 
-.exprviz-fields-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.exprviz-fields-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0.75rem;
+  height: 60vh;
+}
+
+.exprviz-tree {
+  overflow-y: auto;
+  border: 1px solid #eee;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.exprviz-tree-group {
   margin-bottom: 0.5rem;
 }
 
-.exprviz-fields-count {
-  color: #666;
-  font-size: 0.85rem;
+.exprviz-tree-group-header {
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+}
+
+.exprviz-tree-caret {
+  display: inline-block;
+  width: 1em;
+  color: #888;
+}
+
+.exprviz-tree-type {
+  margin-left: 0.5rem;
+  border-left: 2px solid transparent;
+  padding-left: 0.25rem;
+}
+
+.exprviz-tree-type.is-active {
+  border-left-color: #2a6ebb;
+}
+
+.exprviz-tree-type-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.exprviz-tree-type-header:hover {
+  background: #f5f8ff;
+}
+
+.exprviz-tree-type-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.exprviz-fields-table-wrap {
-  max-height: 60vh;
+.exprviz-tree-type-count {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.5rem;
+}
+
+.exprviz-tree-values {
+  margin: 0.25rem 0 0.5rem 1.25rem;
+  padding-left: 0.25rem;
+  border-left: 1px dashed #e0e0e0;
+}
+
+.exprviz-values-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.exprviz-tree-value {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1px 0;
+  cursor: pointer;
+}
+
+.exprviz-tree-value:hover {
+  background: #fafaff;
+}
+
+.exprviz-tree-value-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exprviz-tree-value-count {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8em;
+}
+
+.exprviz-tree-empty {
+  color: #999;
+  margin-left: 1rem;
+}
+
+.exprviz-fields-preview {
   overflow: auto;
   border: 1px solid #eee;
 }
