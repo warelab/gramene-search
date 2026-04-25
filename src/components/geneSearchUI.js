@@ -12,6 +12,7 @@ import TaxonomyModal from './TaxonomyModal'
 import Expression from './results/Expression'
 import UserGeneLists from './results/UserGeneLists'
 import ExporterView from './exporter/ExporterView'
+import ExprVizView from './exprViz/ExprVizView'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
@@ -40,6 +41,7 @@ const inventory = {
   taxonomy: TaxDist,
   attribs: GeneAttribs,
   expression: Expression,
+  exprViz: ExprVizView,
   userLists: UserGeneLists,
   export: ExporterView
 };

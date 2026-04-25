@@ -37,6 +37,12 @@ const grameneViews = {
           desiredSamples: {}
         },
         {
+          id: 'exprViz',
+          name: 'Expression visualization',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
           id: 'attribs',
           name: 'Gene attributes',
           show: 'off',
