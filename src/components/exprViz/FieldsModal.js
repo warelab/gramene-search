@@ -20,7 +20,7 @@ function buildRows(studyIds, expressionSamples, fieldCatalog) {
     }
     for (const group of Object.keys(byGroup)) {
       const sample = byGroup[group];
-      const fieldName = `${studyId}_${group}__expr`;
+      const fieldName = `${studyId.replace(/-/g, '_')}_${group}__expr`;
       if (fieldCatalog && fieldCatalog.fields && !fieldCatalog.fields[fieldName]) {
         // skip rows with no corresponding catalog field
         continue;
@@ -62,11 +62,16 @@ function rowMatches(row, q) {
   return false;
 }
 
+function speciesTaxonId(tid) {
+  const n = +tid;
+  return n > 1000000 ? Math.floor(n / 1000) : n;
+}
+
 const FieldsModalCmp = props => {
   const {
     fieldCatalog,
     exprViz,
-    exprVizPivot,
+    expressionStudies,
     expressionSamples,
     doToggleExprVizFieldsModal,
     doSetExprVizFields
@@ -75,10 +80,18 @@ const FieldsModalCmp = props => {
   const taxon = Object.keys(exprViz.byTaxon).find(t => exprViz.byTaxon[t].fieldsModalOpen);
   const open = !!taxon;
 
+  const availableAttrs = taxon && exprViz.byTaxon[taxon] && exprViz.byTaxon[taxon].availableAttrs;
+
   const studyIds = useMemo(() => {
-    if (!taxon) return [];
-    return ((exprVizPivot.data || {})[taxon] || []).map(s => s.value);
-  }, [taxon, exprVizPivot]);
+    if (!taxon || !expressionStudies) return [];
+    const list = expressionStudies[taxon] || expressionStudies[speciesTaxonId(taxon)] || [];
+    let ids = list.map(s => s._id);
+    if (availableAttrs) {
+      const allow = new Set(availableAttrs);
+      ids = ids.filter(id => allow.has(id));
+    }
+    return ids;
+  }, [taxon, expressionStudies, availableAttrs]);
 
   const { rows, factorTypes, charTypes } = useMemo(
     () => buildRows(studyIds, expressionSamples, fieldCatalog),
@@ -196,7 +209,7 @@ const FieldsModalCmp = props => {
 export default connect(
   'selectFieldCatalog',
   'selectExprViz',
-  'selectExprVizPivot',
+  'selectExpressionStudies',
   'selectExpressionSamples',
   'doToggleExprVizFieldsModal',
   'doSetExprVizFields',

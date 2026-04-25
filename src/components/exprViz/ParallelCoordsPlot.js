@@ -1,11 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-// Minimal parallel-coordinates skeleton.
-// Each selected field becomes one vertical axis. Each gene becomes one polyline.
-// Numeric fields use a linear scale; non-numeric values are skipped for now.
+// Parallel-coordinates plot with per-axis brushing and drag-to-reorder axes.
+// - Axis labels are draggable horizontally; on drop, onReorder(newOrder) fires.
+// - Brushes on axes intersect (AND): a row is "in" only when every active brush contains it.
+// - Numeric fields use a linear or symlog scale; non-numeric values are skipped.
 
-const MARGIN = { top: 24, right: 24, bottom: 24, left: 32 };
+const MARGIN = { top: 100, right: 24, bottom: 24, left: 32 };
+const LABEL_ROTATION = -40;
+const BRUSH_WIDTH = 16;
 
 function isNumeric(v) {
   if (v == null) return false;
@@ -14,11 +17,68 @@ function isNumeric(v) {
   return Number.isFinite(n);
 }
 
-const ParallelCoordsPlot = ({ rows, fields }) => {
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+// Powers-of-10 tick values spanning [lo, hi]; includes 0 if the range crosses zero.
+// Clamped to |v| >= 0.1 to keep low-magnitude tick labels from overlapping near 0.
+const MIN_LOG_TICK = 0.1;
+function logTickValues([lo, hi]) {
+  const ticks = new Set();
+  if (lo <= 0 && hi >= 0) ticks.add(0);
+  if (hi >= MIN_LOG_TICK) {
+    const start = Math.max(-1, Math.floor(Math.log10(lo > 0 ? lo : MIN_LOG_TICK)));
+    const end = Math.ceil(Math.log10(hi));
+    for (let p = start; p <= end; p++) {
+      const v = Math.pow(10, p);
+      if (v >= MIN_LOG_TICK && v <= hi) ticks.add(v);
+    }
+  }
+  if (lo <= -MIN_LOG_TICK) {
+    const start = Math.max(-1, Math.floor(Math.log10(hi < 0 ? -hi : MIN_LOG_TICK)));
+    const end = Math.ceil(Math.log10(-lo));
+    for (let p = start; p <= end; p++) {
+      const v = -Math.pow(10, p);
+      if (-v >= MIN_LOG_TICK && v >= lo) ticks.add(v);
+    }
+  }
+  return Array.from(ticks).sort((a, b) => a - b);
+}
+
+function logTickFormat(v) {
+  if (v === 0) return '0';
+  const a = Math.abs(v);
+  if (a >= 0.01 && a < 10000) return d3.format('~g')(v);
+  return d3.format('.0e')(v);
+}
+
+const ParallelCoordsPlot = ({
+  rows,
+  fields,
+  scale = 'linear',
+  onBrushChange,
+  onReorder,
+  clearVersion = 0
+}) => {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
+  // selections in data domain: { [field]: [lo, hi] }
+  const selectionsRef = useRef({});
+  const lastClearRef = useRef(0);
 
   useEffect(() => {
+    if (clearVersion !== lastClearRef.current) {
+      selectionsRef.current = {};
+      lastClearRef.current = clearVersion;
+      if (onBrushChange) onBrushChange({});
+    }
+    Object.keys(selectionsRef.current).forEach(f => {
+      if (!fields || !fields.includes(f)) delete selectionsRef.current[f];
+    });
+
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
     if (!fields || fields.length === 0 || !rows || rows.length === 0) return;
@@ -33,50 +93,193 @@ const ParallelCoordsPlot = ({ rows, fields }) => {
 
     const g = svg.append('g').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
 
-    const x = d3.scalePoint().range([0, innerW]).padding(0.5).domain(fields);
+    // Mutable order during drag — starts as a copy of fields.
+    let order = fields.slice();
+    const x = d3.scalePoint().range([0, innerW]).padding(0.5).domain(order);
 
     const yByField = {};
+    let globalExt = null;
+    if (scale === 'log') {
+      const all = [];
+      fields.forEach(f => {
+        rows.forEach(r => {
+          const v = r[f];
+          if (isNumeric(v)) all.push(+v);
+        });
+      });
+      globalExt = all.length ? d3.extent(all) : [0, 1];
+    }
     fields.forEach(f => {
-      const vals = rows.map(r => r[f]).filter(isNumeric).map(Number);
-      const ext = vals.length ? d3.extent(vals) : [0, 1];
-      yByField[f] = d3.scaleLinear().domain(ext).range([innerH, 0]).nice();
+      if (scale === 'log') {
+        yByField[f] = d3.scaleSymlog().domain(globalExt).range([innerH, 0]).nice();
+      } else {
+        const vals = rows.map(r => r[f]).filter(isNumeric).map(Number);
+        const ext = vals.length ? d3.extent(vals) : [0, 1];
+        yByField[f] = d3.scaleLinear().domain(ext).range([innerH, 0]).nice();
+      }
     });
+
+    function pathForRow(row, posOf) {
+      const pts = order.map(f => {
+        const v = row[f];
+        if (!isNumeric(v)) return null;
+        return [posOf(f), yByField[f](Number(v))];
+      });
+      return line(pts);
+    }
 
     const line = d3.line()
       .defined(d => d != null && Number.isFinite(d[1]))
       .x(d => d[0])
       .y(d => d[1]);
 
-    g.append('g')
-      .attr('class', 'exprviz-pc-lines')
+    const linesG = g.append('g').attr('class', 'exprviz-pc-lines');
+    const paths = linesG
       .selectAll('path')
       .data(rows)
       .enter()
       .append('path')
       .attr('fill', 'none')
       .attr('stroke', 'steelblue')
-      .attr('stroke-opacity', 0.25)
       .attr('stroke-width', 1)
-      .attr('d', row => {
-        const pts = fields.map(f => {
-          const v = row[f];
-          if (!isNumeric(v)) return null;
-          return [x(f), yByField[f](Number(v))];
-        });
-        return line(pts);
-      });
+      .attr('d', row => pathForRow(row, f => x(f)));
 
-    fields.forEach(f => {
-      const ax = g.append('g').attr('transform', `translate(${x(f)},0)`);
-      ax.call(d3.axisLeft(yByField[f]).ticks(5));
-      ax.append('text')
-        .attr('y', -8)
-        .attr('text-anchor', 'middle')
+    function isBrushedIn(row) {
+      for (const f of order) {
+        const sel = selectionsRef.current[f];
+        if (!sel) continue;
+        const v = row[f];
+        if (!isNumeric(v)) return false;
+        const n = Number(v);
+        const [lo, hi] = sel;
+        if (n < lo || n > hi) return false;
+      }
+      return true;
+    }
+
+    function applyBrushStyles() {
+      const anyActive = Object.keys(selectionsRef.current).length > 0;
+      paths
+        .classed('exprviz-pc-line-in', d => !anyActive || isBrushedIn(d))
+        .classed('exprviz-pc-line-out', d => anyActive && !isBrushedIn(d));
+    }
+    applyBrushStyles();
+
+    // axis groups, keyed by field name so D3 can match them across reorders
+    const axisG = g.selectAll('.exprviz-pc-axis')
+      .data(order, d => d)
+      .enter()
+      .append('g')
+      .attr('class', 'exprviz-pc-axis')
+      .attr('transform', d => `translate(${x(d)},0)`);
+
+    axisG.each(function(f) {
+      const ax = d3.select(this);
+      const axisGen = d3.axisLeft(yByField[f]);
+      if (scale === 'log') {
+        axisGen.tickValues(logTickValues(yByField[f].domain())).tickFormat(logTickFormat);
+      } else {
+        axisGen.ticks(5);
+      }
+      ax.call(axisGen);
+
+      const label = ax.append('text')
+        .attr('class', 'exprviz-pc-axis-label')
+        .attr('x', 4).attr('y', -4)
+        .attr('text-anchor', 'start')
+        .attr('transform', `rotate(${LABEL_ROTATION}, 0, -4)`)
         .attr('fill', '#333')
         .style('font-size', '10px')
-        .text(f);
+        .style('cursor', 'grab')
+        .text(f.replace(/__expr$/, ''));
+
+      // hit area for grabbing — sits along the rotated label
+      ax.append('rect')
+        .attr('class', 'exprviz-pc-axis-handle')
+        .attr('x', 0).attr('y', -11)
+        .attr('width', 140).attr('height', 14)
+        .attr('transform', `rotate(${LABEL_ROTATION}, 0, -4)`)
+        .attr('fill', 'transparent')
+        .style('cursor', 'grab');
+
+      const brush = d3.brushY()
+        .extent([[-BRUSH_WIDTH / 2, 0], [BRUSH_WIDTH / 2, innerH]])
+        .on('brush end', (event) => {
+          const s = event.selection;
+          if (!s) {
+            delete selectionsRef.current[f];
+          } else {
+            const y = yByField[f];
+            const a = y.invert(s[0]);
+            const b = y.invert(s[1]);
+            selectionsRef.current[f] = [Math.min(a, b), Math.max(a, b)];
+          }
+          applyBrushStyles();
+          if (event.type === 'end' && onBrushChange) {
+            onBrushChange({ ...selectionsRef.current });
+          }
+        });
+
+      const brushG = ax.append('g').attr('class', 'exprviz-pc-brush').call(brush);
+
+      const prior = selectionsRef.current[f];
+      if (prior) {
+        const y = yByField[f];
+        const py0 = y(prior[1]);
+        const py1 = y(prior[0]);
+        if (Number.isFinite(py0) && Number.isFinite(py1)) {
+          brushG.call(brush.move, [py0, py1]);
+        }
+      }
     });
-  }, [rows, fields]);
+
+    // Drag-to-reorder: while dragging, only the dragged axis moves and the
+    // line segments connecting to it are recomputed. Other axes stay put.
+    // The new order is computed once at drag end and emitted via onReorder.
+    const drag = d3.drag()
+      .container(function() { return g.node(); })
+      .subject(function(event, d) { return { x: x(d), y: 0 }; })
+      .on('start', function(event, d) {
+        const axNode = this.parentNode;
+        d3.select(axNode).raise().classed('exprviz-pc-axis-dragging', true);
+        d3.select(axNode).select('.exprviz-pc-axis-label').style('cursor', 'grabbing');
+        linesG.classed('exprviz-pc-lines-dragging', true);
+      })
+      .on('drag', function(event, d) {
+        const axNode = this.parentNode;
+        const newX = Math.max(0, Math.min(innerW, event.x));
+        d3.select(axNode).attr('transform', `translate(${newX},0)`);
+        paths.attr('d', row => pathForRow(row, f => f === d ? newX : x(f)));
+      })
+      .on('end', function(event, d) {
+        const axNode = this.parentNode;
+        const newX = Math.max(0, Math.min(innerW, event.x));
+        d3.select(axNode).classed('exprviz-pc-axis-dragging', false);
+        d3.select(axNode).select('.exprviz-pc-axis-label').style('cursor', 'grab');
+        linesG.classed('exprviz-pc-lines-dragging', false);
+
+        const newOrder = order.slice().sort((a, b) => {
+          const xa = a === d ? newX : x(a);
+          const xb = b === d ? newX : x(b);
+          return xa - xb;
+        });
+
+        if (onReorder && !arraysEqual(newOrder, fields)) {
+          // Snap the dragged axis to its target slot for the brief moment
+          // before the parent re-renders with the new order.
+          x.domain(newOrder);
+          d3.select(axNode).attr('transform', `translate(${x(d)},0)`);
+          paths.attr('d', row => pathForRow(row, f => x(f)));
+          onReorder(newOrder);
+        } else {
+          // No order change — restore the dragged axis to its original slot.
+          d3.select(axNode).attr('transform', `translate(${x(d)},0)`);
+          paths.attr('d', row => pathForRow(row, f => x(f)));
+        }
+      });
+
+    axisG.selectAll('.exprviz-pc-axis-label, .exprviz-pc-axis-handle').call(drag);
+  }, [rows, fields, scale, onBrushChange, onReorder, clearVersion]);
 
   if (!fields || fields.length === 0) {
     return <div className="exprviz-plot-empty"><em>Select fields to plot.</em></div>;
