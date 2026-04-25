@@ -12,12 +12,6 @@ const grameneViews = {
           shouldScroll: false
         },
         {
-          id: 'userLists',
-          name: 'User Gene Lists',
-          show: 'off',
-          shouldScroll: false
-        },
-        {
           id: 'taxonomy',
           name: 'Taxonomic distribution',
           show: 'on',
@@ -30,6 +24,24 @@ const grameneViews = {
           shouldScroll: false
         },
         {
+          id: 'exprViz',
+          name: 'Expression visualization',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'userLists',
+          name: 'User Gene Lists',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'export',
+          name: 'Data exporter',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
           id: 'expression',
           name: 'Gene expression',
           show: 'off',
@@ -37,20 +49,8 @@ const grameneViews = {
           desiredSamples: {}
         },
         {
-          id: 'exprViz',
-          name: 'Expression visualization',
-          show: 'off',
-          shouldScroll: false
-        },
-        {
           id: 'attribs',
           name: 'Gene attributes',
-          show: 'off',
-          shouldScroll: false
-        },
-        {
-          id: 'export',
-          name: 'Data exporter',
           show: 'off',
           shouldScroll: false
         }

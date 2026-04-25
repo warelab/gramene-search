@@ -178,6 +178,9 @@ const FieldsModalCmp = props => {
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [valueSort, setValueSort] = useState('count');
   const [orderedSelectedKeys, setOrderedSelectedKeys] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchLc = searchQuery.trim().toLowerCase();
+  const isSearching = searchLc.length > 0;
 
   // Distinct values per property type, ignoring the type's own selection but
   // applying every other selected type. Counts shown next to a property type
@@ -206,6 +209,7 @@ const FieldsModalCmp = props => {
       setExpandedKey(null);
       setCollapsedGroups({});
       setOrderedSelectedKeys([]);
+      setSearchQuery('');
     }
   }, [open, taxon]);
 
@@ -249,9 +253,12 @@ const FieldsModalCmp = props => {
 
   const toggleGroup = (g) => setCollapsedGroups(prev => ({ ...prev, [g]: !prev[g] }));
 
-  const renderValues = (key) => {
+  const renderValues = (key, typeLabelMatches) => {
     const counts = valueCounts(records, key, selections);
     let entries = Array.from(counts.entries());
+    if (isSearching && !typeLabelMatches) {
+      entries = entries.filter(([v]) => String(v).toLowerCase().includes(searchLc));
+    }
     if (valueSort === 'name') entries.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
     else entries.sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
     const sel = selections[key] || new Set();
@@ -298,39 +305,59 @@ const FieldsModalCmp = props => {
       <Modal.Body>
         <div className="exprviz-fields-layout">
           <div className="exprviz-tree">
-            {propTree.map(grp => (
-              <div key={grp.group} className="exprviz-tree-group">
-                <div className="exprviz-tree-group-header" onClick={() => toggleGroup(grp.group)}>
-                  <span className="exprviz-tree-caret">{collapsedGroups[grp.group] ? '▶' : '▼'}</span>
-                  <strong>{grp.label}</strong>
-                </div>
-                {!collapsedGroups[grp.group] && grp.types.length === 0 && (
-                  <div className="exprviz-tree-empty"><em>(none)</em></div>
-                )}
-                {!collapsedGroups[grp.group] && grp.types.map(t => {
-                  const numValues = (valueSetByKey[t.key] && valueSetByKey[t.key].size) || 0;
-                  if (numValues === 0) return null;
-                  const sel = selections[t.key];
-                  const selCount = sel ? sel.size : 0;
-                  const isExpanded = expandedKey === t.key;
-                  return (
-                    <div key={t.key} className={`exprviz-tree-type${selCount > 0 ? ' is-active' : ''}`}>
-                      <div
-                        className="exprviz-tree-type-header"
-                        onClick={() => setExpandedKey(isExpanded ? null : t.key)}
-                      >
-                        <span className="exprviz-tree-caret">{isExpanded ? '▾' : '▸'}</span>
-                        <span className="exprviz-tree-type-label">{t.label}</span>
-                        <span className="exprviz-tree-type-count">
-                          {selCount > 0 ? `${selCount}/${numValues}` : numValues}
-                        </span>
-                      </div>
-                      {isExpanded && renderValues(t.key)}
+            <input
+              type="text"
+              className="exprviz-tree-search"
+              placeholder="Search property types and values…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {propTree.map(grp => {
+              const typeRows = grp.types.map(t => {
+                const numValues = (valueSetByKey[t.key] && valueSetByKey[t.key].size) || 0;
+                if (numValues === 0) return null;
+                const typeLabelMatches = isSearching && t.label.toLowerCase().includes(searchLc);
+                let matchingValueCount = numValues;
+                if (isSearching && !typeLabelMatches) {
+                  const vset = valueSetByKey[t.key] || new Set();
+                  matchingValueCount = 0;
+                  for (const v of vset) if (String(v).toLowerCase().includes(searchLc)) matchingValueCount++;
+                  if (matchingValueCount === 0) return null;
+                }
+                const sel = selections[t.key];
+                const selCount = sel ? sel.size : 0;
+                const isExpanded = isSearching ? !typeLabelMatches : (expandedKey === t.key);
+                return (
+                  <div key={t.key} className={`exprviz-tree-type${selCount > 0 ? ' is-active' : ''}`}>
+                    <div
+                      className="exprviz-tree-type-header"
+                      onClick={() => setExpandedKey(isExpanded ? null : t.key)}
+                    >
+                      <span className="exprviz-tree-caret">{isExpanded ? '▾' : '▸'}</span>
+                      <span className="exprviz-tree-type-label">{t.label}</span>
+                      <span className="exprviz-tree-type-count">
+                        {selCount > 0 ? `${selCount}/${numValues}` : numValues}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-            ))}
+                    {isExpanded && renderValues(t.key, typeLabelMatches)}
+                  </div>
+                );
+              }).filter(Boolean);
+              if (isSearching && typeRows.length === 0) return null;
+              const groupCollapsed = !isSearching && collapsedGroups[grp.group];
+              return (
+                <div key={grp.group} className="exprviz-tree-group">
+                  <div className="exprviz-tree-group-header" onClick={() => toggleGroup(grp.group)}>
+                    <span className="exprviz-tree-caret">{groupCollapsed ? '▶' : '▼'}</span>
+                    <strong>{grp.label}</strong>
+                  </div>
+                  {!groupCollapsed && grp.types.length === 0 && (
+                    <div className="exprviz-tree-empty"><em>(none)</em></div>
+                  )}
+                  {!groupCollapsed && typeRows}
+                </div>
+              );
+            })}
           </div>
           <div className="exprviz-fields-preview">
             <table className="exprviz-fields-table">

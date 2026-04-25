@@ -73,6 +73,12 @@
   stroke-opacity: 0.25;
 }
 
+.exprviz-pc-lines path.exprviz-pc-line-hover {
+  stroke: #d62728;
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
 .exprviz-pc-axis-dragging .domain,
 .exprviz-pc-axis-dragging .tick line {
   stroke: #555;
@@ -108,6 +114,16 @@
   overflow-y: auto;
   border: 1px solid #eee;
   padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.exprviz-tree-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  margin-bottom: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
   font-size: 0.85rem;
 }
 

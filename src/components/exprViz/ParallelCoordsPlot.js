@@ -61,7 +61,8 @@ const ParallelCoordsPlot = ({
   scale = 'linear',
   onBrushChange,
   onReorder,
-  clearVersion = 0
+  clearVersion = 0,
+  hoveredId = null
 }) => {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
@@ -142,6 +143,7 @@ const ParallelCoordsPlot = ({
       .attr('fill', 'none')
       .attr('stroke', 'steelblue')
       .attr('stroke-width', 1)
+      .attr('data-id', d => d && d.id != null ? String(d.id) : null)
       .attr('d', row => pathForRow(row, f => x(f)));
 
     function isBrushedIn(row) {
@@ -215,7 +217,10 @@ const ParallelCoordsPlot = ({
             selectionsRef.current[f] = [Math.min(a, b), Math.max(a, b)];
           }
           applyBrushStyles();
-          if (event.type === 'end' && onBrushChange) {
+          // event.sourceEvent is null when brush.move is called programmatically
+          // (e.g. when this effect re-runs and we restore prior selections).
+          // Skipping that case avoids a re-render loop with the parent.
+          if (event.type === 'end' && event.sourceEvent && onBrushChange) {
             onBrushChange({ ...selectionsRef.current });
           }
         });
@@ -280,6 +285,20 @@ const ParallelCoordsPlot = ({
 
     axisG.selectAll('.exprviz-pc-axis-label, .exprviz-pc-axis-handle').call(drag);
   }, [rows, fields, scale, onBrushChange, onReorder, clearVersion]);
+
+  // Highlight the polyline matching the hovered row id without rebuilding the
+  // SVG. Raises the highlighted path so it draws above its neighbors.
+  useEffect(() => {
+    const svg = d3.select(svgRef.current);
+    if (svg.empty()) return;
+    const paths = svg.selectAll('.exprviz-pc-lines path');
+    paths.classed('exprviz-pc-line-hover', false);
+    if (hoveredId == null) return;
+    const target = paths.filter(function() {
+      return this.getAttribute('data-id') === String(hoveredId);
+    });
+    target.classed('exprviz-pc-line-hover', true).raise();
+  }, [hoveredId, rows, fields, scale]);
 
   if (!fields || fields.length === 0) {
     return <div className="exprviz-plot-empty"><em>Select fields to plot.</em></div>;

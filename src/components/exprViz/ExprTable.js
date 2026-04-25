@@ -133,7 +133,7 @@ const HeaderWithInfo = (props) => {
   );
 };
 
-const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples }) => {
+const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples, onHoverRow }) => {
   const fieldInfo = useMemo(
     () => buildFieldInfo(fields, studies, expressionSamples),
     [fields, studies, expressionSamples]
@@ -184,6 +184,8 @@ const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples }) => {
         suppressFieldDotNotation={true}
         suppressDragLeaveHidesColumns={true}
         onColumnMoved={onColumnMoved}
+        onCellMouseOver={e => onHoverRow && onHoverRow(e.data && e.data.id)}
+        onCellMouseOut={() => onHoverRow && onHoverRow(null)}
       />
     </div>
   );

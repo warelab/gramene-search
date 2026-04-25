@@ -120,6 +120,29 @@ function fmt(n) {
   return Number(n.toFixed(4)).toString();
 }
 
+function tsvCell(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.join(',');
+  const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+  return s.replace(/[\t\r\n]+/g, ' ');
+}
+
+function downloadTsv(filename, rows, fields) {
+  const cols = ['id', 'name', ...fields];
+  const headerLabels = ['id', 'name', ...fields.map(f => f.replace(/__expr$/, ''))];
+  const lines = [headerLabels.join('\t')];
+  for (const r of rows) lines.push(cols.map(c => tsvCell(r[c])).join('\t'));
+  const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/tab-separated-values' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields, onLoad, onReorder, onAddRangeQuery }) => {
   const selected = (tabState && tabState.selectedFields) || [];
   const rows = (tabState && tabState.rows) || [];
@@ -127,6 +150,7 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
   const [scale, setScale] = useState('linear');
   const [selections, setSelections] = useState({});
   const [clearVersion, setClearVersion] = useState(0);
+  const [hoveredId, setHoveredId] = useState(null);
 
   const hasBrush = Object.keys(selections).length > 0;
   const filteredRows = useMemo(() => {
@@ -194,6 +218,15 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
         </Button>
         <Button
           size="sm"
+          variant="outline-secondary"
+          disabled={filteredRows.length === 0 || visibleFields.length === 0}
+          onClick={() => downloadTsv(`expression_${taxon}.tsv`, filteredRows, visibleFields)}
+          title="Download the visible rows and columns as tab-delimited text"
+        >
+          Download TSV
+        </Button>
+        <Button
+          size="sm"
           variant="success"
           disabled={!hasBrush || !onAddRangeQuery}
           onClick={() => {
@@ -227,6 +260,7 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
             onBrushChange={setSelections}
             onReorder={handleReorder}
             clearVersion={clearVersion}
+            hoveredId={hoveredId}
           />
         </div>
         <div className="exprviz-table">
@@ -236,6 +270,7 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
             onReorder={handleReorder}
             studies={studies}
             expressionSamples={expressionSamples}
+            onHoverRow={setHoveredId}
           />
         </div>
       </div>
