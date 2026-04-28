@@ -1,0 +1,471 @@
+.exprviz-view {
+  padding: 0.5rem;
+}
+
+.exprviz-tabs {
+  margin-bottom: 0.5rem;
+}
+
+.exprviz-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  /* Constrain children so the grid scrolls internally instead of bleeding
+   * out and forcing the page to scroll horizontally. */
+  min-width: 0;
+  overflow: hidden;
+}
+
+.exprviz-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Host applications (e.g. sorghum-webapp) sometimes ship global stylesheets
+ * that override `.btn` / `.btn-sm` with `!important` — fat padding, custom
+ * font-weight, transformed text — which leaves our toolbar buttons at
+ * inconsistent sizes (since plain `<Button>` and `<ToggleButton>` inside a
+ * `<ToggleButtonGroup>` pick up different rules). Re-state Bootstrap 5's
+ * small-button metrics here with higher specificity and `!important`, scoped
+ * to `.exprviz-toolbar`, so the toolbar always looks the same regardless of
+ * what the host's theme does. */
+.exprviz-toolbar .btn,
+.exprviz-toolbar .btn.btn-sm,
+.exprviz-toolbar .btn-group > .btn,
+.exprviz-toolbar .btn-group > .btn.btn-sm,
+.exprviz-toolbar .btn-group-sm > .btn,
+.exprviz-toolbar label.btn {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  height: auto !important;
+  min-height: 0 !important;
+  border-radius: 0.2rem !important;
+}
+
+/* Restore the squared-off inner edges within a ToggleButtonGroup. */
+.exprviz-toolbar .btn-group > .btn:not(:first-child):not(:last-child),
+.exprviz-toolbar .btn-group > .btn:not(:first-child):not(:last-child).btn-sm {
+  border-radius: 0 !important;
+}
+.exprviz-toolbar .btn-group > .btn:first-child:not(:last-child),
+.exprviz-toolbar .btn-group > .btn:first-child:not(:last-child).btn-sm {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+.exprviz-toolbar .btn-group > .btn:last-child:not(:first-child),
+.exprviz-toolbar .btn-group > .btn:last-child:not(:first-child).btn-sm {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.exprviz-toolbar .btn-group {
+  vertical-align: middle;
+}
+
+/* Same idea for the status text — host stylesheets sometimes restyle
+ * <span>s in unexpected ways. */
+.exprviz-toolbar .exprviz-status {
+  font-weight: 400 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.exprviz-status {
+  color: #666;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+.exprviz-warning {
+  color: #b06000;
+  background: #fff8e0;
+  border: 1px solid #f0d080;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  cursor: help;
+}
+
+.exprviz-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.exprviz-plot {
+  border: 1px solid #ddd;
+  background: #fff;
+  min-height: 120px;
+  overflow: hidden;
+}
+
+.exprviz-resizer {
+  height: 8px;
+  margin: 2px 0;
+  background: #f0f0f0;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  cursor: row-resize;
+  flex: none;
+}
+
+.exprviz-resizer::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 2px;
+  background: #aaa;
+  border-radius: 1px;
+  margin: 3px auto;
+}
+
+.exprviz-resizer:hover,
+.exprviz-resizer:active {
+  background: #e0e8f5;
+}
+
+.exprviz-resizer:hover::before,
+.exprviz-resizer:active::before {
+  background: #2a6ebb;
+}
+
+.exprviz-pc-container {
+  width: 100%;
+  height: 100%;
+}
+
+.exprviz-pc-container svg {
+  display: block;
+}
+
+.exprviz-pc-lines path {
+  fill: none;
+  stroke: steelblue;
+}
+
+.exprviz-pc-line-in {
+  stroke-opacity: 0.4;
+}
+
+.exprviz-pc-line-out {
+  stroke-opacity: 0.04;
+}
+
+.exprviz-pc-lines path:not(.exprviz-pc-line-in):not(.exprviz-pc-line-out) {
+  stroke-opacity: 0.25;
+}
+
+.exprviz-pc-lines path.exprviz-pc-line-hover {
+  stroke: #d62728;
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
+.exprviz-pc-axis-dragging .domain,
+.exprviz-pc-axis-dragging .tick line {
+  stroke: #555;
+}
+
+.exprviz-pc-axis-dragging .exprviz-pc-axis-label {
+  font-weight: bold;
+}
+
+.exprviz-plot-empty,
+.exprviz-table-empty {
+  padding: 1rem;
+  color: #888;
+}
+
+.exprviz-pc-tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  max-width: 360px;
+  pointer-events: none;
+  color: #222;
+}
+
+.exprviz-pc-tip-section {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.exprviz-pc-tip-row {
+  margin-left: 0.4rem;
+}
+
+.exprviz-pc-tip-key {
+  font-weight: 600;
+}
+
+.exprviz-table {
+  height: 480px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.exprviz-aggrid {
+  width: 100%;
+  height: 100%;
+  /* Block the browser's edge-of-scroll back/forward gesture when the user
+   * scrolls all the way left or right inside the grid. */
+  overscroll-behavior-x: contain;
+}
+
+/* ag-grid's scrolling viewports — make sure the back/forward gesture is
+ * contained at every level, not just on our outer wrapper. */
+.exprviz-aggrid .ag-body-viewport,
+.exprviz-aggrid .ag-body-horizontal-scroll-viewport,
+.exprviz-aggrid .ag-center-cols-viewport {
+  overscroll-behavior-x: contain;
+}
+
+/* Group-header rows: subtle tinting so each metadata level reads as a band.
+ * The :first-of-type column-group rule covers the topmost (study) row. */
+.exprviz-aggrid .ag-header-group-cell {
+  font-size: 0.78rem;
+  border-right: 1px solid #e0e0e0;
+}
+
+.exprviz-aggrid .ag-header-group-cell-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+
+.exprviz-aggrid .exprviz-hg-factors {
+  background: #eef6ff;
+  color: #1e3a5f;
+}
+
+.exprviz-aggrid .exprviz-hg-chars {
+  background: #f5f5f0;
+  color: #4a4a30;
+}
+
+.exprviz-aggrid .exprviz-hg-collapsed {
+  font-style: italic;
+  color: #666;
+}
+
+/* The label cells stacked above the Gene ID and Name columns — Study/Title,
+ * every Factor/<factor type> row, every Characteristic/<char type> row,
+ * and the collapsed-section placeholders — are rendered via the
+ * LabelHeaderGroup / ToggleHeaderGroup React components. Both render a
+ * full-width div that right-aligns its content, so the alignment is
+ * baked into the component DOM and doesn't depend on overriding
+ * ag-grid's internal CSS. The leaf cells ("Gene ID" / "Name") are not
+ * wrapped in these components and keep ag-grid's default left alignment. */
+.exprviz-label-header {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: right;
+  padding-right: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exprviz-toggle-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  padding-right: 6px;
+}
+
+.exprviz-toggle-header:hover {
+  color: #2a6ebb;
+}
+
+.exprviz-toggle-caret {
+  display: inline-block;
+  width: 0.9em;
+  font-size: 0.75em;
+  color: #888;
+  margin-right: 2px;
+}
+
+.exprviz-toggle-header:hover .exprviz-toggle-caret {
+  color: #2a6ebb;
+}
+
+.exprviz-fields-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0.75rem;
+  height: 60vh;
+}
+
+.exprviz-tree {
+  overflow-y: auto;
+  border: 1px solid #eee;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.exprviz-tree-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  margin-bottom: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+.exprviz-tree-group {
+  margin-bottom: 0.5rem;
+}
+
+.exprviz-tree-group-header {
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+}
+
+.exprviz-tree-caret {
+  display: inline-block;
+  width: 1em;
+  color: #888;
+}
+
+.exprviz-tree-type {
+  margin-left: 0.5rem;
+  border-left: 2px solid transparent;
+  padding-left: 0.25rem;
+}
+
+.exprviz-tree-type.is-active {
+  border-left-color: #2a6ebb;
+}
+
+.exprviz-tree-type-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.exprviz-tree-type-header:hover {
+  background: #f5f8ff;
+}
+
+.exprviz-tree-type-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exprviz-tree-type-count {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.5rem;
+}
+
+.exprviz-tree-values {
+  margin: 0.25rem 0 0.5rem 1.25rem;
+  padding-left: 0.25rem;
+  border-left: 1px dashed #e0e0e0;
+}
+
+.exprviz-values-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.exprviz-tree-value {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1px 0;
+  cursor: pointer;
+}
+
+.exprviz-tree-value:hover {
+  background: #fafaff;
+}
+
+.exprviz-tree-value-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exprviz-tree-value-count {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8em;
+}
+
+.exprviz-tree-empty {
+  color: #999;
+  margin-left: 1rem;
+}
+
+.exprviz-fields-preview {
+  overflow: auto;
+  border: 1px solid #eee;
+}
+
+.exprviz-fields-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.exprviz-fields-table th,
+.exprviz-fields-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.exprviz-fields-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fafafa;
+  z-index: 1;
+  border-bottom: 1px solid #ddd;
+}
+
+.exprviz-col-factor {
+  background: #eef6ff;
+}
+
+.exprviz-col-char {
+  background: #f5f5f0;
+}
+
+.exprviz-fields-table tbody tr:hover {
+  background: #fafaff;
+}
+

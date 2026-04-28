@@ -181,10 +181,13 @@ const exporter = {
     'selectGrameneFiltersQueryString',
     'selectGrameneGenomes',
     'selectGrameneMaps',
-    (exp, filtersStatus, q, g, m) => {
+    'selectGrameneViewsOn',
+    (exp, filtersStatus, q, g, m, viewsOn) => {
       if (!exp || !exp.preview) return;
       if (filtersStatus === 'init') return;
       if (exp.preview.status === 'loading') return;
+      // Don't run the preview query unless the user has the exporter view open.
+      if (!viewsOn || !viewsOn.has('export')) return;
       const maps = m || {};
       const taxa = Object.keys((g && g.active) || {}).filter(tid => maps[tid] && !maps[tid].hidden);
       const sig = `${q}|${taxa.sort().join(',')}`;

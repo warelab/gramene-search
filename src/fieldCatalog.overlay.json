@@ -53,7 +53,7 @@
     },
     {
       "id": "diffexpr",
-      "match": "^(E[-_][A-Za-z0-9_-]+?)_g(\\d+)_g(\\d+)_(pval|logfc|l2fc)_attr_([a-z])$",
+      "match": "^(E[-_][A-Za-z0-9_-]+?)_g(\\d+)_g(\\d+)_(pval|l2fc)_attr_([a-z])$",
       "group": "differential",
       "diffExpression": true,
       "labelTemplate": "$1 · g$2 vs g$3 · $4"

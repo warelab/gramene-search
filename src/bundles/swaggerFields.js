@@ -188,6 +188,19 @@ const grameneFieldCatalog = createAsyncResourceBundle({
   }
 });
 
+// Auto-fetch the field catalog only when a view that needs it (exprViz fields
+// modal, exporter field tree) is enabled. Other views never read it.
+const FIELD_CATALOG_VIEWS = ['exprViz', 'export'];
+grameneFieldCatalog.reactGrameneFieldCatalog = createSelector(
+  'selectGrameneFieldCatalogShouldUpdate',
+  'selectGrameneViewsOn',
+  (shouldUpdate, viewsOn) => {
+    if (!shouldUpdate) return;
+    if (!viewsOn || !FIELD_CATALOG_VIEWS.some(id => viewsOn.has(id))) return;
+    return { actionCreator: 'doFetchGrameneFieldCatalog' };
+  }
+);
+
 function assayFactorLabel(assay) {
   if (!assay) return '';
   const factors = Array.isArray(assay.factor) ? assay.factor : [];
@@ -255,12 +268,12 @@ function buildSpeciesNameIndex(grameneMaps) {
 function fieldExperimentId(name) {
   let m = name.match(/^(\w+?)_g\d+__expr$/);
   if (m) return m[1].replace(/_/g, '-');
-  m = name.match(/^(\w+?)_g\d+_g\d+_(pval|logfc|l2fc)_attr_[a-z]$/);
+  m = name.match(/^(\w+?)_g\d+_g\d+_(pval|l2fc)_attr_[a-z]$/);
   if (m) return m[1].replace(/_/g, '-');
   return null;
 }
 
-const STAT_RANK = { l2fc: 0, logfc: 1, pval: 2 };
+const STAT_RANK = { l2fc: 0, pval: 1 };
 
 function collapseDiffExprInSubgroups(subgroups, fieldsOut, collator) {
   for (const taxGroup of subgroups) {
@@ -287,7 +300,7 @@ function collapseDiffExprInSubgroups(subgroups, fieldsOut, collator) {
         });
         const rep = names[0];
         const repEntry = fieldsOut[rep];
-        const label = (repEntry.label || rep).replace(/\s+\((?:pval|logfc|l2fc)\)/, '');
+        const label = (repEntry.label || rep).replace(/\s+\((?:pval|l2fc)\)/, '');
         fieldsOut[rep] = { ...repEntry, label, linkedFields: names.slice() };
         newFields.push(rep);
       }
@@ -564,14 +577,13 @@ grameneFieldCatalog.selectFieldCatalog = createSelector(
     const present = new Set(fieldNames);
     // Build a synthetic doc from the discovered field names; values carry the
     // right JS type so inferType picks the correct multiValued/type (arrays
-    // for multi-valued fields, scalars otherwise). Derive pval/logfc
-    // companions from every l2fc field.
+    // for multi-valued fields, scalars otherwise). Derive the pval companion
+    // from every l2fc field.
     const doc = {};
     for (const name of present) {
       doc[name] = synthesizedValue(name);
       if (/_l2fc_attr_f$/.test(name)) {
         doc[name.replace('_l2fc_', '_pval_')] = 0;
-        doc[name.replace('_l2fc_', '_logfc_')] = 0;
       }
     }
     const catalog = buildCatalog([doc]);

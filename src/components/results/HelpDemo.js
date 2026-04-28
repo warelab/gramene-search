@@ -44,6 +44,36 @@ const examples = [
   },
   {
     subsite: {
+      maize:1,
+      sorghum:1,
+      grapevine:1,
+      rice:1,
+      main:1,
+    },
+    text: "Which genes are curated in the scientific literature?",
+    filters: {
+      status: 'init',
+      rows: 20,
+      operation: 'AND',
+      negate: false,
+      leftIdx: 0,
+      rightIdx: 3,
+      children: [
+        {
+          fq_field: 'capabilities',
+          fq_value: 'pubs',
+          name: 'publication',
+          category: 'Curated',
+          leftIdx: 1,
+          rightIdx: 2,
+          negate: false,
+          marked: false
+        }
+      ]
+    }
+  },
+  {
+    subsite: {
       grapevine:1
     },
     text: "What are the orthologs of Arabidopsis thaliana's PAD4 gene in rosids?",

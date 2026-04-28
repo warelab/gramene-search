@@ -12,12 +12,6 @@ const grameneViews = {
           shouldScroll: false
         },
         {
-          id: 'userLists',
-          name: 'User Gene Lists',
-          show: 'off',
-          shouldScroll: false
-        },
-        {
           id: 'taxonomy',
           name: 'Taxonomic distribution',
           show: 'on',
@@ -30,6 +24,30 @@ const grameneViews = {
           shouldScroll: false
         },
         {
+          id: 'exprViz',
+          name: 'Expression visualization',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'gsea',
+          name: 'Gene set enrichment',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'userLists',
+          name: 'User Gene Lists',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
+          id: 'export',
+          name: 'Data exporter',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
           id: 'expression',
           name: 'Gene expression',
           show: 'off',
@@ -39,12 +57,6 @@ const grameneViews = {
         {
           id: 'attribs',
           name: 'Gene attributes',
-          show: 'off',
-          shouldScroll: false
-        },
-        {
-          id: 'export',
-          name: 'Data exporter',
           show: 'off',
           shouldScroll: false
         }
@@ -115,7 +127,7 @@ const grameneViews = {
       const touched = raw.touched || {};
       const numFound = (search && search.response && search.response.numFound) || 0;
       const hasFilters = !!(filters && filters.rightIdx > 1);
-      const resultDependentIds = new Set(['taxonomy', 'list', 'export']);
+      const resultDependentIds = new Set(['taxonomy', 'list', 'export', 'exprViz', 'gsea']);
       const autoDisable = (numFound === 0) || !hasFilters;
       const hasFirebase = !!(config && config.firebaseConfig);
 
@@ -142,6 +154,18 @@ const grameneViews = {
         options = options.map(v => v.id === 'help' ? { ...v, show: 'on' } : v);
       }
       return { ...raw, options };
+    }
+  ),
+  // Set of view ids whose `show` is currently 'on'. Used by data bundles to
+  // gate their auto-fetch reactors so we don't pay the cost of loading data
+  // for views the user has turned off.
+  selectGrameneViewsOn: createSelector(
+    'selectGrameneViews',
+    (views) => {
+      const ids = new Set();
+      const opts = (views && views.options) || [];
+      for (const v of opts) if (v && v.show === 'on') ids.add(v.id);
+      return ids;
     }
   )
 };
