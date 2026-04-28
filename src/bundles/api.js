@@ -360,8 +360,8 @@ const grameneSearch = createAsyncResourceBundle({
     const offset = store.selectGrameneSearchOffset();
     const rows = store.selectGrameneSearchRows();
     const g = store.selectGrameneGenomes();
-    const m = store.selectGrameneMaps();
-    const taxa = Object.keys(g.active).filter(tid => !m[tid].hidden);
+    const m = store.selectGrameneMaps() || {};
+    const taxa = Object.keys((g && g.active) || {}).filter(tid => m[tid] && !m[tid].hidden);
     let fq='';
     if (taxa.length) {
       console.log('search add a fq for ',taxa);
