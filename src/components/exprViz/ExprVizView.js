@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { connect } from 'redux-bundler-react';
 import { Tabs, Tab, Button, ToggleButton, ToggleButtonGroup } from 'react-bootstrap';
 import FieldsModal from './FieldsModal';
-import ExprTable from './ExprTable';
+import ExprTable, { buildFieldInfo } from './ExprTable';
 import ParallelCoordsPlot from './ParallelCoordsPlot';
 import './styles.css';
 
@@ -193,11 +193,49 @@ function tsvCell(v) {
   return s.replace(/[\t\r\n]+/g, ' ');
 }
 
-function downloadTsv(filename, rows, fields) {
+// Mirror the on-screen table header in the TSV: one row per metadata level
+// the table is showing (Study, then one row per distinct factor type, then
+// one row per distinct characteristic type), followed by the leaf header
+// (Gene ID / Name / per-sample group). The first two columns are repurposed
+// to carry the row category and the row's specific name, matching the
+// pinned-column labels in ExprTable.
+function downloadTsv(filename, rows, fields, studies, expressionSamples) {
   const cols = ['id', 'name', ...fields];
-  const headerLabels = ['id', 'name', ...fields.map(f => f.replace(/__expr$/, ''))];
-  const lines = [headerLabels.join('\t')];
+  const fieldInfo = buildFieldInfo(fields, studies, expressionSamples);
+
+  const factorTypes = new Set();
+  const charTypes = new Set();
+  for (const f of fields) {
+    const info = fieldInfo[f];
+    if (!info) continue;
+    Object.keys(info.factors || {}).forEach(t => factorTypes.add(t));
+    Object.keys(info.characteristics || {}).forEach(t => charTypes.add(t));
+  }
+  const factorTypeList = Array.from(factorTypes).sort();
+  const charTypeList = Array.from(charTypes).sort();
+
+  const metaRow = (cat, label, getValue) => {
+    const cells = [cat, label];
+    for (const f of fields) cells.push(tsvCell(getValue(fieldInfo[f] || {})));
+    return cells.join('\t');
+  };
+
+  const lines = [];
+  lines.push(metaRow('Study', 'Title', info => info.studyDescription || ''));
+  for (const t of factorTypeList) {
+    lines.push(metaRow('Factor', t, info => (info.factors && info.factors[t]) || ''));
+  }
+  for (const t of charTypeList) {
+    lines.push(metaRow('Characteristic', t, info => (info.characteristics && info.characteristics[t]) || ''));
+  }
+  // Leaf header — column ids for the data rows.
+  lines.push(['Gene ID', 'Name', ...fields.map(f => {
+    const info = fieldInfo[f];
+    return (info && info.group) || f.replace(/__expr$/, '');
+  })].join('\t'));
+
   for (const r of rows) lines.push(cols.map(c => tsvCell(r[c])).join('\t'));
+
   const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/tab-separated-values' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -317,7 +355,7 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
           size="sm"
           variant="outline-secondary"
           disabled={filteredRows.length === 0 || visibleFields.length === 0}
-          onClick={() => downloadTsv(`expression_${taxon}.tsv`, filteredRows, visibleFields)}
+          onClick={() => downloadTsv(`expression_${taxon}.tsv`, filteredRows, visibleFields, studies, expressionSamples)}
           title="Download the visible rows and columns as tab-delimited text"
         >
           Download TSV

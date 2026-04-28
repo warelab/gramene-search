@@ -8,13 +8,24 @@ const baseColDefs = [
   { field: 'name', headerName: 'Name', pinned: 'left', width: 140, suppressMovable: true }
 ];
 
+// Hoisted so the reference is stable across renders. ag-grid otherwise sees a
+// "new" defaultColDef on every parent re-render (e.g. when hovering a row
+// triggers setHoveredId in the parent) and re-applies column state, which
+// snaps any user-resized columns back to their original widths.
+const DEFAULT_COL_DEF = {
+  resizable: true,
+  sortable: true,
+  filter: false,
+  suppressMenu: true
+};
+
 function arraysEqual(a, b) {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
 }
 
-function buildFieldInfo(fields, studies, expressionSamples) {
+export function buildFieldInfo(fields, studies, expressionSamples) {
   const info = {};
   if (!fields || !studies || !expressionSamples) return info;
   const wanted = new Set(fields);
@@ -322,7 +333,7 @@ const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples, onHove
       <AgGridReact
         rowData={rows}
         columnDefs={columnDefs}
-        defaultColDef={{ resizable: true, sortable: true, filter: false, suppressMenu: true }}
+        defaultColDef={DEFAULT_COL_DEF}
         animateRows={false}
         suppressFieldDotNotation={true}
         suppressDragLeaveHidesColumns={true}
