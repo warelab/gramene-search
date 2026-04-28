@@ -1,5 +1,5 @@
 const EXPR_FIELD_RE = /^(E[-_][A-Za-z0-9_-]+?)_g(\d+)__expr$/;
-const DIFFEXPR_FIELD_RE = /^(E[-_][A-Za-z0-9_-]+?)_g(\d+)_g(\d+)_(pval|logfc|l2fc)_attr_([a-z])$/;
+const DIFFEXPR_FIELD_RE = /^(E[-_][A-Za-z0-9_-]+?)_g(\d+)_g(\d+)_(pval|l2fc)_attr_([a-z])$/;
 
 export const EXPRESSION_EXTRA_COLUMNS = [
   'experiment',
@@ -132,7 +132,7 @@ export function resolveDiffExpressionForDoc(doc, diffExpressionFields, expressio
       byContrast.set(key, entry);
     }
     if (parsed.stat === 'pval') entry.pval = val;
-    else entry.l2fc = val; // l2fc or logfc
+    else entry.l2fc = val;
   }
   const maxPval = cutoffs && cutoffs.diffMaxPval;
   const maxPvalActive = maxPval !== null && maxPval !== undefined && maxPval !== '' && Number.isFinite(+maxPval);
