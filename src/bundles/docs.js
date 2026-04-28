@@ -1,3 +1,16 @@
+import { getConfiguredCache } from 'money-clip';
+
+// Dedicated IndexedDB store for the full pathway corpus, persisted
+// indefinitely (default maxAge of `Infinity`). The pathway set is small
+// and stable enough to keep around across sessions, so we bulk-load it
+// once with `?rows=-1` and reuse it instead of issuing per-id requests.
+const pathwayCache = getConfiguredCache({
+  version: 1,
+  name: 'gramene_pathways'
+});
+
+let pathwaysBulkPromise = null;
+
 const grameneDocs = {
   name: 'grameneDocs',
   getReducer: () => {
@@ -201,22 +214,36 @@ const grameneDocs = {
         })
     }
   },
-  doRequestGramenePathways: ids => ({dispatch, store}) => {
-    const pathways = store.selectGramenePathways();
-    let newIds = ids.filter(id => !pathways.hasOwnProperty(id));
-    if (newIds) {
-      dispatch({type: 'GRAMENE_PATHWAYS_REQUESTED', payload: newIds});
-      if (newIds.length === 1) newIds.push(0);
-      fetch(`${store.selectGrameneAPI()}/pathways?idList=${newIds.join(',')}`)
-        .then(res => res.json())
-        .then(res => {
-          let pathways = {};
-          res.forEach(p => {
-            pathways[p._id] = p;
+  // Signature kept for backward compatibility; the `ids` argument is
+  // ignored. On first call we bulk-load every pathway record from the
+  // dedicated IndexedDB cache (or `${api}/pathways?rows=-1` on miss),
+  // dispatch a single GRAMENE_PATHWAYS_RECEIVED, and short-circuit all
+  // subsequent calls.
+  doRequestGramenePathways: _ids => ({dispatch, store}) => {
+    if (pathwaysBulkPromise) return pathwaysBulkPromise;
+
+    pathwaysBulkPromise = pathwayCache.get('all')
+      .then(cached => {
+        if (cached) {
+          dispatch({type: 'GRAMENE_PATHWAYS_RECEIVED', payload: cached});
+          return;
+        }
+        return fetch(`${store.selectGrameneAPI()}/pathways?rows=-1`)
+          .then(res => res.json())
+          .then(res => {
+            const pathways = {};
+            (res || []).forEach(p => {
+              if (p && p._id != null) pathways[p._id] = p;
+            });
+            dispatch({type: 'GRAMENE_PATHWAYS_RECEIVED', payload: pathways});
+            pathwayCache.set('all', pathways).catch(e => console.warn('Failed to cache pathways', e));
           });
-          dispatch({type: 'GRAMENE_PATHWAYS_RECEIVED', payload: pathways})
-        })
-    }
+      })
+      .catch(err => {
+        console.error('Failed to load pathways', err);
+        pathwaysBulkPromise = null; // allow retry on next call
+      });
+    return pathwaysBulkPromise;
   },
   doRequestExpressionStudies: id => ({dispatch, store}) => {
     fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)

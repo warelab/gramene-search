@@ -30,6 +30,12 @@ const grameneViews = {
           shouldScroll: false
         },
         {
+          id: 'gsea',
+          name: 'Gene set enrichment',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
           id: 'userLists',
           name: 'User Gene Lists',
           show: 'off',
@@ -121,7 +127,7 @@ const grameneViews = {
       const touched = raw.touched || {};
       const numFound = (search && search.response && search.response.numFound) || 0;
       const hasFilters = !!(filters && filters.rightIdx > 1);
-      const resultDependentIds = new Set(['taxonomy', 'list', 'export']);
+      const resultDependentIds = new Set(['taxonomy', 'list', 'export', 'exprViz', 'gsea']);
       const autoDisable = (numFound === 0) || !hasFilters;
       const hasFirebase = !!(config && config.firebaseConfig);
 

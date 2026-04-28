@@ -1,0 +1,177 @@
+.gsea-view {
+  padding: 0.25rem 0.5rem;
+}
+
+.gsea-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.gsea-layout-tree {
+  max-height: 80vh;
+  overflow: auto;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  background: #fafbfc;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.gsea-splitter {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: transparent;
+  border-left: 1px solid #e1e4e8;
+  border-right: 1px solid #e1e4e8;
+  margin: 0 1px;
+  align-self: stretch;
+}
+
+.gsea-splitter:hover,
+.gsea-splitter:active {
+  background: #d6e9ff;
+}
+
+.gsea-layout-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gsea-tree-leaf {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.gsea-tree-leaf:hover {
+  background: #eef5ff;
+}
+
+.gsea-tree-leaf-active {
+  background: #d6e9ff !important;
+  font-weight: 600;
+}
+
+.gsea-tree-leaf-name {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gsea-tree-leaf-count {
+  color: #555;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gsea-loading {
+  padding: 1rem;
+}
+
+.gsea-summary {
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0.5rem 0;
+}
+
+.gsea-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+}
+
+.gsea-control {
+  min-width: 100px;
+}
+
+.gsea-control-grow {
+  flex-grow: 1;
+  min-width: 200px;
+}
+
+.gsea-control .form-label {
+  font-size: 0.8rem;
+  margin-bottom: 0.15rem;
+}
+
+.gsea-ont-title {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.gsea-ont-badge {
+  font-weight: normal;
+}
+
+.gsea-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.gsea-table th,
+.gsea-table td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.gsea-table th {
+  background: #f0f3f6;
+  position: sticky;
+  top: 0;
+}
+
+.gsea-sort-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.gsea-sort-th:hover {
+  background: #dde3ea;
+}
+
+.gsea-sort-th-active {
+  background: #dde3ea;
+  color: #003366;
+}
+
+.gsea-table tbody tr {
+  cursor: pointer;
+}
+
+.gsea-table tbody tr:hover {
+  background-color: #eef5ff;
+}
+
+.gsea-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.gsea-term-id {
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.gsea-term-name {
+  max-width: 32rem;
+}
+
+.gsea-term-type {
+  white-space: nowrap;
+  color: #555;
+  font-size: 0.8rem;
+}
