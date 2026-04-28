@@ -149,6 +149,18 @@ const grameneViews = {
       }
       return { ...raw, options };
     }
+  ),
+  // Set of view ids whose `show` is currently 'on'. Used by data bundles to
+  // gate their auto-fetch reactors so we don't pay the cost of loading data
+  // for views the user has turned off.
+  selectGrameneViewsOn: createSelector(
+    'selectGrameneViews',
+    (views) => {
+      const ids = new Set();
+      const opts = (views && views.options) || [];
+      for (const v of opts) if (v && v.show === 'on') ids.add(v.id);
+      return ids;
+    }
   )
 };
 

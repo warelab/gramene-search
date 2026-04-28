@@ -202,6 +202,22 @@ const FieldsModalCmp = props => {
     return m;
   }, [records, selections]);
 
+  // Distinct values per property type across the unfiltered candidate set.
+  // A type with a single value across every record can't discriminate (e.g.
+  // "Organism" when every field belongs to the same species), so we hide it
+  // from the property tree.
+  const totalValueCountByKey = useMemo(() => {
+    const m = {};
+    for (const r of records) {
+      for (const [k, v] of Object.entries(r.props)) {
+        if (v == null) continue;
+        if (!m[k]) m[k] = new Set();
+        m[k].add(v);
+      }
+    }
+    return m;
+  }, [records]);
+
   // Reset state when modal (re)opens for a taxon.
   useEffect(() => {
     if (open && taxon) {
@@ -314,6 +330,13 @@ const FieldsModalCmp = props => {
             />
             {propTree.map(grp => {
               const typeRows = grp.types.map(t => {
+                // Hide property types that can't discriminate among the
+                // candidates: zero values, or a single value shared by every
+                // record. The selection-aware count (valueSetByKey) is what
+                // we display; the unfiltered count gates visibility so a type
+                // doesn't pop in/out as the user clicks values.
+                const totalDistinct = (totalValueCountByKey[t.key] && totalValueCountByKey[t.key].size) || 0;
+                if (totalDistinct < 2) return null;
                 const numValues = (valueSetByKey[t.key] && valueSetByKey[t.key].size) || 0;
                 if (numValues === 0) return null;
                 const typeLabelMatches = isSearching && t.label.toLowerCase().includes(searchLc);
@@ -360,25 +383,29 @@ const FieldsModalCmp = props => {
             })}
           </div>
           <div className="exprviz-fields-preview">
-            <table className="exprviz-fields-table">
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  {orderedSelectedKeys.map(k => <th key={k}>{labelForKey(k, propTree)}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {matchingFields.map(f => (
-                  <tr key={f.fieldName}>
-                    <td title={f.fieldName}>{f.fieldName.replace(/__expr$/, '')}</td>
-                    {orderedSelectedKeys.map(k => <td key={k}>{f.props[k] || ''}</td>)}
+            {orderedSelectedKeys.length === 0 ? (
+              <div className="exprviz-fields-placeholder">
+                <em>Select a property type to preview the property values for each matching field.</em>
+              </div>
+            ) : (
+              <table className="exprviz-fields-table">
+                <thead>
+                  <tr>
+                    {orderedSelectedKeys.map(k => <th key={k}>{labelForKey(k, propTree)}</th>)}
                   </tr>
-                ))}
-                {matchingFields.length === 0 && (
-                  <tr><td colSpan={1 + orderedSelectedKeys.length}><em>No matching fields</em></td></tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {matchingFields.map(f => (
+                    <tr key={f.fieldName} title={f.fieldName}>
+                      {orderedSelectedKeys.map(k => <td key={k}>{f.props[k] || ''}</td>)}
+                    </tr>
+                  ))}
+                  {matchingFields.length === 0 && (
+                    <tr><td colSpan={orderedSelectedKeys.length}><em>No matching fields</em></td></tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </Modal.Body>

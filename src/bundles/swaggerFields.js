@@ -188,6 +188,19 @@ const grameneFieldCatalog = createAsyncResourceBundle({
   }
 });
 
+// Auto-fetch the field catalog only when a view that needs it (exprViz fields
+// modal, exporter field tree) is enabled. Other views never read it.
+const FIELD_CATALOG_VIEWS = ['exprViz', 'export'];
+grameneFieldCatalog.reactGrameneFieldCatalog = createSelector(
+  'selectGrameneFieldCatalogShouldUpdate',
+  'selectGrameneViewsOn',
+  (shouldUpdate, viewsOn) => {
+    if (!shouldUpdate) return;
+    if (!viewsOn || !FIELD_CATALOG_VIEWS.some(id => viewsOn.has(id))) return;
+    return { actionCreator: 'doFetchGrameneFieldCatalog' };
+  }
+);
+
 function assayFactorLabel(assay) {
   if (!assay) return '';
   const factors = Array.isArray(assay.factor) ? assay.factor : [];

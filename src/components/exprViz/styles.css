@@ -38,13 +38,43 @@
 .exprviz-body {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
 }
 
 .exprviz-plot {
-  height: 320px;
   border: 1px solid #ddd;
   background: #fff;
+  min-height: 120px;
+  overflow: hidden;
+}
+
+.exprviz-resizer {
+  height: 8px;
+  margin: 2px 0;
+  background: #f0f0f0;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  cursor: row-resize;
+  flex: none;
+}
+
+.exprviz-resizer::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 2px;
+  background: #aaa;
+  border-radius: 1px;
+  margin: 3px auto;
+}
+
+.exprviz-resizer:hover,
+.exprviz-resizer:active {
+  background: #e0e8f5;
+}
+
+.exprviz-resizer:hover::before,
+.exprviz-resizer:active::before {
+  background: #2a6ebb;
 }
 
 .exprviz-pc-container {
@@ -92,6 +122,37 @@
 .exprviz-table-empty {
   padding: 1rem;
   color: #888;
+}
+
+.exprviz-pc-tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  max-width: 360px;
+  pointer-events: none;
+  color: #222;
+}
+
+.exprviz-pc-tip-section {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.exprviz-pc-tip-row {
+  margin-left: 0.4rem;
+}
+
+.exprviz-pc-tip-key {
+  font-weight: 600;
 }
 
 .exprviz-table {

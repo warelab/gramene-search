@@ -172,12 +172,15 @@ const expressionStudies = createAsyncResourceBundle( {
       .then(res => _.groupBy(res, 'taxon_id'))
   }
 });
+// Only fetch when a view that consumes expression studies is enabled.
+const EXPRESSION_VIEWS = ['exprViz', 'expression', 'export'];
 expressionStudies.reactExpressionStudies = createSelector(
   'selectExpressionStudiesShouldUpdate',
-  (shouldUpdate) => {
-    if (shouldUpdate) {
-      return { actionCreator: 'doFetchExpressionStudies' }
-    }
+  'selectGrameneViewsOn',
+  (shouldUpdate, viewsOn) => {
+    if (!shouldUpdate) return;
+    if (!viewsOn || !EXPRESSION_VIEWS.some(id => viewsOn.has(id))) return;
+    return { actionCreator: 'doFetchExpressionStudies' }
   }
 );
 
@@ -202,10 +205,11 @@ const expressionSamples = createAsyncResourceBundle( {
 });
 expressionSamples.reactExpressionSamples = createSelector(
   'selectExpressionSamplesShouldUpdate',
-  (shouldUpdate) => {
-    if (shouldUpdate) {
-      return { actionCreator: 'doFetchExpressionSamples' }
-    }
+  'selectGrameneViewsOn',
+  (shouldUpdate, viewsOn) => {
+    if (!shouldUpdate) return;
+    if (!viewsOn || !EXPRESSION_VIEWS.some(id => viewsOn.has(id))) return;
+    return { actionCreator: 'doFetchExpressionSamples' }
   }
 );
 
@@ -219,12 +223,15 @@ const curatedGenes = createAsyncResourceBundle( {
       .then(curation => _.keyBy(curation.genes, 'gene_id'))
   }
 });
+// Curated annotations are consumed by GeneList rows and Homology details,
+// both inside the gene-list view.
 curatedGenes.reactCuratedGenes = createSelector(
   'selectCuratedGenesShouldUpdate',
-  (shouldUpdate) => {
-    if (shouldUpdate) {
-      return { actionCreator: 'doFetchCuratedGenes' }
-    }
+  'selectGrameneViewsOn',
+  (shouldUpdate, viewsOn) => {
+    if (!shouldUpdate) return;
+    if (!viewsOn || !viewsOn.has('list')) return;
+    return { actionCreator: 'doFetchCuratedGenes' }
   }
 );
 
@@ -245,12 +252,14 @@ const grameneGermplasm = createAsyncResourceBundle( {
       })
   }
 });
+// Germplasm metadata is consumed by the VEP detail panel inside the gene list.
 grameneGermplasm.reactGrameneGermplasm = createSelector(
   'selectGrameneGermplasmShouldUpdate',
-  (shouldUpdate) => {
-    if (shouldUpdate) {
-      return { actionCreator: 'doFetchGrameneGermplasm' }
-    }
+  'selectGrameneViewsOn',
+  (shouldUpdate, viewsOn) => {
+    if (!shouldUpdate) return;
+    if (!viewsOn || !viewsOn.has('list')) return;
+    return { actionCreator: 'doFetchGrameneGermplasm' }
   }
 );
 //
@@ -334,14 +343,12 @@ const grameneGeneAttribs = createAsyncResourceBundle( {
 grameneGeneAttribs.reactGrameneGeneAttribs = createSelector(
   'selectGrameneGeneAttribsShouldUpdate',
   'selectGrameneFiltersStatus',
-  'selectGrameneViews',
-  (shouldUpdate, status, views) => {
-    if (shouldUpdate && (status === 'finished' || status === 'ready')) {
-      const byId = _.keyBy(views.options,'id');
-      if (byId.attribs.show === "on") {
-        return { actionCreator: 'doFetchGrameneGeneAttribs' }
-      }
-    }
+  'selectGrameneViewsOn',
+  (shouldUpdate, status, viewsOn) => {
+    if (!shouldUpdate) return;
+    if (status !== 'finished' && status !== 'ready') return;
+    if (!viewsOn || !viewsOn.has('attribs')) return;
+    return { actionCreator: 'doFetchGrameneGeneAttribs' }
   }
 );
 

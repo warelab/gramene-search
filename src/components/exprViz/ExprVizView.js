@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { connect } from 'redux-bundler-react';
 import { Tabs, Tab, Button, ToggleButton, ToggleButtonGroup } from 'react-bootstrap';
 import FieldsModal from './FieldsModal';
@@ -101,6 +101,72 @@ const ExprVizViewCmp = props => {
   );
 };
 
+// Compact axis labels for the parallel-coords plot. The raw Solr field name
+// (e.g. "E_CURD_148_g5__expr") is uninformative; we prefer the assay's
+// factor labels, falling back to "organism part" then to the group id.
+// `full` is exposed via an SVG <title> so the user can hover to see study,
+// group, and every factor/characteristic.
+const AXIS_LABEL_MAX = 22;
+
+function truncateLabel(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
+function compactAssayLabel(assay, group) {
+  if (!assay) return group || '';
+  const factorVals = (assay.factor || []).map(f => f && f.label).filter(Boolean);
+  if (factorVals.length) return factorVals.join('; ');
+  const chars = assay.characteristic || [];
+  const organ = chars.find(c => c && c.type === 'organism part');
+  if (organ && organ.label) return organ.label;
+  const firstChar = chars.find(c => c && c.label);
+  if (firstChar) return firstChar.label;
+  return group || '';
+}
+
+function assayPairs(list) {
+  return (list || [])
+    .filter(x => x && x.label)
+    .map(x => ({ name: x.type || '', value: x.label }));
+}
+
+function buildAxisLabels(fields, studies, expressionSamples) {
+  const labels = {};
+  if (!fields) return labels;
+  const studyById = {};
+  (studies || []).forEach(s => { if (s && s._id) studyById[s._id] = s; });
+  const findAssay = (studyId, group) => {
+    const arr = expressionSamples && expressionSamples[studyId];
+    return arr ? arr.find(a => a.group === group) : null;
+  };
+  for (const f of fields) {
+    const m = f.match(/^(.+?)_g(\d+)__expr$/);
+    if (!m) {
+      labels[f] = {
+        short: truncateLabel(f.replace(/__expr$/, ''), AXIS_LABEL_MAX),
+        structured: { studyTitle: f, group: '', factors: [], characteristics: [] }
+      };
+      continue;
+    }
+    const expId = m[1].replace(/_/g, '-');
+    const group = 'g' + m[2];
+    const assay = findAssay(expId, group);
+    const study = studyById[expId];
+    const studyName = (study && study.description) || expId;
+    labels[f] = {
+      short: truncateLabel(compactAssayLabel(assay, group), AXIS_LABEL_MAX),
+      structured: {
+        studyTitle: studyName,
+        group,
+        factors: assayPairs(assay && assay.factor),
+        characteristics: assayPairs(assay && assay.characteristic)
+      }
+    };
+  }
+  return labels;
+}
+
 function rowMatchesSelections(row, selections) {
   for (const f of Object.keys(selections)) {
     const v = row[f];
@@ -151,6 +217,32 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
   const [selections, setSelections] = useState({});
   const [clearVersion, setClearVersion] = useState(0);
   const [hoveredId, setHoveredId] = useState(null);
+  const [plotHeight, setPlotHeight] = useState(320);
+  const resizeStateRef = useRef(null);
+
+  // Drag the horizontal separator between the plot and the table to retune
+  // their relative sizes. Bounded so neither pane disappears entirely.
+  const startResize = (e) => {
+    e.preventDefault();
+    resizeStateRef.current = { startY: e.clientY, startHeight: plotHeight };
+    const onMove = (ev) => {
+      const s = resizeStateRef.current;
+      if (!s) return;
+      const next = Math.max(120, Math.min(1200, s.startHeight + (ev.clientY - s.startY)));
+      setPlotHeight(next);
+    };
+    const onUp = () => {
+      resizeStateRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
 
   const hasBrush = Object.keys(selections).length > 0;
   const filteredRows = useMemo(() => {
@@ -176,6 +268,11 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
         onReorder([...newVisibleOrder, ...hidden]);
       }
     : undefined;
+
+  const axisLabels = useMemo(
+    () => buildAxisLabels(visibleFields, studies, expressionSamples),
+    [visibleFields, studies, expressionSamples]
+  );
 
   useEffect(() => {
     if (rows.length === 0 && hasBrush) {
@@ -252,7 +349,7 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
         </span>
       </div>
       <div className="exprviz-body">
-        <div className="exprviz-plot">
+        <div className="exprviz-plot" style={{ height: plotHeight }}>
           <ParallelCoordsPlot
             rows={rows}
             fields={visibleFields}
@@ -261,8 +358,17 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
             onReorder={handleReorder}
             clearVersion={clearVersion}
             hoveredId={hoveredId}
+            axisLabels={axisLabels}
           />
         </div>
+        <div
+          className="exprviz-resizer"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize plot"
+          onMouseDown={startResize}
+          title="Drag to resize"
+        />
         <div className="exprviz-table">
           <ExprTable
             rows={filteredRows}

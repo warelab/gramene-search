@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 // Parallel-coordinates plot with per-axis brushing and drag-to-reorder axes.
@@ -62,13 +62,38 @@ const ParallelCoordsPlot = ({
   onBrushChange,
   onReorder,
   clearVersion = 0,
-  hoveredId = null
+  hoveredId = null,
+  axisLabels = null
 }) => {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   // selections in data domain: { [field]: [lo, hi] }
   const selectionsRef = useRef({});
   const lastClearRef = useRef(0);
+  // Track container size so the d3 render reruns when the user drags the
+  // pane resizer (or when the window is resized). The values themselves
+  // aren't read inside the effect — the effect always reads clientWidth/
+  // clientHeight — but listing them in the deps array is what triggers it.
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  // Custom HTML tooltip for axis labels — gives us bold labels and structured
+  // sections, which the native SVG <title> can't do.
+  const [tooltip, setTooltip] = useState(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setSize((prev) => {
+          if (Math.abs(prev.w - width) < 1 && Math.abs(prev.h - height) < 1) return prev;
+          return { w: width, h: height };
+        });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (clearVersion !== lastClearRef.current) {
@@ -185,7 +210,22 @@ const ParallelCoordsPlot = ({
       }
       ax.call(axisGen);
 
-      const label = ax.append('text')
+      // Compact axis label. Hovering the label or its drag-handle rect shows
+      // a custom HTML tooltip (rendered outside the SVG by React) that can
+      // include bold labels and section headings.
+      const labelInfo = (axisLabels && axisLabels[f])
+        || { short: f.replace(/__expr$/, ''), structured: { studyTitle: f, group: '', factors: [], characteristics: [] } };
+      const showTip = (event) => setTooltip({
+        x: event.clientX,
+        y: event.clientY,
+        info: labelInfo.structured
+      });
+      const moveTip = (event) => setTooltip(t =>
+        t ? { ...t, x: event.clientX, y: event.clientY } : null
+      );
+      const hideTip = () => setTooltip(null);
+
+      ax.append('text')
         .attr('class', 'exprviz-pc-axis-label')
         .attr('x', 4).attr('y', -4)
         .attr('text-anchor', 'start')
@@ -193,7 +233,10 @@ const ParallelCoordsPlot = ({
         .attr('fill', '#333')
         .style('font-size', '10px')
         .style('cursor', 'grab')
-        .text(f.replace(/__expr$/, ''));
+        .text(labelInfo.short)
+        .on('mouseenter', showTip)
+        .on('mousemove', moveTip)
+        .on('mouseleave', hideTip);
 
       // hit area for grabbing — sits along the rotated label
       ax.append('rect')
@@ -202,7 +245,10 @@ const ParallelCoordsPlot = ({
         .attr('width', 140).attr('height', 14)
         .attr('transform', `rotate(${LABEL_ROTATION}, 0, -4)`)
         .attr('fill', 'transparent')
-        .style('cursor', 'grab');
+        .style('cursor', 'grab')
+        .on('mouseenter', showTip)
+        .on('mousemove', moveTip)
+        .on('mouseleave', hideTip);
 
       const brush = d3.brushY()
         .extent([[-BRUSH_WIDTH / 2, 0], [BRUSH_WIDTH / 2, innerH]])
@@ -284,7 +330,7 @@ const ParallelCoordsPlot = ({
       });
 
     axisG.selectAll('.exprviz-pc-axis-label, .exprviz-pc-axis-handle').call(drag);
-  }, [rows, fields, scale, onBrushChange, onReorder, clearVersion]);
+  }, [rows, fields, scale, onBrushChange, onReorder, clearVersion, axisLabels, size.w, size.h]);
 
   // Highlight the polyline matching the hovered row id without rebuilding the
   // SVG. Raises the highlighted path so it draws above its neighbors.
@@ -307,6 +353,53 @@ const ParallelCoordsPlot = ({
   return (
     <div ref={containerRef} className="exprviz-pc-container">
       <svg ref={svgRef} width="100%" height="100%" preserveAspectRatio="none"/>
+      {tooltip && <AxisTooltip x={tooltip.x} y={tooltip.y} info={tooltip.info}/>}
+    </div>
+  );
+};
+
+// Position-fixed so it can escape the plot pane's clipping. Offset slightly
+// from the cursor and clamped to the viewport so it never spills off-screen.
+const AxisTooltip = ({ x, y, info }) => {
+  const ref = useRef(null);
+  const [pos, setPos] = useState({ left: x + 12, top: y + 12 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = x + 12;
+    let top = y + 12;
+    if (left + w > vw - 4) left = Math.max(4, x - 12 - w);
+    if (top + h > vh - 4) top = Math.max(4, y - 12 - h);
+    setPos({ left, top });
+  }, [x, y, info]);
+  const { studyTitle, group, factors, characteristics } = info;
+  return (
+    <div ref={ref} className="exprviz-pc-tooltip" style={pos}>
+      <div><span className="exprviz-pc-tip-key">Study:</span> {studyTitle}{group ? ` (${group})` : ''}</div>
+      {factors.length > 0 && (
+        <>
+          <div className="exprviz-pc-tip-section">Factors</div>
+          {factors.map((p, i) => (
+            <div key={`f-${i}`} className="exprviz-pc-tip-row">
+              <span className="exprviz-pc-tip-key">{p.name}:</span> {p.value}
+            </div>
+          ))}
+        </>
+      )}
+      {characteristics.length > 0 && (
+        <>
+          <div className="exprviz-pc-tip-section">Characteristics</div>
+          {characteristics.map((p, i) => (
+            <div key={`c-${i}`} className="exprviz-pc-tip-row">
+              <span className="exprviz-pc-tip-key">{p.name}:</span> {p.value}
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 };
