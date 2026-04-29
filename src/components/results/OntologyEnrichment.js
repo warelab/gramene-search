@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { connect } from 'redux-bundler-react';
 import { Accordion, Form, Badge } from 'react-bootstrap';
 import { BsChevronDown, BsChevronRight } from 'react-icons/bs';
-import './gsea.css';
+import './ontologyEnrichment.css';
 
 function speciesTaxonId(tid) {
   const n = +tid;
@@ -149,7 +149,7 @@ const SpeciesTreeNode = ({
   const isOpen = expanded.has(+terminal._id);
 
   return (
-    <div className="tax-node gsea-tree-node">
+    <div className="tax-node oe-tree-node">
       <div className="tax-row" style={{ paddingLeft: depth * 7 }}>
         {hasKids ? (
           <span className="tax-chevron" onClick={() => onToggleExpand(+terminal._id)}>
@@ -168,7 +168,7 @@ const SpeciesTreeNode = ({
         return (
           <div
             key={tid}
-            className={'gsea-tree-leaf' + (isActive ? ' gsea-tree-leaf-active' : '')}
+            className={'oe-tree-leaf' + (isActive ? ' oe-tree-leaf-active' : '')}
             style={{ paddingLeft: (depth + 1) * 7 + 18 }}
             onClick={() => onSelect(tid)}
           >
@@ -178,8 +178,8 @@ const SpeciesTreeNode = ({
               checked={isActive}
               onChange={() => onSelect(tid)}
             />
-            <span className="gsea-tree-leaf-name">{genomeName(grameneMaps, tid)}</span>
-            <span className="gsea-tree-leaf-count">{count.toLocaleString()}</span>
+            <span className="oe-tree-leaf-name">{genomeName(grameneMaps, tid)}</span>
+            <span className="oe-tree-leaf-count">{count.toLocaleString()}</span>
           </div>
         );
       })}
@@ -244,7 +244,7 @@ const SpeciesTree = ({ taxonomy, grameneMaps, taxa, activeTaxon, onSelect }) => 
   }
 
   return (
-    <div className="gsea-tree">
+    <div className="oe-tree">
       {topLevel.map(n => (
         <SpeciesTreeNode
           key={n._id}
@@ -267,8 +267,8 @@ const SpeciesTree = ({ taxonomy, grameneMaps, taxa, activeTaxon, onSelect }) => 
 // ---------- enrichment panel ----------
 
 const ControlsBar = ({ ui, onChange }) => (
-  <div className="gsea-controls">
-    <Form.Group className="gsea-control">
+  <div className="oe-controls">
+    <Form.Group className="oe-control">
       <Form.Label>p.adjust ≤</Form.Label>
       <Form.Control
         type="number" step="0.01" min="0" max="1"
@@ -276,7 +276,7 @@ const ControlsBar = ({ ui, onChange }) => (
         onChange={e => onChange({ pAdjCutoff: +e.target.value })}
       />
     </Form.Group>
-    <Form.Group className="gsea-control">
+    <Form.Group className="oe-control">
       <Form.Label>minGSSize</Form.Label>
       <Form.Control
         type="number" step="1" min="1"
@@ -284,7 +284,7 @@ const ControlsBar = ({ ui, onChange }) => (
         onChange={e => onChange({ minGSSize: Math.max(1, +e.target.value) })}
       />
     </Form.Group>
-    <Form.Group className="gsea-control">
+    <Form.Group className="oe-control">
       <Form.Label>maxGSSize</Form.Label>
       <Form.Control
         type="number" step="1" min="1"
@@ -293,14 +293,14 @@ const ControlsBar = ({ ui, onChange }) => (
       />
     </Form.Group>
     <Form.Check
-      className="gsea-control"
+      className="oe-control"
       type="switch"
-      id="gsea-most-specific"
+      id="oe-most-specific"
       label="Drop ancestor terms"
       checked={!!ui.mostSpecific}
       onChange={e => onChange({ mostSpecific: e.target.checked })}
     />
-    <Form.Group className="gsea-control gsea-control-grow">
+    <Form.Group className="oe-control oe-control-grow">
       <Form.Label>Filter terms</Form.Label>
       <Form.Control
         type="text"
@@ -316,14 +316,14 @@ const TermRow = ({ row, showType, onAddFilter }) => {
   const handleClick = () => onAddFilter && onAddFilter(row);
   return (
     <tr onClick={handleClick} title="Click to add as a filter">
-      <td className="gsea-term-id">{row.term_display_id}</td>
-      <td className="gsea-term-name">{row.term_name || <em>(loading…)</em>}</td>
-      {showType && <td className="gsea-term-type">{row.term_namespace || ''}</td>}
-      <td className="gsea-num">{row.GeneRatio}</td>
-      <td className="gsea-num">{row.BgRatio}</td>
-      <td className="gsea-num">{fmtFold(row.FoldEnrichment)}</td>
-      <td className="gsea-num">{fmtP(row.pvalue)}</td>
-      <td className="gsea-num">{fmtP(row.pAdjust)}</td>
+      <td className="oe-term-id">{row.term_display_id}</td>
+      <td className="oe-term-name">{row.term_name || <em>(loading…)</em>}</td>
+      {showType && <td className="oe-term-type">{row.term_namespace || ''}</td>}
+      <td className="oe-num">{row.GeneRatio}</td>
+      <td className="oe-num">{row.BgRatio}</td>
+      <td className="oe-num">{fmtFold(row.FoldEnrichment)}</td>
+      <td className="oe-num">{fmtP(row.pvalue)}</td>
+      <td className="oe-num">{fmtP(row.pAdjust)}</td>
     </tr>
   );
 };
@@ -356,9 +356,9 @@ const SORT_DEFAULT_DIR = {
 const SortableTh = ({ label, sortKey, activeKey, activeDir, onSort, numeric }) => {
   const active = activeKey === sortKey;
   const arrow = active ? (activeDir === 'asc' ? ' ▲' : ' ▼') : '';
-  const cls = 'gsea-sort-th'
-    + (active ? ' gsea-sort-th-active' : '')
-    + (numeric ? ' gsea-num' : '');
+  const cls = 'oe-sort-th'
+    + (active ? ' oe-sort-th-active' : '')
+    + (numeric ? ' oe-num' : '');
   return (
     <th className={cls} onClick={() => onSort(sortKey)}>
       {label}{arrow}
@@ -409,12 +409,12 @@ const OntologySection = ({ block, search, onAddFilter }) => {
   return (
     <Accordion.Item eventKey={block.ontology}>
       <Accordion.Header>
-        <span className="gsea-ont-title">{block.label}</span>
-        <Badge bg="secondary" className="gsea-ont-badge">
+        <span className="oe-ont-title">{block.label}</span>
+        <Badge bg="secondary" className="oe-ont-badge">
           {block.passing} significant / {block.tested} tested
         </Badge>
         {block.universeSize > 0 && (
-          <Badge bg="light" text="dark" className="gsea-ont-badge">
+          <Badge bg="light" text="dark" className="oe-ont-badge">
             input {block.deSize} / universe {block.universeSize.toLocaleString()}
           </Badge>
         )}
@@ -423,7 +423,7 @@ const OntologySection = ({ block, search, onAddFilter }) => {
         {sorted.length === 0
           ? <em>No terms pass the current cutoffs.</em>
           : (
-            <table className="gsea-table">
+            <table className="oe-table">
               <thead>
                 <tr>
                   <SortableTh label="Term"           sortKey="term"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>
@@ -454,16 +454,16 @@ const OntologySection = ({ block, search, onAddFilter }) => {
   );
 };
 
-const TaxonPanel = ({ taxon, gsea, results, ui, onUiChange, onAddFilter }) => {
-  if (!taxon) return <div className="gsea-panel"><em>Select a species on the left.</em></div>;
-  const t = gsea.byTaxon[taxon];
-  if (!t) return <div className="gsea-panel"><em>Initializing…</em></div>;
+const TaxonPanel = ({ taxon, ontologyEnrichment, results, ui, onUiChange, onAddFilter }) => {
+  if (!taxon) return <div className="oe-panel"><em>Select a species on the left.</em></div>;
+  const t = ontologyEnrichment.byTaxon[taxon];
+  if (!t) return <div className="oe-panel"><em>Initializing…</em></div>;
   if (t.fg.status === 'loading' || t.bg.status === 'loading' || t.fg.status === 'idle' || t.bg.status === 'idle') {
-    return <div className="gsea-panel gsea-loading"><em>Loading enrichment…</em></div>;
+    return <div className="oe-panel oe-loading"><em>Loading enrichment…</em></div>;
   }
-  if (t.fg.status === 'error') return <div className="gsea-panel"><em>Foreground error: {t.fg.error}</em></div>;
-  if (t.bg.status === 'error') return <div className="gsea-panel"><em>Background error: {t.bg.error}</em></div>;
-  if (!results) return <div className="gsea-panel"><em>No data.</em></div>;
+  if (t.fg.status === 'error') return <div className="oe-panel"><em>Foreground error: {t.fg.error}</em></div>;
+  if (t.bg.status === 'error') return <div className="oe-panel"><em>Background error: {t.bg.error}</em></div>;
+  if (!results) return <div className="oe-panel"><em>No data.</em></div>;
 
   const allBlocks = ui.ontology === 'all'
     ? Object.values(results)
@@ -472,8 +472,8 @@ const TaxonPanel = ({ taxon, gsea, results, ui, onUiChange, onAddFilter }) => {
   const blocks = allBlocks.filter(b => b.tested > 0);
 
   return (
-    <div className="gsea-panel">
-      <div className="gsea-summary">
+    <div className="oe-panel">
+      <div className="oe-summary">
         Foreground: <b>{t.fg.numFound.toLocaleString()}</b> genes &middot;
         Background: <b>{t.bg.numFound.toLocaleString()}</b> genes
       </div>
@@ -492,18 +492,18 @@ const TaxonPanel = ({ taxon, gsea, results, ui, onUiChange, onAddFilter }) => {
   );
 };
 
-const GseaViewCmp = props => {
+const OntologyEnrichmentViewCmp = props => {
   const {
     grameneSearch,
     grameneMaps,
     grameneTaxonomy,
-    gsea,
-    gseaUI: ui,
-    gseaResults: results,
-    doSetGseaActiveTaxon,
-    doSetGseaUI,
-    doFetchGseaForeground,
-    doFetchGseaBackground,
+    ontologyEnrichment,
+    ontologyEnrichmentUI: ui,
+    ontologyEnrichmentResults: results,
+    doSetOntologyEnrichmentActiveTaxon,
+    doSetOntologyEnrichmentUI,
+    doFetchOntologyEnrichmentForeground,
+    doFetchOntologyEnrichmentBackground,
     doAcceptGrameneSuggestion
   } = props;
 
@@ -526,7 +526,7 @@ const GseaViewCmp = props => {
     return ids.map(tid => ({ tid, count: counts[tid] }));
   }, [grameneSearch, grameneMaps]);
 
-  const activeTaxon = gsea.activeTaxon;
+  const activeTaxon = ontologyEnrichment.activeTaxon;
 
   const [treeWidth, setTreeWidth] = useState(280);
   const beginResize = (e) => {
@@ -552,23 +552,23 @@ const GseaViewCmp = props => {
   useEffect(() => {
     if (taxa.length === 0) return;
     if (!activeTaxon || !taxa.find(t => String(t.tid) === String(activeTaxon))) {
-      doSetGseaActiveTaxon(taxa[0].tid);
+      doSetOntologyEnrichmentActiveTaxon(taxa[0].tid);
     }
-  }, [taxa, activeTaxon, doSetGseaActiveTaxon]);
+  }, [taxa, activeTaxon, doSetOntologyEnrichmentActiveTaxon]);
 
   useEffect(() => {
     if (!activeTaxon) return;
-    const t = gsea.byTaxon[activeTaxon];
+    const t = ontologyEnrichment.byTaxon[activeTaxon];
     if (!t) return;
-    if (t.fg.status === 'idle') doFetchGseaForeground(activeTaxon);
-    if (t.bg.status === 'idle') doFetchGseaBackground(activeTaxon);
-  }, [activeTaxon, gsea, doFetchGseaForeground, doFetchGseaBackground]);
+    if (t.fg.status === 'idle') doFetchOntologyEnrichmentForeground(activeTaxon);
+    if (t.bg.status === 'idle') doFetchOntologyEnrichmentBackground(activeTaxon);
+  }, [activeTaxon, ontologyEnrichment, doFetchOntologyEnrichmentForeground, doFetchOntologyEnrichmentBackground]);
 
   if (taxa.length === 0) {
-    return <div className="gsea-view"><em>No species in the current results.</em></div>;
+    return <div className="oe-view"><em>No species in the current results.</em></div>;
   }
   if (!grameneTaxonomy) {
-    return <div className="gsea-view"><em>Loading taxonomy…</em></div>;
+    return <div className="oe-view"><em>Loading taxonomy…</em></div>;
   }
 
   const handleAddFilter = (row) => {
@@ -585,28 +585,28 @@ const GseaViewCmp = props => {
   };
 
   return (
-    <div className="gsea-view gsea-layout">
-      <div className="gsea-layout-tree" style={{ flex: `0 0 ${treeWidth}px` }}>
+    <div className="oe-view oe-layout">
+      <div className="oe-layout-tree" style={{ flex: `0 0 ${treeWidth}px` }}>
         <SpeciesTree
           taxonomy={grameneTaxonomy}
           grameneMaps={grameneMaps}
           taxa={taxa}
           activeTaxon={activeTaxon}
-          onSelect={tid => doSetGseaActiveTaxon(String(tid))}
+          onSelect={tid => doSetOntologyEnrichmentActiveTaxon(String(tid))}
         />
       </div>
       <div
-        className="gsea-splitter"
+        className="oe-splitter"
         onMouseDown={beginResize}
         title="Drag to resize"
       />
-      <div className="gsea-layout-panel">
+      <div className="oe-layout-panel">
         <TaxonPanel
           taxon={activeTaxon ? String(activeTaxon) : null}
-          gsea={gsea}
+          ontologyEnrichment={ontologyEnrichment}
           results={results}
           ui={ui}
-          onUiChange={doSetGseaUI}
+          onUiChange={doSetOntologyEnrichmentUI}
           onAddFilter={handleAddFilter}
         />
       </div>
@@ -618,13 +618,13 @@ export default connect(
   'selectGrameneSearch',
   'selectGrameneMaps',
   'selectGrameneTaxonomy',
-  'selectGsea',
-  'selectGseaUI',
-  'selectGseaResults',
-  'doSetGseaActiveTaxon',
-  'doSetGseaUI',
-  'doFetchGseaForeground',
-  'doFetchGseaBackground',
+  'selectOntologyEnrichment',
+  'selectOntologyEnrichmentUI',
+  'selectOntologyEnrichmentResults',
+  'doSetOntologyEnrichmentActiveTaxon',
+  'doSetOntologyEnrichmentUI',
+  'doFetchOntologyEnrichmentForeground',
+  'doFetchOntologyEnrichmentBackground',
   'doAcceptGrameneSuggestion',
-  GseaViewCmp
+  OntologyEnrichmentViewCmp
 );

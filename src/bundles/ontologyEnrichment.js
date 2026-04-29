@@ -51,14 +51,14 @@ function parseFacets(json) {
   return out;
 }
 
-const gsea = {
-  name: 'gsea',
+const ontologyEnrichment = {
+  name: 'ontologyEnrichment',
 
   // Background facet counts depend only on the species — they're invariant
   // across filter changes and across sessions, so we persist whenever a bg
   // fetch completes. Foreground state piggybacks on the same write but is
   // self-invalidated by the signature check in the reactor.
-  persistActions: ['GSEA_BG_SUCCEEDED'],
+  persistActions: ['ONTOLOGY_ENRICHMENT_BG_SUCCEEDED'],
 
   getReducer: () => {
     const initialState = {
@@ -90,13 +90,13 @@ const gsea = {
 
     return (state = initialState, { type, payload }) => {
       switch (type) {
-        case 'GSEA_ACTIVE_TAXON_SET':
+        case 'ONTOLOGY_ENRICHMENT_ACTIVE_TAXON_SET':
           return { ...ensureTaxon(state, payload), activeTaxon: payload };
 
-        case 'GSEA_UI_SET':
+        case 'ONTOLOGY_ENRICHMENT_UI_SET':
           return { ...state, ui: { ...state.ui, ...(payload || {}) } };
 
-        case 'GSEA_FG_STARTED': {
+        case 'ONTOLOGY_ENRICHMENT_FG_STARTED': {
           const next = ensureTaxon(state, payload.taxon);
           const t = next.byTaxon[payload.taxon];
           return {
@@ -110,7 +110,7 @@ const gsea = {
             }
           };
         }
-        case 'GSEA_FG_SUCCEEDED': {
+        case 'ONTOLOGY_ENRICHMENT_FG_SUCCEEDED': {
           const t = state.byTaxon[payload.taxon];
           if (!t || payload.requestId !== t.fg.requestId) return state;
           return {
@@ -121,7 +121,7 @@ const gsea = {
             }
           };
         }
-        case 'GSEA_FG_FAILED': {
+        case 'ONTOLOGY_ENRICHMENT_FG_FAILED': {
           const t = state.byTaxon[payload.taxon];
           if (!t || payload.requestId !== t.fg.requestId) return state;
           return {
@@ -133,7 +133,7 @@ const gsea = {
           };
         }
 
-        case 'GSEA_BG_STARTED': {
+        case 'ONTOLOGY_ENRICHMENT_BG_STARTED': {
           const next = ensureTaxon(state, payload.taxon);
           const t = next.byTaxon[payload.taxon];
           return {
@@ -147,7 +147,7 @@ const gsea = {
             }
           };
         }
-        case 'GSEA_BG_SUCCEEDED': {
+        case 'ONTOLOGY_ENRICHMENT_BG_SUCCEEDED': {
           const t = state.byTaxon[payload.taxon];
           if (!t || payload.requestId !== t.bg.requestId) return state;
           return {
@@ -158,7 +158,7 @@ const gsea = {
             }
           };
         }
-        case 'GSEA_BG_FAILED': {
+        case 'ONTOLOGY_ENRICHMENT_BG_FAILED': {
           const t = state.byTaxon[payload.taxon];
           if (!t || payload.requestId !== t.bg.requestId) return state;
           return {
@@ -190,20 +190,20 @@ const gsea = {
     };
   },
 
-  doSetGseaActiveTaxon: tid => ({ dispatch }) =>
-    dispatch({ type: 'GSEA_ACTIVE_TAXON_SET', payload: tid }),
+  doSetOntologyEnrichmentActiveTaxon: tid => ({ dispatch }) =>
+    dispatch({ type: 'ONTOLOGY_ENRICHMENT_ACTIVE_TAXON_SET', payload: tid }),
 
-  doSetGseaUI: patch => ({ dispatch }) =>
-    dispatch({ type: 'GSEA_UI_SET', payload: patch }),
+  doSetOntologyEnrichmentUI: patch => ({ dispatch }) =>
+    dispatch({ type: 'ONTOLOGY_ENRICHMENT_UI_SET', payload: patch }),
 
-  doFetchGseaForeground: taxon => ({ dispatch, store }) => {
+  doFetchOntologyEnrichmentForeground: taxon => ({ dispatch, store }) => {
     const q = store.selectGrameneFiltersQueryString();
     const signature = fgSig(q, taxon);
-    const state = store.selectGsea();
+    const state = store.selectOntologyEnrichment();
     const t = state.byTaxon[taxon];
     if (t && t.fg.signature === signature && (t.fg.status === 'loading' || t.fg.status === 'ready')) return;
     const requestId = (fgPending[taxon] = (fgPending[taxon] || 0) + 1);
-    dispatch({ type: 'GSEA_FG_STARTED', payload: { taxon, signature, requestId } });
+    dispatch({ type: 'ONTOLOGY_ENRICHMENT_FG_STARTED', payload: { taxon, signature, requestId } });
 
     const api = store.selectGrameneAPI();
     const url = `${api}/search?q=${q}&fq=taxon_id:${taxon}&rows=0&facet=true&${FACET_PARAMS}`;
@@ -213,22 +213,22 @@ const gsea = {
         if (requestId !== fgPending[taxon]) return;
         const terms = parseFacets(json);
         const numFound = (json && json.response && json.response.numFound) || 0;
-        dispatch({ type: 'GSEA_FG_SUCCEEDED', payload: { taxon, requestId, terms, numFound } });
-        store.doEnsureGseaTermRecords(taxon);
+        dispatch({ type: 'ONTOLOGY_ENRICHMENT_FG_SUCCEEDED', payload: { taxon, requestId, terms, numFound } });
+        store.doEnsureOntologyEnrichmentTermRecords(taxon);
       })
       .catch(err => {
         if (requestId !== fgPending[taxon]) return;
-        dispatch({ type: 'GSEA_FG_FAILED', payload: { taxon, requestId, error: String(err) } });
+        dispatch({ type: 'ONTOLOGY_ENRICHMENT_FG_FAILED', payload: { taxon, requestId, error: String(err) } });
       });
   },
 
-  doFetchGseaBackground: taxon => ({ dispatch, store }) => {
+  doFetchOntologyEnrichmentBackground: taxon => ({ dispatch, store }) => {
     const signature = bgSig(taxon);
-    const state = store.selectGsea();
+    const state = store.selectOntologyEnrichment();
     const t = state.byTaxon[taxon];
     if (t && t.bg.signature === signature && (t.bg.status === 'loading' || t.bg.status === 'ready')) return;
     const requestId = (bgPending[taxon] = (bgPending[taxon] || 0) + 1);
-    dispatch({ type: 'GSEA_BG_STARTED', payload: { taxon, signature, requestId } });
+    dispatch({ type: 'ONTOLOGY_ENRICHMENT_BG_STARTED', payload: { taxon, signature, requestId } });
 
     const api = store.selectGrameneAPI();
     const url = `${api}/search?q=taxon_id:${taxon}&rows=0&facet=true&${FACET_PARAMS}`;
@@ -238,17 +238,17 @@ const gsea = {
         if (requestId !== bgPending[taxon]) return;
         const terms = parseFacets(json);
         const numFound = (json && json.response && json.response.numFound) || 0;
-        dispatch({ type: 'GSEA_BG_SUCCEEDED', payload: { taxon, requestId, terms, numFound } });
-        store.doEnsureGseaTermRecords(taxon);
+        dispatch({ type: 'ONTOLOGY_ENRICHMENT_BG_SUCCEEDED', payload: { taxon, requestId, terms, numFound } });
+        store.doEnsureOntologyEnrichmentTermRecords(taxon);
       })
       .catch(err => {
         if (requestId !== bgPending[taxon]) return;
-        dispatch({ type: 'GSEA_BG_FAILED', payload: { taxon, requestId, error: String(err) } });
+        dispatch({ type: 'ONTOLOGY_ENRICHMENT_BG_FAILED', payload: { taxon, requestId, error: String(err) } });
       });
   },
 
-  doEnsureGseaTermRecords: taxon => ({ store }) => {
-    const state = store.selectGsea();
+  doEnsureOntologyEnrichmentTermRecords: taxon => ({ store }) => {
+    const state = store.selectOntologyEnrichment();
     if (!state.byTaxon[taxon]) return;
     // The ontologies and pathways bundles bulk-load + persist on first
     // request; we just need to nudge each one once.
@@ -264,13 +264,13 @@ const gsea = {
     }
   },
 
-  reactGseaFetch: createSelector(
-    'selectGsea',
+  reactOntologyEnrichmentFetch: createSelector(
+    'selectOntologyEnrichment',
     'selectGrameneFiltersStatus',
     'selectGrameneFiltersQueryString',
     'selectGrameneViewsOn',
     (gs, fStatus, q, viewsOn) => {
-      if (!viewsOn || !viewsOn.has('gsea')) return;
+      if (!viewsOn || !viewsOn.has('ontologyEnrichment')) return;
       if (fStatus === 'init') return;
       const tid = gs.activeTaxon;
       if (!tid) return;
@@ -282,21 +282,21 @@ const gsea = {
       // ended when the previous tab closed.
       const fgInFlight = t.fg.status === 'loading' && (fgPending[tid] || 0) === t.fg.requestId && t.fg.requestId > 0;
       if (t.fg.signature !== sig && !fgInFlight) {
-        return { actionCreator: 'doFetchGseaForeground', args: [tid] };
+        return { actionCreator: 'doFetchOntologyEnrichmentForeground', args: [tid] };
       }
       const bgInFlight = t.bg.status === 'loading' && (bgPending[tid] || 0) === t.bg.requestId && t.bg.requestId > 0;
       if (t.bg.status !== 'ready' && !bgInFlight) {
-        return { actionCreator: 'doFetchGseaBackground', args: [tid] };
+        return { actionCreator: 'doFetchOntologyEnrichmentBackground', args: [tid] };
       }
     }
   ),
 
-  selectGsea: state => state.gsea,
-  selectGseaUI: state => state.gsea.ui,
-  selectGseaOntologyDefs: () => ONTOLOGIES,
+  selectOntologyEnrichment: state => state.ontologyEnrichment,
+  selectOntologyEnrichmentUI: state => state.ontologyEnrichment.ui,
+  selectOntologyEnrichmentOntologyDefs: () => ONTOLOGIES,
 
-  selectGseaResults: createSelector(
-    'selectGsea',
+  selectOntologyEnrichmentResults: createSelector(
+    'selectOntologyEnrichment',
     'selectOntologies',
     'selectGramenePathways',
     (gs, ontoBuckets, pathwayDocs) => {
@@ -539,4 +539,4 @@ function collapseToMostSpecific(ontKey, rows, recs) {
   return rows.filter(r => !covered.has(+r.term_id));
 }
 
-export default gsea;
+export default ontologyEnrichment;

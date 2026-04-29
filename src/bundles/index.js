@@ -7,6 +7,6 @@ import fieldCatalogBundle from './swaggerFields'
 import exporterBundle from './exporter'
 import ontologiesBundle from './ontologies'
 import exprVizBundle from './exprViz'
-import gseaBundle from './gsea'
+import ontologyEnrichmentBundle from './ontologyEnrichment'
 
-export default [...apiBundles, docsBundle, filterBundle, viewsBundle, genomesBundle, fieldCatalogBundle, exporterBundle, ontologiesBundle, exprVizBundle, gseaBundle];
+export default [...apiBundles, docsBundle, filterBundle, viewsBundle, genomesBundle, fieldCatalogBundle, exporterBundle, ontologiesBundle, exprVizBundle, ontologyEnrichmentBundle];
