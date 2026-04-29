@@ -4,6 +4,7 @@ import { Tabs, Tab, Button, ToggleButton, ToggleButtonGroup } from 'react-bootst
 import FieldsModal from './FieldsModal';
 import ExprTable, { buildFieldInfo } from './ExprTable';
 import ParallelCoordsPlot from './ParallelCoordsPlot';
+import HeatmapPlot from './HeatmapPlot';
 import './styles.css';
 
 function speciesTaxonId(tid) {
@@ -252,10 +253,16 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
   const rows = (tabState && tabState.rows) || [];
   const fetchInfo = (tabState && tabState.fetch) || { status: 'idle', total: 0 };
   const [scale, setScale] = useState('linear');
+  const [vizMode, setVizMode] = useState('heatmap'); // 'parallel' | 'heatmap'
   const [selections, setSelections] = useState({});
   const [clearVersion, setClearVersion] = useState(0);
   const [hoveredId, setHoveredId] = useState(null);
   const [plotHeight, setPlotHeight] = useState(320);
+  // Mirror of the table's currently displayed (post-sort, post-filter) rows.
+  // When the user clicks a column header to sort, ag-grid resorts and emits
+  // modelUpdated; we capture that order here so the heatmap below renders
+  // in the same order. Null until the table has emitted at least once.
+  const [tableOrder, setTableOrder] = useState(null);
   const resizeStateRef = useRef(null);
 
   // Drag the horizontal separator between the plot and the table to retune
@@ -312,6 +319,11 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
     [visibleFields, studies, expressionSamples]
   );
 
+  const fieldInfo = useMemo(
+    () => buildFieldInfo(visibleFields, studies, expressionSamples),
+    [visibleFields, studies, expressionSamples]
+  );
+
   useEffect(() => {
     if (rows.length === 0 && hasBrush) {
       setSelections({});
@@ -335,22 +347,56 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
         </Button>
         <ToggleButtonGroup
           type="radio"
-          name={`exprviz-scale-${taxon}`}
+          name={`exprviz-viz-${taxon}`}
           size="sm"
-          value={scale}
-          onChange={setScale}
+          value={vizMode}
+          onChange={setVizMode}
         >
-          <ToggleButton id={`exprviz-scale-${taxon}-lin`} value="linear" variant="outline-secondary">Linear</ToggleButton>
-          <ToggleButton id={`exprviz-scale-${taxon}-log`} value="log" variant="outline-secondary">Log</ToggleButton>
+          <ToggleButton id={`exprviz-viz-${taxon}-hm`} value="heatmap" variant="outline-secondary" title="Heatmap: cell color encodes expression level; hover for sample metadata">Heatmap</ToggleButton>
+          <ToggleButton id={`exprviz-viz-${taxon}-pc`} value="parallel" variant="outline-secondary" title="Parallel coordinates: one polyline per gene with brushable axes">Parallel</ToggleButton>
         </ToggleButtonGroup>
-        <Button
-          size="sm"
-          variant="outline-secondary"
-          disabled={!hasBrush}
-          onClick={() => { setClearVersion(v => v + 1); setSelections({}); }}
-        >
-          Clear brushes
-        </Button>
+        {vizMode === 'parallel' && (
+          <>
+            <ToggleButtonGroup
+              type="radio"
+              name={`exprviz-scale-${taxon}`}
+              size="sm"
+              value={scale}
+              onChange={setScale}
+            >
+              <ToggleButton id={`exprviz-scale-${taxon}-lin`} value="linear" variant="outline-secondary">Linear</ToggleButton>
+              <ToggleButton id={`exprviz-scale-${taxon}-log`} value="log" variant="outline-secondary">Log</ToggleButton>
+            </ToggleButtonGroup>
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              disabled={!hasBrush}
+              onClick={() => { setClearVersion(v => v + 1); setSelections({}); }}
+            >
+              Clear brushes
+            </Button>
+            <Button
+              size="sm"
+              variant="success"
+              disabled={!hasBrush || !onAddRangeQuery}
+              onClick={() => {
+                const terms = Object.keys(selections).map(field => {
+                  const [lo, hi] = selections[field];
+                  return {
+                    category: 'Expression',
+                    name: `${field}: ${fmt(lo)}–${fmt(hi)}`,
+                    fq_field: field,
+                    fq_value: `[${lo} TO ${hi}]`
+                  };
+                });
+                onAddRangeQuery(terms);
+              }}
+              title="Add brush ranges as an AND-conjunction filter on the search"
+            >
+              Apply as filter
+            </Button>
+          </>
+        )}
         <Button
           size="sm"
           variant="outline-secondary"
@@ -360,26 +406,6 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
         >
           Download TSV
         </Button>
-        <Button
-          size="sm"
-          variant="success"
-          disabled={!hasBrush || !onAddRangeQuery}
-          onClick={() => {
-            const terms = Object.keys(selections).map(field => {
-              const [lo, hi] = selections[field];
-              return {
-                category: 'Expression',
-                name: `${field}: ${fmt(lo)}–${fmt(hi)}`,
-                fq_field: field,
-                fq_value: `[${lo} TO ${hi}]`
-              };
-            });
-            onAddRangeQuery(terms);
-          }}
-          title="Add brush ranges as an AND-conjunction filter on the search"
-        >
-          Apply as filter
-        </Button>
         <span className="exprviz-status">
           {hasBrush ? `${filteredRows.length} of ${rows.length}` : rows.length}
           {fetchInfo.total ? ` / ${fetchInfo.total}` : ''} genes
@@ -388,16 +414,28 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
       </div>
       <div className="exprviz-body">
         <div className="exprviz-plot" style={{ height: plotHeight }}>
-          <ParallelCoordsPlot
-            rows={rows}
-            fields={visibleFields}
-            scale={scale}
-            onBrushChange={setSelections}
-            onReorder={handleReorder}
-            clearVersion={clearVersion}
-            hoveredId={hoveredId}
-            axisLabels={axisLabels}
-          />
+          {vizMode === 'heatmap' ? (
+            <HeatmapPlot
+              rows={tableOrder || filteredRows}
+              fields={visibleFields}
+              scale={scale}
+              axisLabels={axisLabels}
+              fieldInfo={fieldInfo}
+              hoveredId={hoveredId}
+              onHoverRow={setHoveredId}
+            />
+          ) : (
+            <ParallelCoordsPlot
+              rows={rows}
+              fields={visibleFields}
+              scale={scale}
+              onBrushChange={setSelections}
+              onReorder={handleReorder}
+              clearVersion={clearVersion}
+              hoveredId={hoveredId}
+              axisLabels={axisLabels}
+            />
+          )}
         </div>
         <div
           className="exprviz-resizer"
@@ -415,6 +453,7 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
             studies={studies}
             expressionSamples={expressionSamples}
             onHoverRow={setHoveredId}
+            onDisplayedOrderChange={setTableOrder}
           />
         </div>
       </div>

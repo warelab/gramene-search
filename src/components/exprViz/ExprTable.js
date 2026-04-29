@@ -16,7 +16,12 @@ const DEFAULT_COL_DEF = {
   resizable: true,
   sortable: true,
   filter: false,
-  suppressMenu: true
+  suppressMenu: true,
+  // Click cycle: input order → descending → ascending → input order. The
+  // ag-grid default is asc → desc → null; for expression data the
+  // top-of-column user usually wants is "highest first," so we hit that on
+  // the first click.
+  sortingOrder: ['desc', 'asc', null]
 };
 
 function arraysEqual(a, b) {
@@ -290,7 +295,7 @@ function buildColumnDefs(fields, fieldInfo, expanded, toggles) {
   return [idCol, nameCol, ...exprTopGroups];
 }
 
-const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples, onHoverRow }) => {
+const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples, onHoverRow, onDisplayedOrderChange }) => {
   const fieldInfo = useMemo(
     () => buildFieldInfo(fields, studies, expressionSamples),
     [fields, studies, expressionSamples]
@@ -311,6 +316,21 @@ const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples, onHove
     () => buildColumnDefs(fields, fieldInfo, expanded, { toggleFactors, toggleChars }),
     [fields, fieldInfo, expanded, toggleFactors, toggleChars]
   );
+
+  // ag-grid emits modelUpdated after the rowData/sort/filter pipeline runs,
+  // so this single hook covers user-driven sort changes AND the auto-resort
+  // that ag-grid performs whenever the rowData prop is replaced (e.g. when
+  // the parallel-coords brush narrows filteredRows). Walking
+  // forEachNodeAfterFilterAndSort gives us the rows in their current
+  // displayed order; we pass that up so the heatmap can mirror the table.
+  const handleModelUpdated = useCallback((e) => {
+    if (!onDisplayedOrderChange || !e.api) return;
+    const out = [];
+    e.api.forEachNodeAfterFilterAndSort(node => {
+      if (node.data) out.push(node.data);
+    });
+    onDisplayedOrderChange(out);
+  }, [onDisplayedOrderChange]);
 
   const onColumnMoved = (e) => {
     if (!onReorder || !e.finished) return;
@@ -340,6 +360,7 @@ const ExprTable = ({ rows, fields, onReorder, studies, expressionSamples, onHove
         suppressColumnVirtualisation={true}
         groupHeaderHeight={24}
         onColumnMoved={onColumnMoved}
+        onModelUpdated={handleModelUpdated}
         onCellMouseOver={e => onHoverRow && onHoverRow(e.data && e.data.id)}
         onCellMouseOut={() => onHoverRow && onHoverRow(null)}
       />
