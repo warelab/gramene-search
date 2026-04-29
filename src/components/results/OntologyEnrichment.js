@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { connect } from 'redux-bundler-react';
-import { Accordion, Form, Badge } from 'react-bootstrap';
-import { BsChevronDown, BsChevronRight } from 'react-icons/bs';
+import { Accordion, Form, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { BsChevronDown, BsChevronRight, BsInfoCircle } from 'react-icons/bs';
 import './ontologyEnrichment.css';
 
 function speciesTaxonId(tid) {
@@ -266,10 +266,25 @@ const SpeciesTree = ({ taxonomy, grameneMaps, taxa, activeTaxon, onSelect }) => 
 
 // ---------- enrichment panel ----------
 
+const HelpIcon = ({ text }) => (
+  <OverlayTrigger placement="top" overlay={<Tooltip>{text}</Tooltip>}>
+    <span className="oe-help" tabIndex={0}><BsInfoCircle/></span>
+  </OverlayTrigger>
+);
+
+const LabeledHelp = ({ label, help }) => (
+  <Form.Label>
+    {label} <HelpIcon text={help}/>
+  </Form.Label>
+);
+
 const ControlsBar = ({ ui, onChange }) => (
   <div className="oe-controls">
     <Form.Group className="oe-control">
-      <Form.Label>p.adjust ≤</Form.Label>
+      <LabeledHelp
+        label="p.adjust ≤"
+        help="Adjusted p-value cutoff (Benjamini–Hochberg). Terms with p.adjust above this are not reported as significant."
+      />
       <Form.Control
         type="number" step="0.01" min="0" max="1"
         value={ui.pAdjCutoff}
@@ -277,7 +292,10 @@ const ControlsBar = ({ ui, onChange }) => (
       />
     </Form.Group>
     <Form.Group className="oe-control">
-      <Form.Label>minGSSize</Form.Label>
+      <LabeledHelp
+        label="minGSSize"
+        help="Minimum gene set size: a term must have at least this many annotated genes in the universe to be tested. Filters out terms too small to give reliable enrichment statistics. clusterProfiler default: 10."
+      />
       <Form.Control
         type="number" step="1" min="1"
         value={ui.minGSSize}
@@ -285,23 +303,31 @@ const ControlsBar = ({ ui, onChange }) => (
       />
     </Form.Group>
     <Form.Group className="oe-control">
-      <Form.Label>maxGSSize</Form.Label>
+      <LabeledHelp
+        label="maxGSSize"
+        help="Maximum gene set size: terms with more than this many annotated genes are excluded. Drops the very general top-level terms (e.g. GO root) which carry little biological signal. clusterProfiler default: 500."
+      />
       <Form.Control
         type="number" step="1" min="1"
         value={ui.maxGSSize}
         onChange={e => onChange({ maxGSSize: Math.max(1, +e.target.value) })}
       />
     </Form.Group>
-    <Form.Check
-      className="oe-control"
-      type="switch"
-      id="oe-most-specific"
-      label="Drop ancestor terms"
-      checked={!!ui.mostSpecific}
-      onChange={e => onChange({ mostSpecific: e.target.checked })}
-    />
+    <div className="oe-control oe-switch">
+      <Form.Check
+        type="switch"
+        id="oe-most-specific"
+        label="Drop ancestor terms"
+        checked={!!ui.mostSpecific}
+        onChange={e => onChange({ mostSpecific: e.target.checked })}
+      />
+      <HelpIcon text="If a passing term has a more specific descendant that also passes, hide the ancestor — keeps only the most-specific significant term in each branch. Applied after BH correction. Analogous to clusterProfiler's simplify() (off by default in enrichGO)."/>
+    </div>
     <Form.Group className="oe-control oe-control-grow">
-      <Form.Label>Filter terms</Form.Label>
+      <LabeledHelp
+        label="Filter terms"
+        help="Live text filter on the result table — matches term ID or name."
+      />
       <Form.Control
         type="text"
         placeholder="term id or name…"
@@ -353,15 +379,22 @@ const SORT_DEFAULT_DIR = {
   p: 'asc', pAdj: 'asc'
 };
 
-const SortableTh = ({ label, sortKey, activeKey, activeDir, onSort, numeric }) => {
+const SortableTh = ({ label, sortKey, activeKey, activeDir, onSort, numeric, help }) => {
   const active = activeKey === sortKey;
   const arrow = active ? (activeDir === 'asc' ? ' ▲' : ' ▼') : '';
   const cls = 'oe-sort-th'
     + (active ? ' oe-sort-th-active' : '')
     + (numeric ? ' oe-num' : '');
+  const inner = (
+    <span className="oe-th-inner">
+      {label}{arrow}
+    </span>
+  );
   return (
     <th className={cls} onClick={() => onSort(sortKey)}>
-      {label}{arrow}
+      {help
+        ? <OverlayTrigger placement="top" overlay={<Tooltip>{help}</Tooltip>}>{inner}</OverlayTrigger>
+        : inner}
     </th>
   );
 };
@@ -426,14 +459,22 @@ const OntologySection = ({ block, search, onAddFilter }) => {
             <table className="oe-table">
               <thead>
                 <tr>
-                  <SortableTh label="Term"           sortKey="term"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>
-                  <SortableTh label="Description"    sortKey="name"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>
-                  {showType && <SortableTh label="Type" sortKey="type" activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>}
-                  <SortableTh label="GeneRatio"      sortKey="count"   activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="BgRatio"        sortKey="setSize" activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="FoldEnrichment" sortKey="fold"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="pvalue"         sortKey="p"       activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="p.adjust"       sortKey="pAdj"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
+                  <SortableTh label="Term"           sortKey="term"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort}
+                    help="Ontology term identifier (e.g. GO:0008150). Click a row to add the term as a filter."/>
+                  <SortableTh label="Description"    sortKey="name"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort}
+                    help="Human-readable name of the term."/>
+                  {showType && <SortableTh label="Type" sortKey="type" activeKey={sortKey} activeDir={sortDir} onSort={handleSort}
+                    help="Sub-classification within the ontology (e.g. Domain / Family / Repeat for InterPro)."/>}
+                  <SortableTh label="GeneRatio"      sortKey="count"   activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric
+                    help="Count / DESize: how many of the input genes are annotated to this term, over the total input genes that have any annotation in this ontology."/>
+                  <SortableTh label="BgRatio"        sortKey="setSize" activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric
+                    help="SetSize / UniverseSize: how many genes in the species are annotated to this term, over the total genes annotated anywhere in this ontology (the universe)."/>
+                  <SortableTh label="FoldEnrichment" sortKey="fold"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric
+                    help="(Count/DESize) / (SetSize/UniverseSize). Ratio of observed to expected overlap. Values > 1 mean the term is over-represented in the input."/>
+                  <SortableTh label="pvalue"         sortKey="p"       activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric
+                    help="Raw upper-tail hypergeometric p-value: P(overlap ≥ observed) under the null that the input is a random sample from the universe."/>
+                  <SortableTh label="p.adjust"       sortKey="pAdj"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric
+                    help="Benjamini–Hochberg adjusted p-value, computed across all terms tested in this ontology section. Use this (not the raw p-value) for significance."/>
                 </tr>
               </thead>
               <tbody>

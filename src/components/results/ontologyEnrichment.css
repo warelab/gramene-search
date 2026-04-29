@@ -105,6 +105,28 @@
   margin-bottom: 0.15rem;
 }
 
+.oe-help {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 3px;
+  color: #6c757d;
+  cursor: help;
+  vertical-align: middle;
+  font-size: 0.85em;
+}
+
+.oe-help:hover,
+.oe-help:focus {
+  color: #0366d6;
+  outline: none;
+}
+
+.oe-switch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .oe-ont-title {
   font-weight: 600;
   margin-right: 0.5rem;
