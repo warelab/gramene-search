@@ -1,21 +1,22 @@
 import { createSelector } from 'redux-bundler';
 
-// Gene Set Enrichment Analysis bundle.
+// Ontology over-representation analysis (clusterProfiler::enrichGO-style).
 //
 // For each species tab we run:
 //   foreground: q=<filters>&fq=taxon_id:<tid>&rows=0 + facet on six __ancestors fields
 //   background: q=taxon_id:<tid>&rows=0           + same facets (cached forever per tid)
 //
-// Per-ontology denominators (n_ont, N_ont) come from the root term's facet
-// count, since every annotated gene carries the root in __ancestors. Roots
-// are identified once ontology records are loaded by picking the ancestor
-// (or self) with the highest background facet count — this works for
-// multi-rooted GO (BP/MF/CC) and for the rice-rooted pathway tree.
-//
-// Enrichment uses the upper-tail Fisher exact (hypergeometric); p-values
-// are corrected per ontology with Benjamini–Hochberg. The "most-specific"
-// collapse is applied AFTER BH so a parent term that's significant on its
-// own is preserved even when none of its children clear the cutoff.
+// For every ontology section we compute a single hypergeometric universe:
+//   N = # genes annotated to any term in this ontology section (= largest bg facet count)
+//   K = # input genes annotated to any term in this section    (= largest fg facet count)
+// and per term:
+//   M = bg facet count, count = fg facet count
+//   p = P(X >= count), X ~ Hypergeometric(N, M, K)
+// p-values are BH-adjusted across the tested terms in the section.
+// GO is split into its three sub-ontologies (BP/MF/CC) by namespace so each
+// gets its own (N, K) and BH correction, matching enrichGO. Terms with
+// fewer than `minGSSize` or more than `maxGSSize` annotated genes are
+// dropped before testing (enrichGO defaults: 10 / 500).
 
 const ONTOLOGIES = [
   { key: 'GO',       field: 'GO__ancestors',       label: 'Gene Ontology',    bucket: 'GO' },
@@ -65,8 +66,9 @@ const gsea = {
       byTaxon: {},
       ui: {
         pAdjCutoff: 0.05,
-        minK: 2,
-        mostSpecific: true,
+        minGSSize: 10,
+        maxGSSize: 500,
+        mostSpecific: false,
         ontology: 'all',
         search: ''
       }
@@ -309,90 +311,40 @@ const gsea = {
         const bg = t.bg.terms[o.key] || {};
         const recs = o.key === 'pathways' ? (pathwayDocs || {}) : ((ontoBuckets && ontoBuckets[o.bucket]) || {});
 
-        // Forest-fallback denominators: when a term is itself a forest root
-        // (no parents in `recs` — common for InterPro), root finding returns
-        // the term and we'd get fold=1 by construction. Use the maximum
-        // counts across the ontology as a proxy for "annotated in this
-        // ontology" instead. For ontologies with a true synthetic root,
-        // these maxima equal the root counts and the answer is unchanged.
-        let maxFg = 0, maxBg = 0;
-        for (const idStr of Object.keys(bg)) {
-          const v = bg[idStr];
-          if (v > maxBg) maxBg = v;
-        }
-        for (const idStr of Object.keys(fg)) {
-          const v = fg[idStr];
-          if (v > maxFg) maxFg = v;
-        }
-
-        const rootCache = {};
-        const rootOf = (id) => {
-          if (rootCache.hasOwnProperty(id)) return rootCache[id];
-          const r = findRoot(o.key, id, recs, bg);
-          rootCache[id] = r;
-          return r;
-        };
-
-        const rows = [];
-        for (const idStr of Object.keys(fg)) {
-          const id = +idStr;
-          const k = fg[id];
-          const K = bg[id] || 0;
-          if (K < k) continue; // bg should always be >= fg
-          if (k < ui.minK) continue;
-          const termRec = recs && recs[id];
-          if (termRec && (termRec.is_obsolete || termRec.obsolete)) continue;
-          const root = rootOf(id);
-          // If the "root" is the term itself, the term is a forest root in
-          // this ontology — fall back to ontology-wide maxima.
-          const fellBack = (+root === id);
-          const n = fellBack ? maxFg : ((root != null && fg[root]) ? fg[root] : k);
-          const N = fellBack ? maxBg : ((root != null && bg[root]) ? bg[root] : K);
-          if (n <= 0 || N <= 0) continue;
-          if (k > n || K > N) continue;
-          const fold = (k / n) / (K / N);
-          const p = fisherUpperTail(k, n, K, N);
-          rows.push({
-            ontology: o.key,
-            ontology_label: o.label,
-            term_id: id,
-            field: o.field,
-            k, n, K, N, fold, p, pAdj: 1,
-            root,
-            denomFallback: fellBack
-          });
-        }
-
-        // GO is split into its three top-level namespaces (BP / MF / CC)
-        // and each is tested as its own ontology — both BH correction and
-        // most-specific collapse run within a namespace. We only split once
-        // ontology records have arrived and root finding has produced
-        // canonical roots; otherwise we'd see a swarm of singleton groups
-        // during the brief loading window between bg landing and records
-        // being fetched.
+        // GO is tested per sub-ontology (BP / MF / CC) so each gets its
+        // own universe size and BH correction, matching enrichGO. We can
+        // only split once ontology records have arrived and namespaces are
+        // known; until then, fall through to a single-section test.
         if (o.key === 'GO' && Object.keys(recs).length > 0) {
-          const byRoot = {};
-          for (const r of rows) {
-            const k = String(r.root);
-            if (!byRoot[k]) byRoot[k] = [];
-            byRoot[k].push(r);
+          const byNs = { biological_process: { fg: {}, bg: {} },
+                         molecular_function: { fg: {}, bg: {} },
+                         cellular_component: { fg: {}, bg: {} } };
+          for (const idStr of Object.keys(bg)) {
+            const id = +idStr;
+            const ns = recs[id] && recs[id].namespace;
+            if (!byNs[ns]) continue;
+            byNs[ns].bg[id] = bg[id];
+            if (fg[id] != null) byNs[ns].fg[id] = fg[id];
           }
-          const rootKeys = Object.keys(byRoot).sort((a, b) => {
-            const na = goRootName(recs[+a]) || a;
-            const nb = goRootName(recs[+b]) || b;
-            return na.localeCompare(nb);
-          });
-          for (const rootKey of rootKeys) {
-            const rootRec = recs[+rootKey];
-            const rootName = goRootName(rootRec);
-            const sectionKey = `GO:${rootKey}`;
-            const sectionLabel = rootName ? `GO: ${titleCase(rootName)}` : `GO: ${rootKey}`;
-            out[sectionKey] = finalizeBlock(
-              byRoot[rootKey], o.key, o.field, recs, ui, sectionKey, sectionLabel
+          for (const idStr of Object.keys(fg)) {
+            const id = +idStr;
+            const ns = recs[id] && recs[id].namespace;
+            if (!byNs[ns]) continue;
+            if (byNs[ns].fg[id] == null) byNs[ns].fg[id] = fg[id];
+          }
+          for (const ns of Object.keys(byNs)) {
+            const sectionKey = `GO:${ns}`;
+            const sectionLabel = `GO: ${titleCase(ns)}`;
+            out[sectionKey] = enrichSection(
+              byNs[ns].fg, byNs[ns].bg, recs, ui,
+              o.key, o.field, o.label, sectionKey, sectionLabel
             );
           }
         } else {
-          out[o.key] = finalizeBlock(rows, o.key, o.field, recs, ui, o.key, o.label);
+          out[o.key] = enrichSection(
+            fg, bg, recs, ui,
+            o.key, o.field, o.label, o.key, o.label
+          );
         }
       }
       return out;
@@ -400,27 +352,81 @@ const gsea = {
   )
 };
 
-function goRootName(rec) {
-  if (!rec) return '';
-  return rec.name || rec.display_name || rec.namespace || '';
-}
-
 function titleCase(s) {
   return String(s).split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ');
 }
 
-// BH correction + most-specific collapse + metadata + final sort, returning
-// the block descriptor consumed by the view layer.
-function finalizeBlock(rows, ontKey, ontField, recs, ui, sectionKey, sectionLabel) {
-  rows.sort((a, b) => a.p - b.p);
+// One ORA section: hypergeometric over a single (N, K) universe, BH-adjusted
+// across tested terms. Universe sizes come from the largest facet count in
+// the section — for an ontology with a synthetic root that's the root's
+// gene count (exact), and for forests it's the most populated top-level
+// term (a conservative approximation).
+function enrichSection(fg, bg, recs, ui, ontKey, ontField, ontLabel, sectionKey, sectionLabel) {
+  let N = 0, K = 0;
+  for (const idStr of Object.keys(bg)) {
+    const v = bg[idStr]; if (v > N) N = v;
+  }
+  for (const idStr of Object.keys(fg)) {
+    const v = fg[idStr]; if (v > K) K = v;
+  }
+  const empty = {
+    ontology: sectionKey, label: sectionLabel, field: ontField,
+    tested: 0, passing: 0, rows: [],
+    universeSize: N, deSize: K
+  };
+  if (N <= 0 || K <= 0) return empty;
+
+  const minGS = Math.max(1, +ui.minGSSize || 1);
+  const maxGS = Math.max(minGS, +ui.maxGSSize || N);
+
+  const rows = [];
+  for (const idStr of Object.keys(fg)) {
+    const id = +idStr;
+    const count = fg[id];
+    const M = bg[id] || 0;
+    if (M < count) continue;
+    if (M < minGS || M > maxGS) continue;
+    const termRec = recs && recs[id];
+    if (termRec && (termRec.is_obsolete || termRec.obsolete)) continue;
+    if (count > K || M > N) continue;
+
+    const p = fisherUpperTail(count, K, M, N);
+    const richFactor = M > 0 ? count / M : 0;
+    const foldEnrichment = (M > 0 && K > 0) ? (count / K) / (M / N) : 0;
+    const mu = M * K / N;
+    const sigma2 = N > 1 ? mu * (N - K) * (N - M) / N / (N - 1) : 0;
+    const zScore = sigma2 > 0 ? (count - mu) / Math.sqrt(sigma2) : 0;
+
+    rows.push({
+      ontology: ontKey,
+      ontology_label: ontLabel,
+      term_id: id,
+      field: ontField,
+      Count: count,
+      DESize: K,
+      SetSize: M,
+      UniverseSize: N,
+      GeneRatio: `${count}/${K}`,
+      BgRatio: `${M}/${N}`,
+      RichFactor: richFactor,
+      FoldEnrichment: foldEnrichment,
+      zScore,
+      pvalue: p,
+      pAdjust: 1
+    });
+  }
+
+  // BH adjustment across all tested terms in this section.
+  rows.sort((a, b) => a.pvalue - b.pvalue);
   const m = rows.length;
   let prev = 1;
   for (let i = m - 1; i >= 0; i--) {
-    const adj = Math.min(prev, rows[i].p * m / (i + 1));
-    rows[i].pAdj = adj;
+    const adj = Math.min(prev, rows[i].pvalue * m / (i + 1));
+    rows[i].pAdjust = adj;
     prev = adj;
   }
-  const passing = rows.filter(r => r.pAdj <= ui.pAdjCutoff);
+
+  const passing = rows.filter(r => r.pAdjust <= ui.pAdjCutoff && r.pvalue <= ui.pAdjCutoff);
   let display = passing;
   if (ui.mostSpecific) {
     display = collapseToMostSpecific(ontKey, passing, recs);
@@ -436,15 +442,19 @@ function finalizeBlock(rows, ontKey, ontField, recs, ui, sectionKey, sectionLabe
       r.term_namespace = '';
       r.term_display_id = String(r.term_id);
     }
+    r.Description = r.term_name || r.term_display_id;
   }
-  display.sort((a, b) => a.pAdj - b.pAdj || b.fold - a.fold);
+  display.sort((a, b) => a.pAdjust - b.pAdjust || b.FoldEnrichment - a.FoldEnrichment);
+
   return {
     ontology: sectionKey,
     label: sectionLabel,
     field: ontField,
     tested: rows.length,
     passing: passing.length,
-    rows: display
+    rows: display,
+    universeSize: N,
+    deSize: K
   };
 }
 
@@ -485,42 +495,6 @@ function fisherUpperTail(k, n, K, N) {
 }
 
 // ---------- ontology graph helpers ----------
-
-// Pick the "root" for a term as the ancestor (or self) with the highest
-// background facet count. The true root has every annotated gene under it,
-// so this selects BP/MF/CC for GO terms automatically and the rice root
-// for pathways without needing per-ontology hardcoded ids.
-function findRoot(ontKey, id, recs, bgCounts) {
-  const rec = recs && recs[id];
-  const candidates = new Set([+id]);
-  if (rec) {
-    if (ontKey === 'pathways') {
-      for (const k of Object.keys(rec)) {
-        if (k.startsWith('ancestors_') && Array.isArray(rec[k])) {
-          for (const a of rec[k]) candidates.add(+a);
-        }
-      }
-    } else if (Array.isArray(rec.ancestors)) {
-      for (const a of rec.ancestors) candidates.add(+a);
-    } else if (Array.isArray(rec.is_a)) {
-      const stack = rec.is_a.slice();
-      while (stack.length) {
-        const cur = +stack.pop();
-        if (candidates.has(cur)) continue;
-        candidates.add(cur);
-        const r = recs[cur];
-        if (r && Array.isArray(r.is_a)) for (const p of r.is_a) stack.push(p);
-      }
-    }
-  }
-  let best = +id;
-  let bestCount = bgCounts[+id] || 0;
-  for (const c of candidates) {
-    const cnt = bgCounts[c] || 0;
-    if (cnt > bestCount) { bestCount = cnt; best = c; }
-  }
-  return best;
-}
 
 function ancestorsOf(ontKey, id, recs) {
   const out = new Set();

@@ -269,7 +269,7 @@ const SpeciesTree = ({ taxonomy, grameneMaps, taxa, activeTaxon, onSelect }) => 
 const ControlsBar = ({ ui, onChange }) => (
   <div className="gsea-controls">
     <Form.Group className="gsea-control">
-      <Form.Label>p_adj ≤</Form.Label>
+      <Form.Label>p.adjust ≤</Form.Label>
       <Form.Control
         type="number" step="0.01" min="0" max="1"
         value={ui.pAdjCutoff}
@@ -277,18 +277,26 @@ const ControlsBar = ({ ui, onChange }) => (
       />
     </Form.Group>
     <Form.Group className="gsea-control">
-      <Form.Label>min k</Form.Label>
+      <Form.Label>minGSSize</Form.Label>
       <Form.Control
         type="number" step="1" min="1"
-        value={ui.minK}
-        onChange={e => onChange({ minK: Math.max(1, +e.target.value) })}
+        value={ui.minGSSize}
+        onChange={e => onChange({ minGSSize: Math.max(1, +e.target.value) })}
+      />
+    </Form.Group>
+    <Form.Group className="gsea-control">
+      <Form.Label>maxGSSize</Form.Label>
+      <Form.Control
+        type="number" step="1" min="1"
+        value={ui.maxGSSize}
+        onChange={e => onChange({ maxGSSize: Math.max(1, +e.target.value) })}
       />
     </Form.Group>
     <Form.Check
       className="gsea-control"
       type="switch"
       id="gsea-most-specific"
-      label="Most-specific only"
+      label="Drop ancestor terms"
       checked={!!ui.mostSpecific}
       onChange={e => onChange({ mostSpecific: e.target.checked })}
     />
@@ -311,11 +319,11 @@ const TermRow = ({ row, showType, onAddFilter }) => {
       <td className="gsea-term-id">{row.term_display_id}</td>
       <td className="gsea-term-name">{row.term_name || <em>(loading…)</em>}</td>
       {showType && <td className="gsea-term-type">{row.term_namespace || ''}</td>}
-      <td className="gsea-num">{row.k} / {row.n}</td>
-      <td className="gsea-num">{row.K} / {row.N}</td>
-      <td className="gsea-num">{fmtFold(row.fold)}</td>
-      <td className="gsea-num">{fmtP(row.p)}</td>
-      <td className="gsea-num">{fmtP(row.pAdj)}</td>
+      <td className="gsea-num">{row.GeneRatio}</td>
+      <td className="gsea-num">{row.BgRatio}</td>
+      <td className="gsea-num">{fmtFold(row.FoldEnrichment)}</td>
+      <td className="gsea-num">{fmtP(row.pvalue)}</td>
+      <td className="gsea-num">{fmtP(row.pAdjust)}</td>
     </tr>
   );
 };
@@ -330,19 +338,18 @@ const SORT_ACCESSORS = {
   term: r => r.term_display_id || '',
   name: r => (r.term_name || '').toLowerCase(),
   type: r => (r.term_namespace || '').toLowerCase(),
-  k: r => r.k,
-  K: r => r.K,
-  fold: r => r.fold,
-  p: r => r.p,
-  pAdj: r => r.pAdj
+  count: r => r.Count,
+  setSize: r => r.SetSize,
+  fold: r => r.FoldEnrichment,
+  p: r => r.pvalue,
+  pAdj: r => r.pAdjust
 };
 
 // Defaults chosen so a single click does what the user usually wants:
-// numeric "more interesting" columns (k, K, fold) descend; p-values and
-// text columns ascend.
+// numeric "more interesting" columns descend; p-values and text columns ascend.
 const SORT_DEFAULT_DIR = {
   term: 'asc', name: 'asc', type: 'asc',
-  k: 'desc', K: 'desc', fold: 'desc',
+  count: 'desc', setSize: 'desc', fold: 'desc',
   p: 'asc', pAdj: 'asc'
 };
 
@@ -406,6 +413,11 @@ const OntologySection = ({ block, search, onAddFilter }) => {
         <Badge bg="secondary" className="gsea-ont-badge">
           {block.passing} significant / {block.tested} tested
         </Badge>
+        {block.universeSize > 0 && (
+          <Badge bg="light" text="dark" className="gsea-ont-badge">
+            input {block.deSize} / universe {block.universeSize.toLocaleString()}
+          </Badge>
+        )}
       </Accordion.Header>
       <Accordion.Body>
         {sorted.length === 0
@@ -414,14 +426,14 @@ const OntologySection = ({ block, search, onAddFilter }) => {
             <table className="gsea-table">
               <thead>
                 <tr>
-                  <SortableTh label="Term"  sortKey="term" activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>
-                  <SortableTh label="Name"  sortKey="name" activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>
+                  <SortableTh label="Term"           sortKey="term"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>
+                  <SortableTh label="Description"    sortKey="name"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>
                   {showType && <SortableTh label="Type" sortKey="type" activeKey={sortKey} activeDir={sortDir} onSort={handleSort}/>}
-                  <SortableTh label="k / n" sortKey="k"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="K / N" sortKey="K"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="Fold"  sortKey="fold" activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="p"     sortKey="p"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
-                  <SortableTh label="p_adj" sortKey="pAdj" activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
+                  <SortableTh label="GeneRatio"      sortKey="count"   activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
+                  <SortableTh label="BgRatio"        sortKey="setSize" activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
+                  <SortableTh label="FoldEnrichment" sortKey="fold"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
+                  <SortableTh label="pvalue"         sortKey="p"       activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
+                  <SortableTh label="p.adjust"       sortKey="pAdj"    activeKey={sortKey} activeDir={sortDir} onSort={handleSort} numeric/>
                 </tr>
               </thead>
               <tbody>
