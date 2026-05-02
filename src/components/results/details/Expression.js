@@ -42,6 +42,7 @@ const Detail = props => {
     setIsLocal(event.target.checked);
   };
   useEffect(() => {
+    if (!props.expressionStudies) return;
     const tid = Math.floor(gene.taxon_id / 1000);
     if (props.expressionStudies[tid]) {
       let facets={Differential: {}, Baseline: {}};

@@ -8,7 +8,7 @@ export default class Browser extends React.Component {
 
   render() {
     return (
-      <div className="location-browser">
+      <div className="location-browser" style={{ position: 'relative', overflow: 'hidden' }}>
         <DallianceBrowser {...this.props} expanded={!!this.props.closeModal} />
       </div>
     )

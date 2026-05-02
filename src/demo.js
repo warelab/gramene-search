@@ -1,7 +1,7 @@
 import './static/style.css'
 import React from 'react'
 import { Provider, connect } from 'redux-bundler-react'
-import { render } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import { composeBundles, createCacheBundle } from "redux-bundler";
 import { getConfiguredCache } from 'money-clip';
 import { DebounceInput } from 'react-debounce-input'
@@ -550,7 +550,7 @@ cache.getAll().then(initialData => {
     }
   }
   let element = document.getElementById('demo');
-  element && render(demo(store), element);
+  element && createRoot(element).render(demo(store));
 
   // let element = document.getElementById('searchbar');
   // element && render(SearchUI(store), element);

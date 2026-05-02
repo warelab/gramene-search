@@ -1,12 +1,64 @@
-import React from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import keyBy from 'lodash/keyBy';
 import _ from "lodash";
 import ReactGA from "react-ga4";
 import { BiLinkExternal } from "react-icons/bi";
-import { Button, Badge } from "react-bootstrap";
+import { Button, Badge, Modal } from "react-bootstrap";
+
+// Controlled fullscreen wrapper. Parent owns `fullscreen` state and the
+// `onExitFullscreen` callback.
+//
+// To keep embedded widgets (Reactome diagram, BioDalliance, TBrowse)
+// alive across the toggle, the children render through createPortal
+// into a single STABLE detached div. We then physically move that div
+// between an inline anchor and the modal body via appendChild — React
+// never sees the portal target change, so it never unmounts the
+// children. The widgets' DOM, canvases, and event handlers move with
+// the div.
+export const FullscreenContainer = ({ fullscreen, onExitFullscreen, title, className, children }) => {
+  const [stableNode] = useState(() =>
+    typeof document !== 'undefined' ? document.createElement('div') : null
+  );
+  const inlineRef = useRef(null);
+  const modalRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!stableNode) return;
+    if (className) stableNode.className = className;
+    const parent = fullscreen ? modalRef.current : inlineRef.current;
+    if (parent && stableNode.parentNode !== parent) {
+      parent.appendChild(stableNode);
+    }
+  });
+
+  useEffect(() => {
+    // Container width changes when toggling fullscreen. Embedded widgets
+    // that listen for window resize (Pathways, etc.) re-measure on this
+    // event.
+    window.dispatchEvent(new Event('resize'));
+  }, [fullscreen]);
+
+  return (
+    <>
+      <div ref={inlineRef} />
+      {fullscreen && (
+        <Modal show fullscreen onHide={onExitFullscreen}>
+          <Modal.Header closeButton>
+            <Modal.Title>{title}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div ref={modalRef} />
+          </Modal.Body>
+        </Modal>
+      )}
+      {stableNode && createPortal(children, stableNode)}
+    </>
+  );
+};
 
 export const Detail = props => {
-  let subComponents = keyBy(props.children, 'key');
+  const subComponents = keyBy(props.children, 'key');
   return (
     <div className="detail">
       <div className="intro">
@@ -25,7 +77,7 @@ export const Detail = props => {
         </div>
       </div>
     </div>
-  )
+  );
 };
 
 export const Title = props => <h4>{props.children}</h4>;

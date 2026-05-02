@@ -11,7 +11,9 @@ import Xrefs from "./details/Xrefs"
 import Publications from "./details/Publications"
 import Sequences from "./details/Sequences"
 import {suggestionToFilters} from "../utils";
+import {FullscreenContainer} from './details/generic'
 import {GrFormPrevious, GrFormNextLink, GrFormNext, GrHpe} from 'react-icons/gr'
+import {BsArrowsFullscreen} from 'react-icons/bs'
 import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 let external = <small title="This link opens a page from an external site"> <i className="fa fa-external-link"/></small>;
@@ -220,7 +222,8 @@ class Gene extends React.Component {
     super(props);
     this.state = {
       details: allDetails.map(o => ({...o})).filter(d => props.config.details[d.id]),
-      expandedDetail: props.expandedDetail
+      expandedDetail: props.expandedDetail,
+      fullscreen: false,
     };
     let hasData = {};
     props.searchResult.capabilities.forEach(c => {
@@ -239,7 +242,7 @@ class Gene extends React.Component {
   setExpanded(d) {
     if (d.available || d.id === "pubs") {
       if (this.state.expandedDetail === d.id) {
-        this.setState({expandedDetail: null})
+        this.setState({expandedDetail: null, fullscreen: false})
       }
       else {
         const geneId = this.props.searchResult.id;
@@ -251,7 +254,7 @@ class Gene extends React.Component {
           action: 'Details',
           label: d.label
         });
-        this.setState({expandedDetail: d.id})
+        this.setState({expandedDetail: d.id, fullscreen: false})
       }
     }
   }
@@ -300,22 +303,53 @@ class Gene extends React.Component {
           {this.renderMetadata()}
         </div>
         <div className="gene-detail-tabs">
-          {this.state.details.map((d,idx) => (
-            <OverlayTrigger
-              key={idx}
-              placement={'bottom'}
-              overlay={
-                <Tooltip id={`tooltip`}>{d.popup}</Tooltip>
-              }
-            >
-              <div key={idx}
-                 className={`col-md-1 text-center gene-detail-tab-${this.getDetailStatus(d)}`}
-                 onClick={()=>this.setExpanded(d)}
-              >{d.label}</div>
-            </OverlayTrigger>
-          ))}
+          {this.state.details.map((d,idx) => {
+            const isExpanded = this.state.expandedDetail === d.id;
+            return (
+              <OverlayTrigger
+                key={idx}
+                placement={'bottom'}
+                overlay={
+                  <Tooltip id={`tooltip`}>{d.popup}</Tooltip>
+                }
+              >
+                <div key={idx}
+                   className={`col-md-1 text-center gene-detail-tab-${this.getDetailStatus(d)}`}
+                   style={{position: 'relative'}}
+                   onClick={()=>this.setExpanded(d)}
+                >
+                  {d.label}
+                  {isExpanded && (
+                    <BsArrowsFullscreen
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        cursor: 'pointer',
+                      }}
+                      title="View full screen"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        this.setState({fullscreen: true});
+                      }}
+                    />
+                  )}
+                </div>
+              </OverlayTrigger>
+            );
+          })}
         </div>
-        {this.state.expandedDetail && this.ensureGene(searchResult.id) && <div className="visible-detail">{React.createElement(inventory[this.state.expandedDetail], this.props)}</div>}
+        {this.state.expandedDetail && this.ensureGene(searchResult.id) && (
+          <FullscreenContainer
+            className="visible-detail"
+            fullscreen={this.state.fullscreen}
+            onExitFullscreen={() => this.setState({fullscreen: false})}
+            title={(this.state.details.find(d => d.id === this.state.expandedDetail) || {}).label}
+          >
+            {React.createElement(inventory[this.state.expandedDetail], this.props)}
+          </FullscreenContainer>
+        )}
       </div>
     )
   }

@@ -21,6 +21,11 @@
   },
   "author": "Andrew Olson",
   "license": "MIT",
+  "alias": {
+    "react": "./node_modules/react",
+    "react-dom": "./node_modules/react-dom",
+    "react/jsx-runtime": "./node_modules/react/jsx-runtime"
+  },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.6.0",
     "@parcel/watcher": "^2.5.1",
@@ -43,10 +48,11 @@
     "money-clip": "^3.0.2",
     "numeral": "^2.0.6",
     "querystringify": "^2.2.0",
-    "react": "^17.0.2",
+    "react": "^18.3.0",
     "react-bootstrap": "^2.7.2",
     "react-debounce-input": "^3.2.5",
-    "react-dom": "17.0.2",
+    "react-dom": "^18.3.0",
+    "tbrowse": "file:../tbrowse",
     "react-ga4": "^2.1.0",
     "react-icons": "^4.3.1",
     "react-markdown": "^5.0.3",

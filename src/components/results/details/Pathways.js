@@ -3,7 +3,6 @@ import {connect} from "redux-bundler-react";
 import FlatToNested from 'flat-to-nested';
 import {Explore, Links} from "./generic";
 import treesClient from "gramene-trees-client";
-// import {TreeMenu} from "react-tree-menu";
 import TreeMenu from "react-simple-tree-menu";
 import '../../../../node_modules/react-simple-tree-menu/dist/main.css';
 
@@ -11,35 +10,133 @@ import {Spinner} from "react-bootstrap";
 import _ from 'lodash'
 import "./tree-view.css"
 
-var reactomeURL = "https://plantreactome.gramene.org";
+const reactomeURL = "https://plantreactome.gramene.org";
+
+// The Reactome Diagram library is GWT-compiled and uses a single shared
+// GWT iframe + window globals — multiple Reactome.Diagram instances on
+// the same page step on each other. We work around this by rendering
+// each pathway diagram inside its own <iframe>, so each gets its own
+// document + window + Reactome global. The iframe communicates with
+// the parent through postMessage.
+function buildIframeSrcDoc() {
+  const proxy = JSON.stringify(reactomeURL);
+  return `<!DOCTYPE html>
+<html><head>
+  <style>html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;}</style>
+  <script async src="${reactomeURL}/DiagramJs/diagram/diagram.nocache.js"><\/script>
+</head><body>
+  <div id="holder" style="width:100%;height:100%;"></div>
+  <script>
+  (function(){
+    var diagram = null;
+    var loadedPathway = null;
+    var pendingPathwayId = null;
+    var pendingReactionId = null;
+    var pendingFlag = null;
+    var resizeTimer = null;
+
+    function dimensions() {
+      return [
+        Math.max(100, document.body.clientWidth),
+        Math.max(100, document.body.clientHeight)
+      ];
+    }
+
+    function whenReady(cb) {
+      if (window.Reactome && window.Reactome.Diagram) cb();
+      else setTimeout(function(){ whenReady(cb); }, 100);
+    }
+
+    function applyLoad() {
+      if (!pendingPathwayId) return;
+      whenReady(function(){
+        if (diagram) {
+          try { diagram.detach(); } catch(e) {}
+        }
+        var dims = dimensions();
+        diagram = window.Reactome.Diagram.create({
+          proxyPrefix: ${proxy},
+          placeHolder: 'holder',
+          width: dims[0],
+          height: dims[1]
+        });
+        var pw = pendingPathwayId;
+        diagram.loadDiagram(pw);
+        diagram.onDiagramLoaded(function(){
+          loadedPathway = pw;
+          if (pendingFlag) diagram.flagItems(pendingFlag);
+          if (pendingReactionId) diagram.selectItem(pendingReactionId);
+        });
+      });
+    }
+
+    window.addEventListener('message', function(e){
+      var data = e.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'load') {
+        pendingPathwayId = data.pathwayId || null;
+        pendingReactionId = data.reactionId || null;
+        if (data.flag) pendingFlag = data.flag;
+        applyLoad();
+      } else if (data.type === 'select') {
+        pendingReactionId = data.id || null;
+        if (diagram && loadedPathway) {
+          if (data.id) diagram.selectItem(data.id);
+          else diagram.resetSelection();
+        }
+      }
+    });
+
+    window.addEventListener('resize', function(){
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function(){
+        if (loadedPathway) applyLoad();
+      }, 300);
+    });
+  })();
+  <\/script>
+</body></html>`;
+}
 
 class Pathways extends React.Component {
   constructor(props) {
     super(props);
     this.taxonomy = treesClient.taxonomy.tree(Object.values(props.grameneTaxonomy))
     this.gene = props.geneDocs[props.searchResult.id];
-    this.holderId = 'displayHolder' + this.gene._id;
-    this.state = { treeVisible: true, height: 500 };
+    this.iframeRef = React.createRef();
+    // srcDoc is constant — the per-instance pathway/reaction state is
+    // pushed in via postMessage so changing pathway doesn't reload the
+    // GWT script.
+    this._iframeSrcDoc = buildIframeSrcDoc();
+    this._iframeReady = false;
+    this.state = {
+      treeVisible: true,
+      height: 500,
+      currentPathwayId: null,
+      currentReactionId: null,
+    };
   }
 
-  getTreeWidth() {
-    return this.state.treeVisible ? 250 : 0;
+  postLoad() {
+    const win = this.iframeRef.current && this.iframeRef.current.contentWindow;
+    if (!win || !this.state.currentPathwayId) return;
+    win.postMessage({
+      type: 'load',
+      pathwayId: this.state.currentPathwayId,
+      reactionId: this.state.currentReactionId,
+      flag: this.gene._id,
+    }, '*');
   }
 
-  getDiagramWidth() {
-    // Account for toggle button (24px) and 1px border
-    const toggleWidth = 25;
-    const treeWidth = this.getTreeWidth();
-    return this.divWrapper.clientWidth - treeWidth - toggleWidth - 1;
+  postSelect() {
+    const win = this.iframeRef.current && this.iframeRef.current.contentWindow;
+    if (!win) return;
+    win.postMessage({ type: 'select', id: this.state.currentReactionId || null }, '*');
   }
 
-  initDiagram() {
-    this.diagram = Reactome.Diagram.create({
-      proxyPrefix: reactomeURL,
-      placeHolder: this.holderId,
-      width: this.getDiagramWidth(),
-      height: this.state.height
-    });
+  handleIframeLoad = () => {
+    this._iframeReady = true;
+    if (this.state.currentPathwayId) this.postLoad();
   }
 
   startResize(e) {
@@ -55,13 +152,6 @@ class Pathways extends React.Component {
     const onMouseUp = () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
-      // Recreate diagram at new height
-      if (this.currentPathwayId && this.diagram) {
-        this.diagram.detach();
-        this.diagram = null;
-        this.loadedDiagram = null;
-        this.loadDiagram(this.currentPathwayId);
-      }
     };
 
     window.addEventListener('mousemove', onMouseMove);
@@ -69,22 +159,7 @@ class Pathways extends React.Component {
   }
 
   toggleTree() {
-    // Use the synchronously-tracked ID, not the async onDiagramLoaded one
-    const savedDiagram = this.currentPathwayId;
-    if (this.diagram) {
-      this.diagram.detach();
-      this.diagram = null;
-      this.loadedDiagram = null;
-    }
-    this.setState({ treeVisible: !this.state.treeVisible }, () => {
-      // Use requestAnimationFrame to ensure DOM has updated before
-      // reinitializing the diagram with the new available width
-      requestAnimationFrame(() => {
-        if (savedDiagram) {
-          this.loadDiagram(savedDiagram);
-        }
-      });
-    });
+    this.setState({ treeVisible: !this.state.treeVisible });
   }
 
   stableId(dbId) {
@@ -93,116 +168,86 @@ class Pathways extends React.Component {
   }
 
   loadDiagram(pathwayId, reactionId) {
-    this.currentPathwayId = pathwayId;
-    if (!this.diagram) this.initDiagram();
-    this.diagram.loadDiagram(pathwayId);
-
-    this.diagram.onDiagramLoaded(function (loaded) {
-      this.loadedDiagram = loaded;
-      if (reactionId) {
-        this.diagram.selectItem(reactionId);
-      }
-      // var xref = _.find(this.props.gene.xrefs,{db : 'Gramene_Plant_Reactome'}).ids[0];
-      this.diagram.flagItems(this.gene._id);
-    }.bind(this));
+    this.setState({
+      currentPathwayId: pathwayId,
+      currentReactionId: reactionId || null,
+    });
   }
 
   componentDidMount() {
-    if (Reactome && Reactome.Diagram) {
-      // this.initDiagram();
-    }
-    else {
-      window.addEventListener('launchDiagram', function (e) {
-        // this.initDiagram()
-      }.bind(this));
-    }
-    this._handleResize = _.debounce(() => {
-      if (this.currentPathwayId && this.divWrapper) {
-        const savedDiagram = this.currentPathwayId;
-        if (this.diagram) {
-          this.diagram.detach();
-          this.diagram = null;
-          this.loadedDiagram = null;
-        }
-        this.loadDiagram(savedDiagram);
+    // If pathway docs are already cached, build the hierarchy now so the
+    // initial render selects a default node (componentDidUpdate would
+    // otherwise never run if no redux change follows the mount).
+    if (!this.state.hierarchy && this.pathwayIds) {
+      const haveDocs = this.pathwayIds.filter(id => this.props.gramenePathways.hasOwnProperty(id));
+      if (haveDocs.length === this.pathwayIds.length) {
+        const docs = this.pathwayIds.map(id => this.props.gramenePathways[id]);
+        this.getHierarchy(this.makeTaxonSpecific(docs, this.gene.taxon_id));
       }
-    }, 300);
-    window.addEventListener('resize', this._handleResize);
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (this.state.hierarchy && ! this.state.selectedNode) {
+    if (this.state.hierarchy && !this.state.selectedNode) {
       let node = this.state.hierarchy[0];
       let path = [0];
-      let parent = node;
       while (node.nodes) {
         path.push(0);
-        parent = node;
         node = node.nodes[0];
       }
-      console.log(parent,node,path);
       this.loadNodes(path);
     }
     if (!this.state.hierarchy && this.pathwayIds) {
       const haveDocs = this.pathwayIds.filter(id => this.props.gramenePathways.hasOwnProperty(id));
       if (haveDocs.length === this.pathwayIds.length) {
         const docs = this.pathwayIds.map(id => this.props.gramenePathways[id]);
-        this.getHierarchy(this.makeTaxonSpecific(docs,this.gene.taxon_id));
+        this.getHierarchy(this.makeTaxonSpecific(docs, this.gene.taxon_id));
+      }
+    }
+    if (this._iframeReady) {
+      if (prevState.currentPathwayId !== this.state.currentPathwayId && this.state.currentPathwayId) {
+        this.postLoad();
+      } else if (prevState.currentReactionId !== this.state.currentReactionId &&
+                 prevState.currentPathwayId === this.state.currentPathwayId) {
+        this.postSelect();
       }
     }
   }
 
   componentWillMount() {
-    var pathways, reactionId, ancestorIds;
-    pathways = this.gene.annotations.pathways;
-    if(!pathways) {
+    const pathways = this.gene.annotations.pathways;
+    if (!pathways) {
       throw new Error("No pathway annotation present for " + this.gene._id);
     }
-
     this.pathwayIds = _.clone(pathways.ancestors);
-    pathways.entries.forEach(function(reaction) {
-      let [r,speciesCode,id] = reaction.id.split('-');
-
+    pathways.entries.forEach(reaction => {
+      const [, , id] = reaction.id.split('-');
       this.pathwayIds.push(+id);
-    }.bind(this));
-
+    });
     this.props.doRequestGramenePathways(this.pathwayIds);
-
-    // DocActions.needDocs('pathways', this.pathwayIds, (docs) => { return this.makeTaxonSpecific(docs,this.props.gene.taxon_id)}, this.getHierarchy);
   }
 
-  makeTaxonSpecific(docs,taxon_id) {
-    let lineageField = 'lineage_'+taxon_id;
-    if (! docs[0].hasOwnProperty(lineageField)) {
+  makeTaxonSpecific(docs, taxon_id) {
+    let lineageField = 'lineage_' + taxon_id;
+    if (!docs[0].hasOwnProperty(lineageField)) {
       let tid = Math.floor(taxon_id / 1000);
-      lineageField = 'lineage_'+tid;
+      lineageField = 'lineage_' + tid;
     }
-    let tsDocs = docs.map(function(doc) {
-      let tsDoc = _.pick(doc,['_id','name','type']);
+    return docs.map(doc => {
+      let tsDoc = _.pick(doc, ['_id', 'name', 'type']);
       tsDoc.lineage = doc[lineageField];
       return tsDoc;
     });
-    console.log(tsDocs);
-    return tsDocs;
-  }
-
-  componentWillUnmount() {
-    // DocActions.noLongerNeedDocs('pathways', this.pathwayIds);
-    if (this.diagram) this.diagram.detach();
-    if (this._handleResize) {
-      window.removeEventListener('resize', this._handleResize);
-      this._handleResize.cancel();
-    }
   }
 
   getHierarchy(docs) {
-    let pathways = _.keyBy(docs,'_id');
-    let nodes = [];
-    this.pathwayIds.forEach(function (pwyId) {
+    const pathways = _.keyBy(docs, '_id');
+    const nodes = [];
+    this.pathwayIds.forEach(pwyId => {
       if (pathways[pwyId]) {
-        let pwy = pathways[pwyId];
-        pwy.lineage.forEach(function(line) {
-          let parentOffset = line.length - 2;
+        const pwy = pathways[pwyId];
+        pwy.lineage.forEach(line => {
+          const parentOffset = line.length - 2;
           nodes.push({
             id: pwyId,
             key: pwyId,
@@ -210,42 +255,32 @@ class Pathways extends React.Component {
             type: pwy.type,
             checkbox: false,
             selected: false,
-            parent: parentOffset >=0 ? line[parentOffset] : undefined
+            parent: parentOffset >= 0 ? line[parentOffset] : undefined,
           });
         });
       }
     });
-
-    let nested = new FlatToNested({
-      children: 'nodes'
-    }).convert(nodes);
-
-    this.setState({hierarchy: [nested], selectedNode: undefined});
+    const nested = new FlatToNested({ children: 'nodes' }).convert(nodes);
+    this.setState({ hierarchy: [nested], selectedNode: undefined });
   }
+
   possiblyLoadNodes(node) {
     if (!node.selected) {
       let selectedNode = this.state.selectedNode;
-      selectedNode.selected = false;
+      if (selectedNode) selectedNode.selected = false;
       node.selected = true;
       selectedNode = node;
       if (node.type === "Pathway") {
-        let pathway = this.stableId(node.id);
-        this.loadDiagram(pathway);
+        this.loadDiagram(this.stableId(node.id));
+      } else {
+        const reaction = this.stableId(node.id);
+        const pathway = this.stableId(node.parent.split("/").pop());
+        this.loadDiagram(pathway, reaction);
       }
-      else {
-        let reaction = this.stableId(node.id);
-        let pathway = this.stableId(node.parent.split("/").pop());
-        if (this.loadedDiagram === pathway) {
-          this.diagram.selectItem(reaction);
-        }
-        else {
-          if (this.diagram) this.diagram.resetSelection();
-          this.loadDiagram(pathway,reaction);
-        }
-      }
-      this.setState({selectedNode})
+      this.setState({ selectedNode });
     }
   }
+
   loadNodes(nodes) {
     let hierarchy = this.state.hierarchy;
     let selectedNode = this.state.selectedNode;
@@ -266,115 +301,70 @@ class Pathways extends React.Component {
       if (lineage[0].selected) {
         selectedNode = undefined;
         lineage[0].selected = false;
-        if (this.loadedDiagram === pathway) {
-          this.diagram.resetSelection();
-        }
-        else {
-          if (this.diagram) this.diagram.resetSelection();
-          this.loadDiagram(pathway);
-        }
-      }
-      else {
-        if (selectedNode) {
-          selectedNode.selected = false;
-        }
+        this.loadDiagram(pathway);
+      } else {
+        if (selectedNode) selectedNode.selected = false;
         selectedNode = lineage[0];
         lineage[0].selected = true;
-        if (this.loadedDiagram === pathway) {
-          if (reaction) {
-            this.diagram.selectItem(reaction);
-          }
-          else {
-            this.diagram.resetSelection();
-          }
-        }
-        else {
-          if (this.diagram) this.diagram.resetSelection();
-          if (reaction) {
-            this.loadDiagram(pathway, reaction);
-          }
-          else {
-            this.loadDiagram(pathway);
-          }
-        }
+        if (reaction) this.loadDiagram(pathway, reaction);
+        else this.loadDiagram(pathway);
       }
-      this.setState({hierarchy: hierarchy, selectedNode: selectedNode});
+      this.setState({ hierarchy, selectedNode });
     }
   }
 
   renderHierarchy() {
     if (this.state.hierarchy) {
-      let path = [];
-      let allPaths = [];
+      const path = [];
+      const allPaths = [];
       let nodes = this.state.hierarchy;
       while (nodes) {
         path.push(nodes[0].key);
         allPaths.push(path.join('/'));
-        if (nodes[0].hasOwnProperty('nodes')) {
-          nodes = nodes[0].nodes;
-        }
-        else {
-          nodes = undefined;
-        }
+        nodes = nodes[0].nodes ? nodes[0].nodes : undefined;
       }
-      // console.log(path);
       return <TreeMenu
         data={this.state.hierarchy}
         hasSearch={false}
         onClickItem={(item) => this.possiblyLoadNodes(item)}
-        onClickItemx={(item) => console.log('onClickItem', item)}
         initialActiveKey={path.join('/')}
         initialOpenNodes={allPaths}
       />;
-      // return (
-      //   <TreeMenu
-      //     data={this.state.hierarchy}
-      //     expandIconClass="fa fa-chevron-right"
-      //     collapseIconClass="fa fa-chevron-down"
-      //     stateful={true}
-      //     collapsible={true}
-      //     onTreeNodeClick={this.loadNodes.bind(this)}
-      //   />
-      // );
     }
-    return <Spinner/>
+    return <Spinner/>;
   }
 
   updateQuery() {
-    console.log("User asked to filter by "+ this.state.selectedNode.type);
-
     this.props.doAcceptGrameneSuggestion({
       category: 'Plant Reactome',
       fq_field: 'pathways__ancestors',
       fq_value: this.state.selectedNode.id,
-      name: this.state.selectedNode.label
-    })
+      name: this.state.selectedNode.label,
+    });
   }
 
   render() {
-    let reactomeLink,searchFilter;
-
+    let reactomeLink, searchFilter;
     if (this.state.selectedNode) {
-      let xrefLUT = _.keyBy(this.gene.xrefs,'db');
-      let links = [
-        {name: 'Plant Reactome '+this.state.selectedNode.type, url: `${reactomeURL}/content/detail/${this.stableId(this.state.selectedNode.id)}`}
+      const xrefLUT = _.keyBy(this.gene.xrefs, 'db');
+      const links = [
+        { name: 'Plant Reactome ' + this.state.selectedNode.type, url: `${reactomeURL}/content/detail/${this.stableId(this.state.selectedNode.id)}` }
       ];
       if (xrefLUT.hasOwnProperty('notGramene_Plant_Reactome')) {
-        links.push({name: 'Plant Reactome Gene', url: `${reactomeURL}/content/detail/${xrefLUT.notGramene_Plant_Reactome.ids[0]}`});
+        links.push({ name: 'Plant Reactome Gene', url: `${reactomeURL}/content/detail/${xrefLUT.notGramene_Plant_Reactome.ids[0]}` });
       }
       reactomeLink = <Links key="links" links={links}/>;
-      let filters = [
+      const filters = [
         {
           name: `All genes in this ${this.state.selectedNode.type}`,
-          handleClick: ()=>this.updateQuery()
-        }
+          handleClick: () => this.updateQuery(),
+        },
       ];
       searchFilter = <Explore key="explore" explorations={filters}/>;
     }
-    const treeWidth = this.getTreeWidth();
     return (
-      <div ref={(div) => {this.divWrapper = div;}} className="pathways-container">
-        <div className="pathways-layout" style={{height: this.state.height}}>
+      <div className="pathways-container">
+        <div className="pathways-layout" style={{ height: this.state.height }}>
           <button
             className="pathways-tree-toggle"
             onClick={() => this.toggleTree()}
@@ -387,7 +377,15 @@ class Pathways extends React.Component {
               {this.renderHierarchy()}
             </div>
           )}
-          <div className="pathways-diagram-panel" id={this.holderId}/>
+          <div className="pathways-diagram-panel">
+            <iframe
+              ref={this.iframeRef}
+              onLoad={this.handleIframeLoad}
+              srcDoc={this._iframeSrcDoc}
+              title="Pathway diagram"
+              style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+            />
+          </div>
         </div>
         <div
           className="pathways-resize-handle"
