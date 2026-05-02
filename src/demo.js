@@ -1,3 +1,4 @@
+import './suppressDevWarnings'
 import './static/style.css'
 import React from 'react'
 import { Provider, connect } from 'redux-bundler-react'
