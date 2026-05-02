@@ -188,7 +188,7 @@ const grameneDocs = {
           let trees = {};
           res.forEach(t => {
             function update_taxon_name(node) {
-              if (maps.hasOwnProperty(node.taxon_id)) {
+              if (maps && maps.hasOwnProperty(node.taxon_id)) {
                 node.taxon_name = maps[node.taxon_id].display_name
               }
               else if (node.taxon_id === 1100004558) {

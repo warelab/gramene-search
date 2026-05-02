@@ -418,3 +418,13 @@ table.xrefs td:nth-child(3) {
     background-size: contain;
     background-repeat: no-repeat;
 }
+
+/* tbrowse portals its tooltips/popups to document.body; without an
+   explicit z-index they render behind the bootstrap modal (z-index
+   ~1050) when a detail panel is in fullscreen mode. */
+.tbrowse-root,
+.tbrowse-tooltip,
+.tbrowse-fieldpicker,
+.tbrowse-msa-mask-panel {
+    z-index: 1100 !important;
+}
