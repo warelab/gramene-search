@@ -272,7 +272,7 @@ class Homology extends React.Component {
     // }
     return (
       <Detail>
-        <Title key="title">Compara Gene Tree</Title>
+        {/*<Title key="title">Compara Gene Tree</Title>*/}
         <Description key="description">
           This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.
           {flagged > 1 && <Alert variant={'warning'}>This gene was flagged for potential gene structural annotation issues by {flagged} curators</Alert>}

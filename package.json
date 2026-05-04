@@ -57,7 +57,7 @@
     "react-bootstrap": "^2.7.2",
     "react-debounce-input": "^3.2.5",
     "react-dom": "^18.3.0",
-    "tbrowse": "^2.0.1",
+    "tbrowse": "^2.1.4",
     "react-ga4": "^2.1.0",
     "react-icons": "^4.3.1",
     "react-markdown": "^5.0.3",
