@@ -67,7 +67,11 @@ const GeneListDisplayComponent = props => {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState({ key: 'createdAt', dir: 'desc' });
   const auth = props.auth;
-  if (auth) onAuthStateChanged(auth, (user) => setUser(user));
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubscribe();
+  }, [auth]);
 
   const toggleSort = (key) => setSort(s =>
     s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }
@@ -363,7 +367,11 @@ const GeneListComponent = props => {
   const [loading, setLoading] = useState(false); // New loading state
   const [user, setUser] = useState({});
   const auth = props.auth;
-  if (auth) onAuthStateChanged(auth, (user) => setUser(user));
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubscribe();
+  }, [auth]);
 
   // Function to handle gene list input
   const handleGeneListChange = (event) => {
