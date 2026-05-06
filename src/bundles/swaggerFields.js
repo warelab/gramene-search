@@ -177,7 +177,7 @@ const grameneFieldCatalog = createAsyncResourceBundle({
   name: 'grameneFieldCatalog',
   actionBaseType: 'GRAMENE_FIELD_CATALOG',
   persist: true,
-  staleAfter: 5 * 60 * 1000,
+  staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({ store }) => {
     const api = store.selectGrameneAPI();
     const url = `${api}/search?q=*:*&rows=0&wt=csv&fl=*`;

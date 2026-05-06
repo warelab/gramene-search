@@ -23,7 +23,7 @@ import Feedback from './components/Feedback';
 import MDView from 'gramene-mdview';
 
 const cache = getConfiguredCache({
-  maxAge: 100 * 60 * 60,
+  maxAge: 24 * 60 * 60 * 1000,
   version: 1
 });
 // const subsite = 'main';

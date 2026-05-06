@@ -107,6 +107,7 @@ const grameneTaxonomy = createAsyncResourceBundle({
   name: 'grameneTaxonomy',
   actionBaseType: 'GRAMENE_TAXONOMY',
   persist: true,
+  staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/taxonomy?subset=gramene&rows=-1`)
       .then(res => res.json())
@@ -139,6 +140,7 @@ const grameneMaps = createAsyncResourceBundle({
   name: 'grameneMaps',
   actionBaseType: 'GRAMENE_MAPS',
   persist: true,
+  staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/maps?rows=-1`)
       .then(res => res.json())
@@ -166,6 +168,7 @@ const expressionStudies = createAsyncResourceBundle( {
   name: 'expressionStudies',
   actionBaseType: 'EXPRESSION_STUDIES',
   persist: true,
+  staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
       .then(res => res.json())
@@ -188,6 +191,7 @@ const expressionSamples = createAsyncResourceBundle( {
   name: 'expressionSamples',
   actionBaseType: 'EXPRESSION_SAMPLES',
   persist: true,
+  staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/assays?rows=-1`)
       .then(res => res.json())
@@ -217,6 +221,7 @@ const curatedGenes = createAsyncResourceBundle( {
   name: 'curatedGenes',
   actionBaseType: 'CURATED_GENES',
   persist: true,
+  staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`https://devdata.gramene.org/curation/curations?rows=0&minFlagged=0&since=12-12-2029`)
       .then(res => res.json())
@@ -239,6 +244,7 @@ const grameneGermplasm = createAsyncResourceBundle( {
   name: 'grameneGermplasm',
   actionBaseType: 'GRAMENE_GERMPLASM',
   persist: true,
+  staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/germplasm?rows=-1`)
       .then(res => res.json())
