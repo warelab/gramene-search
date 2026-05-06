@@ -57,7 +57,6 @@
     "react-bootstrap": "^2.7.2",
     "react-debounce-input": "^3.2.5",
     "react-dom": "^18.3.0",
-    "tbrowse": "^2.1.5",
     "react-ga4": "^2.1.0",
     "react-icons": "^4.3.1",
     "react-markdown": "^5.0.3",
@@ -65,7 +64,8 @@
     "react-simple-tree-menu": "^1.1.18",
     "react-switch": "^7.0.0",
     "redux-bundler": "21.0.0",
-    "redux-bundler-react": "^1.2.0"
+    "redux-bundler-react": "^1.2.0",
+    "tbrowse": "^2.2.1"
   },
   "prettier": {
     "singleQuote": true,

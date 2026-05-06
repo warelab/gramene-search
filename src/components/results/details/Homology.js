@@ -6,7 +6,9 @@ import treesClient from "gramene-trees-client";
 import {
   TBrowse,
   computePivotState,
+  createGenomeZone,
   fromGrameneGenetree,
+  fromGrameneGeneStructures,
   fromGrameneNeighborhood,
   labelsZone,
   msaZone,
@@ -19,12 +21,13 @@ import {Spinner, Alert} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
 import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
 
-const TBROWSE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone];
+const genomeZone = createGenomeZone({id: 'genome'});
+const TBROWSE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone, genomeZone];
 
 class Homology extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {viewer: 'treevis', neighborhood: null, neighborhoodTreeId: null};
+    this.state = {viewer: 'treevis', neighborhood: null, neighborhoodTreeId: null, geneStructures: null, geneStructuresTreeId: null};
     if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
       props.requestGene(props.searchResult.id)
     }
@@ -51,6 +54,40 @@ class Homology extends React.Component {
       .catch(err => {
         console.warn('tbrowse neighborhood fetch failed:', err);
         this._neighborhoodFetchedFor = null;
+      });
+  }
+  fetchGeneStructures(treeId, tree) {
+    if (this._geneStructuresFetchedFor === treeId) return;
+    this._geneStructuresFetchedFor = treeId;
+    const ids = Object.values(tree.nodes)
+      .filter(n => n.isLeaf && n.geneId)
+      .map(n => n.geneId);
+    if (ids.length === 0) return;
+    const api = this.props.grameneAPI;
+    const BATCH_SIZE = 50;
+    const batches = [];
+    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+      batches.push(ids.slice(i, i + BATCH_SIZE));
+    }
+    const fetchBatch = (batch) => {
+      const url = new URL(`${api}/genes`);
+      url.searchParams.set('idList', batch.join(','));
+      url.searchParams.set('rows', '-1');
+      return fetch(url.toString(), {headers: {Accept: 'application/json'}})
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        });
+    };
+    Promise.all(batches.map(fetchBatch))
+      .then(results => {
+        if (this._geneStructuresFetchedFor !== treeId) return;
+        const combined = [].concat(...results.map(r => Array.isArray(r) ? r : []));
+        this.setState({geneStructures: fromGrameneGeneStructures(combined), geneStructuresTreeId: treeId});
+      })
+      .catch(err => {
+        console.warn('tbrowse gene-structures fetch failed:', err);
+        this._geneStructuresFetchedFor = null;
       });
   }
   renderTreeVis() {
@@ -91,7 +128,9 @@ class Homology extends React.Component {
       };
     }
     this.fetchNeighborhood(treeId);
+    this.fetchGeneStructures(treeId, this._tbrowseData.tree);
     const neighborhood = this.state.neighborhoodTreeId === treeId ? this.state.neighborhood : undefined;
+    const geneStructures = this.state.geneStructuresTreeId === treeId ? this.state.geneStructures : undefined;
     return (
       <div className="gene-genetree" style={{height: 600, width: '100%'}}>
         <TBrowse
@@ -102,6 +141,7 @@ class Homology extends React.Component {
           proteinDomains={this._tbrowseData.proteinDomains}
           exonJunctions={this._tbrowseData.exonJunctions}
           neighborhood={neighborhood}
+          geneStructures={geneStructures}
           zones={TBROWSE_ZONES}
           nodeOfInterest={this.gene._id}
           initialViewState={this._tbrowseInitialViewState}
