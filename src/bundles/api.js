@@ -9,9 +9,12 @@ const facets = [
   // "{!facet.limit='100' facet.mincount='1' key='genetree'}gene_tree",
   // "{!facet.limit='100' facet.mincount='1' key='pathways'}pathways__ancestors",
   // "{!facet.limit='100' facet.mincount='1' key='domains'}domain_roots",
-  "{!facet.limit='-1' facet.mincount='1' key='fixed_1000__bin'}fixed_1000__bin",
-  "{!facet.limit='100' facet.mincount='0' key='AED' type='range' start=0 end=1.0 gap=0.01}MAKER__AED__attr_f"
+  "{!facet.limit='-1' facet.mincount='1' key='fixed_1000__bin'}fixed_1000__bin"
 ];
+// In the no-filter state the TaxDist histogram is the global "all genes"
+// distribution — it never changes for a given data release, so there's no
+// point recomputing the bin facet on every page load.
+const noFilterFacets = [facets[0]];
 const genomesOfInterest = '(taxon_id:2769) OR (taxon_id:3055) OR (taxon_id:3218) OR (taxon_id:3702) OR (taxon_id:3847) OR (taxon_id:4555) OR (taxon_id:4558) OR (taxon_id:4577) OR (taxon_id:13333) OR (taxon_id:15368) OR (taxon_id:29760) OR (taxon_id:39947) OR (taxon_id:55577) OR (taxon_id:88036) OR (taxon_id:214687)';
 const sites = ['main','oryza','maize','sorghum','grapevine'];
 const grameneSuggestions = createAsyncResourceBundle( {
@@ -367,22 +370,64 @@ const grameneSearch = createAsyncResourceBundle({
     const rows = store.selectGrameneSearchRows();
     const g = store.selectGrameneGenomes();
     const m = store.selectGrameneMaps() || {};
-    const taxa = Object.keys((g && g.active) || {}).filter(tid => m[tid] && !m[tid].hidden);
-    let fq='';
-    if (taxa.length) {
-      console.log('search add a fq for ',taxa);
-      fq = `&fq=taxon_id:(${taxa.join(' OR ')})`;
-    }
-    // return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}&stats=true&${statsFields.join('&')}`)
-    return fetch(`${store.selectGrameneAPI()}/search?q=${store.selectGrameneFiltersQueryString()}&facet.field=${facets}&rows=${rows}&start=${offset}${fq}`)
+    // Visible (non-hidden) genomes — the universe the user can browse.
+    const visibleTaxa = Object.keys(m).filter(tid => !m[tid].hidden);
+    // What's actually toggled on. `active` is seeded with every map key
+    // when maps load, so by default activeVisible === visibleTaxa.
+    const activeVisible = Object.keys((g && g.active) || {}).filter(tid => m[tid] && !m[tid].hidden);
+    // Only send fq=taxon_id:(...) when the user has actually subset the
+    // genomes. Sending the full visible list would just bloat the URL and
+    // fragment the upstream cache per site. Hidden-genome contributions
+    // are stripped from the response below instead.
+    const userSubsetGenomes = activeVisible.length > 0 && activeVisible.length < visibleTaxa.length;
+    const fq = userSubsetGenomes ? `&fq=taxon_id:(${activeVisible.join(' OR ')})` : '';
+
+    const q = store.selectGrameneFiltersQueryString();
+    const noFilters = q === '*:*' && !userSubsetGenomes;
+    const effectiveRows = noFilters ? 0 : rows;
+    const facetField = noFilters ? noFilterFacets : facets;
+
+    // Build the set of hidden taxon_ids (as strings for stable comparison
+    // against either string or numeric facet values from Solr).
+    const hiddenTaxa = new Set(Object.keys(m).filter(tid => m[tid].hidden));
+
+    // return fetch(`${store.selectGrameneAPI()}/search?q=${q}&facet.field=${facetField}&rows=${effectiveRows}&start=${offset}${fq}&stats=true&${statsFields.join('&')}`)
+    return fetch(`${store.selectGrameneAPI()}/search?q=${q}&facet.field=${facetField}&rows=${effectiveRows}&start=${offset}${fq}`)
       .then(res => res.json())
       .then(res => {
-        res.response.docs.forEach(d => {
-          d.can_show = {};
-          d.capabilities.forEach(c => {
-            d.can_show[c]=true;
-          })
-        });
+        // Strip hidden-genome contributions client-side. With no fq filter
+        // on the server, the response reflects every taxon; we subtract
+        // hidden ones from totals and facets so the rest of the UI sees a
+        // "visible-only" view.
+        if (hiddenTaxa.size && res.facet_counts && res.facet_counts.facet_fields) {
+          const tf = res.facet_counts.facet_fields.taxon_id;
+          if (Array.isArray(tf)) {
+            let hiddenGeneCount = 0;
+            const kept = [];
+            for (let i = 0; i < tf.length; i += 2) {
+              if (hiddenTaxa.has(String(tf[i]))) {
+                hiddenGeneCount += tf[i + 1];
+              } else {
+                kept.push(tf[i], tf[i + 1]);
+              }
+            }
+            res.facet_counts.facet_fields.taxon_id = kept;
+            if (res.response) {
+              res.response.numFound = Math.max(0, res.response.numFound - hiddenGeneCount);
+              if (Array.isArray(res.response.docs)) {
+                res.response.docs = res.response.docs.filter(d => !hiddenTaxa.has(String(d.taxon_id)));
+              }
+            }
+          }
+        }
+        if (res.response && Array.isArray(res.response.docs)) {
+          res.response.docs.forEach(d => {
+            d.can_show = {};
+            d.capabilities.forEach(c => {
+              d.can_show[c] = true;
+            });
+          });
+        }
         return res;
       })
   }
