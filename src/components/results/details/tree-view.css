@@ -40,7 +40,8 @@
     min-width: 0;
 }
 
-.pathways-resize-handle {
+.pathways-resize-handle,
+.details-resize-handle {
     height: 6px;
     background: #e0e0e0;
     border: 1px solid #ccc;
@@ -48,7 +49,8 @@
     cursor: ns-resize;
     transition: background 0.15s;
 }
-.pathways-resize-handle:hover {
+.pathways-resize-handle:hover,
+.details-resize-handle:hover {
     background: #179ed3;
 }
 

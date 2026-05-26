@@ -20,6 +20,7 @@ import {suggestionToFilters} from "../../utils";
 import {Spinner, Alert} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
 import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
+import './tree-view.css';
 
 const genomeZone = createGenomeZone({id: 'genome'});
 const TBROWSE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone, genomeZone];
@@ -27,7 +28,7 @@ const TBROWSE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone, genomeZo
 class Homology extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {viewer: 'treevis', neighborhood: null, neighborhoodTreeId: null, geneStructures: null, geneStructuresTreeId: null};
+    this.state = {viewer: 'treevis', neighborhood: null, neighborhoodTreeId: null, geneStructures: null, geneStructuresTreeId: null, height: 600};
     if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
       props.requestGene(props.searchResult.id)
     }
@@ -90,20 +91,51 @@ class Homology extends React.Component {
         this._geneStructuresFetchedFor = null;
       });
   }
+  startResize(e) {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = this.state.height;
+
+    const onMouseMove = (moveEvent) => {
+      const newHeight = Math.max(200, startHeight + (moveEvent.clientY - startY));
+      this.setState({ height: newHeight });
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.dispatchEvent(new Event('resize'));
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+  renderResizeHandle() {
+    return (
+      <div
+        className="details-resize-handle"
+        onMouseDown={(e) => this.startResize(e)}
+        title="Drag to resize"
+      />
+    );
+  }
   renderTreeVis() {
     return (
-      <div className="gene-genetree">
-        <TreeVis genetree={this.tree}
-                 initialGeneOfInterest={this.gene}
-                 genomesOfInterest={this.props.grameneGenomes.active}
-                 taxonomy={this.taxonomy}
-                 allowGeneSelection={true}
-                 pivotTree={true}
-                 enableCuration={false}
-                 enablePhyloview={true}
-                 numberOfNeighbors={10}
-                 ensemblUrl={this.props.configuration.ensemblURL}/>
-      </div>
+      <>
+        <div className="gene-genetree" style={{height: this.state.height, width: '100%'}}>
+          <TreeVis genetree={this.tree}
+                   initialGeneOfInterest={this.gene}
+                   genomesOfInterest={this.props.grameneGenomes.active}
+                   taxonomy={this.taxonomy}
+                   allowGeneSelection={true}
+                   pivotTree={true}
+                   enableCuration={false}
+                   enablePhyloview={true}
+                   numberOfNeighbors={10}
+                   ensemblUrl={this.props.configuration.ensemblURL}/>
+        </div>
+        {this.renderResizeHandle()}
+      </>
     )
   }
   renderTBrowse() {
@@ -132,21 +164,24 @@ class Homology extends React.Component {
     const neighborhood = this.state.neighborhoodTreeId === treeId ? this.state.neighborhood : undefined;
     const geneStructures = this.state.geneStructuresTreeId === treeId ? this.state.geneStructures : undefined;
     return (
-      <div className="gene-genetree" style={{height: 600, width: '100%'}}>
-        <TBrowse
-          tree={this._tbrowseData.tree}
-          taxonomy={this._tbrowseData.taxonomy}
-          msa={this._tbrowseData.msa}
-          geneMetadata={this._tbrowseData.geneMetadata}
-          proteinDomains={this._tbrowseData.proteinDomains}
-          exonJunctions={this._tbrowseData.exonJunctions}
-          neighborhood={neighborhood}
-          geneStructures={geneStructures}
-          zones={TBROWSE_ZONES}
-          nodeOfInterest={this.gene._id}
-          initialViewState={this._tbrowseInitialViewState}
-        />
-      </div>
+      <>
+        <div className="gene-genetree" style={{height: this.state.height, width: '100%'}}>
+          <TBrowse
+            tree={this._tbrowseData.tree}
+            taxonomy={this._tbrowseData.taxonomy}
+            msa={this._tbrowseData.msa}
+            geneMetadata={this._tbrowseData.geneMetadata}
+            proteinDomains={this._tbrowseData.proteinDomains}
+            exonJunctions={this._tbrowseData.exonJunctions}
+            neighborhood={neighborhood}
+            geneStructures={geneStructures}
+            zones={TBROWSE_ZONES}
+            nodeOfInterest={this.gene._id}
+            initialViewState={this._tbrowseInitialViewState}
+          />
+        </div>
+        {this.renderResizeHandle()}
+      </>
     )
   }
   renderViewerToggle() {
