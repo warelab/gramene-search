@@ -50,14 +50,14 @@ const grameneViews = {
         {
           id: 'expression',
           name: 'Gene expression',
-          show: 'off',
+          show: 'disabled',
           shouldScroll: false,
           desiredSamples: {}
         },
         {
           id: 'attribs',
           name: 'Gene attributes',
-          show: 'off',
+          show: 'disabled',
           shouldScroll: false
         }
         // {
