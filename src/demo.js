@@ -56,14 +56,6 @@ const panSites = [
     targetTaxonId: 3702,
     alertText: 'Main site',
     showViews: true,
-    firebaseConfig: {
-      apiKey: "AIzaSyCyTJmxfWgfuhI6-8uqocSiE9KOWUlkgkk",
-      authDomain: "gramene-auth.firebaseapp.com",
-      projectId: "gramene-auth",
-      storageBucket: "gramene-auth.appspot.com",
-      messagingSenderId: "590873346270",
-      appId: "1:590873346270:web:f76a31a93619e69439824f"
-    },
     details: {
       sequences: true,
       VEP: false,
@@ -159,14 +151,6 @@ const panSites = [
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
     partialCompara: true,
-    firebaseConfig: {
-      apiKey: "AIzaSyCyTJmxfWgfuhI6-8uqocSiE9KOWUlkgkk",
-      authDomain: "gramene-auth.firebaseapp.com",
-      projectId: "gramene-auth",
-      storageBucket: "gramene-auth.appspot.com",
-      messagingSenderId: "590873346270",
-      appId: "1:590873346270:web:f76a31a93619e69439824f"
-    },
     details: {
       sequences: true,
       VEP: true,
@@ -285,6 +269,23 @@ const panSites = [
     }
   }
 ];
+
+// Firebase web config is loaded from FIREBASE_CONFIG_JSON in the build-time
+// env (.env, never committed). If unset, the Auth panel mounts but stays
+// inert. Attached to the sites that use gramene-auth.
+const firebaseConfig = (() => {
+  const raw = process.env.FIREBASE_CONFIG_JSON;
+  if (!raw) return null;
+  try { return JSON.parse(raw); }
+  catch (e) { console.warn('FIREBASE_CONFIG_JSON is not valid JSON; Auth disabled.', e); return null; }
+})();
+if (firebaseConfig) {
+  ['main', 'sorghum'].forEach(id => {
+    const site = panSites[subsitelut[id]];
+    if (site) site.firebaseConfig = firebaseConfig;
+  });
+}
+
 const initialState = Object.assign({helpIsOn:false}, panSites[subsitelut[subsite]]);
 
 const config = {
