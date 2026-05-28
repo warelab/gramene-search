@@ -49,6 +49,17 @@ class TaxDist extends React.Component {
           }
         })
       }
+      // Drop any tid the taxonomy tree doesn't know about — gramene-search-vis
+      // throws when it encounters one (nodeIndex[tid].getPath() on undefined),
+      // which silently leaves every branch expanded.
+      if (this.props.grameneTaxDist && this.props.grameneTaxDist.indices && this.props.grameneTaxDist.indices.id) {
+        const nodeIndex = this.props.grameneTaxDist.indices.id;
+        Object.keys(selectedTaxa).forEach(tid => {
+          if (!nodeIndex[tid]) {
+            delete selectedTaxa[tid];
+          }
+        });
+      }
     }
     return (
       <div className="results-vis big-vis">

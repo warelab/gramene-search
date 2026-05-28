@@ -22,15 +22,19 @@ import {
 import Feedback from './components/Feedback';
 import MDView from 'gramene-mdview';
 
-const cache = getConfiguredCache({
-  maxAge: 24 * 60 * 60 * 1000,
-  version: 1
-});
 // const subsite = 'main';
 const subsite = process.env.SUBSITE;
 // const subsite = 'grapevine';
 // const subsite = 'sorghum';
 // const subsite = 'rice';
+// Scope the IndexedDB store to the subsite so caches from `npm run start-main`
+// don't leak into `npm run start-sorghum` (and vice versa). money-clip uses
+// the default keyval store when `name` is unset, which is shared across sites.
+const cache = getConfiguredCache({
+  maxAge: 24 * 60 * 60 * 1000,
+  version: 1,
+  name: `gramene_cache_${subsite || 'default'}`
+});
 
 const subsitelut = {
   main: 0,

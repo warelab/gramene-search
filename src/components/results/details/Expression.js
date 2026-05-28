@@ -71,11 +71,15 @@ const Detail = props => {
   let paralogs_url;
   let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
   let paralogs = [];
-  if (props.grameneParalogs && props.grameneParalogs[gene._id]) {
+  const haveParalogs = props.grameneParalogs && props.grameneParalogs[gene._id];
+  if (haveParalogs) {
     paralogs = props.grameneParalogs[gene._id];
-  } else if (gene.homology) {
-    props.doRequestParalogs(gene._id, gene.homology.supertree, gene.taxon_id);
   }
+  useEffect(() => {
+    if (!haveParalogs && gene.homology) {
+      props.doRequestParalogs(gene._id, gene.homology.supertree, gene.taxon_id);
+    }
+  }, [gene._id, haveParalogs]);
   // if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
   //   paralogs = gene.homology.homologous_genes.within_species_paralog;
   // }

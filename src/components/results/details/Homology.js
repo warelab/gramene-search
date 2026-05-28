@@ -17,7 +17,7 @@ import {
 } from "tbrowse";
 import {Detail, Title, Description, Content, Explore, Links} from "./generic";
 import {suggestionToFilters} from "../../utils";
-import {Spinner, Alert} from "react-bootstrap";
+import {Spinner} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
 import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
 import './tree-view.css';
@@ -341,16 +341,11 @@ class Homology extends React.Component {
         this.paralogs = this.paralogList();
       }
     }
-    let flagged=0;
-    // if (this.props.curation && this.props.curation.taxa.hasOwnProperty(this.gene.taxon_id)) {
-    //   flagged = this.props.curatedGenes && this.props.curatedGenes[id] ? this.props.curatedGenes[id].flagged : 0;
-    // }
     return (
       <Detail>
         {/*<Title key="title">Compara Gene Tree</Title>*/}
         <Description key="description">
           This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.
-          {flagged > 1 && <Alert variant={'warning'}>This gene was flagged for potential gene structural annotation issues by {flagged} curators</Alert>}
         </Description>
         {this.tree && <Content key="content">
           {this.renderViewerToggle()}
@@ -370,7 +365,6 @@ export default connect(
   'selectGrameneAPI',
   'selectConfiguration',
   'selectCuration',
-  'selectCuratedGenes',
   'doRequestGrameneTree',
   'doAcceptGrameneSuggestion',
   'doReplaceGrameneFilters',

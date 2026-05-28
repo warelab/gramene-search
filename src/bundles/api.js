@@ -220,29 +220,6 @@ expressionSamples.reactExpressionSamples = createSelector(
   }
 );
 
-const curatedGenes = createAsyncResourceBundle( {
-  name: 'curatedGenes',
-  actionBaseType: 'CURATED_GENES',
-  persist: true,
-  staleAfter: 24 * 60 * 60 * 1000,
-  getPromise: ({store}) => {
-    return fetch(`https://devdata.gramene.org/curation/curations?rows=0&minFlagged=0&since=12-12-2029`)
-      .then(res => res.json())
-      .then(curation => _.keyBy(curation.genes, 'gene_id'))
-  }
-});
-// Curated annotations are consumed by GeneList rows and Homology details,
-// both inside the gene-list view.
-curatedGenes.reactCuratedGenes = createSelector(
-  'selectCuratedGenesShouldUpdate',
-  'selectGrameneViewsOn',
-  (shouldUpdate, viewsOn) => {
-    if (!shouldUpdate) return;
-    if (!viewsOn || !viewsOn.has('list')) return;
-    return { actionCreator: 'doFetchCuratedGenes' }
-  }
-);
-
 const grameneGermplasm = createAsyncResourceBundle( {
   name: 'grameneGermplasm',
   actionBaseType: 'GRAMENE_GERMPLASM',
@@ -387,35 +364,34 @@ const grameneSearch = createAsyncResourceBundle({
     const effectiveRows = noFilters ? 0 : rows;
     const facetField = noFilters ? noFilterFacets : facets;
 
-    // Build the set of hidden taxon_ids (as strings for stable comparison
-    // against either string or numeric facet values from Solr).
-    const hiddenTaxa = new Set(Object.keys(m).filter(tid => m[tid].hidden));
+    // Set of taxon_ids the UI knows about — keep only these in the response.
+    // Anything else (hidden taxa, or taxa that exist in Solr but not in this
+    // site's maps collection) is stripped so downstream consumers — notably
+    // the TaxDist Vis which throws on unknown tids — see a clean visible-only
+    // view. Mirrors the old server-side `fq=taxon_id:(visible)` behavior.
+    const visibleTaxaSet = new Set(visibleTaxa);
 
     // return fetch(`${store.selectGrameneAPI()}/search?q=${q}&facet.field=${facetField}&rows=${effectiveRows}&start=${offset}${fq}&stats=true&${statsFields.join('&')}`)
     return fetch(`${store.selectGrameneAPI()}/search?q=${q}&facet.field=${facetField}&rows=${effectiveRows}&start=${offset}${fq}`)
       .then(res => res.json())
       .then(res => {
-        // Strip hidden-genome contributions client-side. With no fq filter
-        // on the server, the response reflects every taxon; we subtract
-        // hidden ones from totals and facets so the rest of the UI sees a
-        // "visible-only" view.
-        if (hiddenTaxa.size && res.facet_counts && res.facet_counts.facet_fields) {
+        if (visibleTaxaSet.size && res.facet_counts && res.facet_counts.facet_fields) {
           const tf = res.facet_counts.facet_fields.taxon_id;
           if (Array.isArray(tf)) {
-            let hiddenGeneCount = 0;
+            let droppedGeneCount = 0;
             const kept = [];
             for (let i = 0; i < tf.length; i += 2) {
-              if (hiddenTaxa.has(String(tf[i]))) {
-                hiddenGeneCount += tf[i + 1];
-              } else {
+              if (visibleTaxaSet.has(String(tf[i]))) {
                 kept.push(tf[i], tf[i + 1]);
+              } else {
+                droppedGeneCount += tf[i + 1];
               }
             }
             res.facet_counts.facet_fields.taxon_id = kept;
             if (res.response) {
-              res.response.numFound = Math.max(0, res.response.numFound - hiddenGeneCount);
+              res.response.numFound = Math.max(0, res.response.numFound - droppedGeneCount);
               if (Array.isArray(res.response.docs)) {
-                res.response.docs = res.response.docs.filter(d => !hiddenTaxa.has(String(d.taxon_id)));
+                res.response.docs = res.response.docs.filter(d => visibleTaxaSet.has(String(d.taxon_id)));
               }
             }
           }
@@ -628,4 +604,4 @@ const grameneParalogs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneGeneAttribs, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, grameneParalogs, curatedGenes, grameneGermplasm, expressionSamples, expressionStudies];
+export default [grameneSuggestions, grameneSearch, grameneGeneAttribs, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, grameneParalogs, grameneGermplasm, expressionSamples, expressionStudies];

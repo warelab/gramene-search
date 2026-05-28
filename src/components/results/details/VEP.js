@@ -56,21 +56,40 @@ function compareGermplasm(a, b) {
 }
 function group_germplasm(gene, germplasmLUT, vep_obj) {
   let accessionTable = [];
+  let missingMetadata = 0;
   Object.entries(vep_obj).forEach(([key,accessions]) => {
     const parts = key.split("__");
     if (parts[0] === "VEP") {
       if (parts[1] !== "merged") {
-        accessions.filter(ens_id => germplasmLUT.hasOwnProperty(ens_id)).forEach(ens_id => {
-          const germplasm = germplasmLUT[ens_id][0];
-          const pop = study_info[parts[3]][parts[4]];
-          const conseq = parts[1].replaceAll("_"," ");
-          const status = parts[2] === "het" ? "heterozygous" : "homozygous";
-          const accInfo = {
+        const studyForSystem = study_info[parts[3]];
+        const pop = (studyForSystem && studyForSystem[parts[4]]) || {
+          label: `${parts[3]}/${parts[4]}`,
+          type: parts[4]
+        };
+        const conseq = parts[1].replaceAll("_"," ");
+        const status = parts[2] === "het" ? "heterozygous" : "homozygous";
+        accessions.forEach(ens_id => {
+          let germplasm;
+          if (germplasmLUT && germplasmLUT.hasOwnProperty(ens_id)) {
+            germplasm = germplasmLUT[ens_id][0];
+          } else {
+            // Fall back to a minimal record so the row is still rendered with
+            // whatever info we have from the VEP fields alone.
+            missingMetadata++;
+            germplasm = {
+              ens_id: ens_id,
+              pub_id: ens_id,
+              subpop: '?',
+              stock_center: null,
+              germplasm_dbid: null,
+              pop_id: null
+            };
+          }
+          accessionTable.push({
             key: [pop.label,conseq,status].join('%%%'),
             germplasm: germplasm,
             pop: pop
-          };
-          accessionTable.push(accInfo);
+          });
         });
       }
     }
@@ -106,6 +125,8 @@ function group_germplasm(gene, germplasmLUT, vep_obj) {
       })
     })
   })
+  grouped.missingMetadata = missingMetadata;
+  grouped.totalAccessions = accessionTable.length;
   return grouped;
 }
 const THRESHOLD = 5;
@@ -259,20 +280,45 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
 
 const Detail = props => {
   const gene = props.geneDocs[props.searchResult.id];
-  if (props.grameneConsequences && props.grameneConsequences[gene._id] && props.grameneGermplasm) {
-    const groups = group_germplasm(gene, props.grameneGermplasm, props.grameneConsequences[gene._id]);
+  const haveConsequences = props.grameneConsequences && props.grameneConsequences[gene._id];
+  useEffect(() => {
+    if (!haveConsequences) {
+      props.doRequestVEP(gene._id);
+    }
+  }, [gene._id, haveConsequences]);
 
-    return <div>
-      <h5>Predicted loss-of-function alleles were detected in these germplasm.</h5>
-      <div >Explore other variants within this gene in the <a target="_blank"
-         href={`${props.configuration.ensemblURL}/${gene.system_name}/Gene/Variation_Gene/Image?db=core;g=${props.searchResult.id}`}>
-        Variant image</a> page in the Ensembl genome browser.</div>
-      <GridWithGroups groups={...groups} gene_id={gene._id} doGrin={!props.configuration.hasOwnProperty('noGRIN')}/>
-    </div>
-  } else {
-    props.doRequestVEP(gene._id);
+  if (!haveConsequences) {
     return <pre>loading</pre>;
   }
+
+  // Render even if grameneGermplasm hasn't loaded — we'll fall back to
+  // VEP-only rows so the user sees something instead of a silent empty table.
+  const germplasmLUT = props.grameneGermplasm || {};
+  const groups = group_germplasm(gene, germplasmLUT, props.grameneConsequences[gene._id]);
+  const { missingMetadata, totalAccessions } = groups;
+
+  let notice = null;
+  if (totalAccessions === 0) {
+    notice = <div className="alert alert-warning" style={{padding: '8px', marginTop: '8px'}}>
+      VEP results were found for this gene but could not be grouped into accession-level rows.
+    </div>;
+  } else if (missingMetadata > 0) {
+    notice = <div className="alert alert-info" style={{padding: '8px', marginTop: '8px'}}>
+      Germplasm metadata could not be found for {missingMetadata} of {totalAccessions} accession{totalAccessions === 1 ? '' : 's'}.
+      Affected rows show the raw accession id without stock-center links or subpopulation info.
+    </div>;
+  }
+
+  return <div>
+    <h5>Predicted loss-of-function alleles were detected in these germplasm.</h5>
+    <div>Explore other variants within this gene in the <a target="_blank"
+       href={`${props.configuration.ensemblURL}/${gene.system_name}/Gene/Variation_Gene/Image?db=core;g=${props.searchResult.id}`}>
+      Variant image</a> page in the Ensembl genome browser.</div>
+    {notice}
+    {totalAccessions > 0 && (
+      <GridWithGroups groups={groups} gene_id={gene._id} doGrin={!props.configuration.hasOwnProperty('noGRIN')}/>
+    )}
+  </div>
 };
 
 export default connect(

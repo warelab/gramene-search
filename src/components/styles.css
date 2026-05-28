@@ -14,8 +14,7 @@
     flex: 0 0 250px;
     position: sticky;
     top: 0;
-    max-height: 100vh;
-    overflow-y: auto;
+    align-self: flex-start;
     padding-left: 8px;
     padding-right: 8px;
     padding-bottom: 8px;
@@ -38,8 +37,6 @@
         flex: 0 0 auto;
         position: static;
         width: 100%;
-        max-height: none;
-        overflow-y: visible;
     }
     .search-views-content {
         width: 100%;

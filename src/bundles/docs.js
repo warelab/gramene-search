@@ -4,9 +4,10 @@ import { getConfiguredCache } from 'money-clip';
 // indefinitely (default maxAge of `Infinity`). The pathway set is small
 // and stable enough to keep around across sessions, so we bulk-load it
 // once with `?rows=-1` and reuse it instead of issuing per-id requests.
+// Scoped to the subsite so per-site pathway corpora don't collide.
 const pathwayCache = getConfiguredCache({
   version: 1,
-  name: 'gramene_pathways'
+  name: `gramene_pathways_${process.env.SUBSITE || 'default'}`
 });
 
 let pathwaysBulkPromise = null;
