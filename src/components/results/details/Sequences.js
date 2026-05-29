@@ -177,14 +177,18 @@ const Detail = props => {
   let geneSeq;
   let rnaSeq;
   let pepSeq;
-  if (props.geneSequences && props.geneSequences[gene._id]) {
+  // The *_SEQUENCE_REQUESTED reducer inserts a `{}` placeholder before the
+  // fetch resolves, so a key-only existence check passes while the body is
+  // still empty — leading to `seq.substring` of undefined downstream. Gate
+  // on the actual payload field instead.
+  if (props.geneSequences && props.geneSequences[gene._id] && props.geneSequences[gene._id].seq) {
     geneSeq = props.geneSequences[gene._id];
   }
   else {
     props.doRequestGeneSequence(gene)
     return <pre>loading</pre>;
   }
-  if (props.rnaSequences && props.rnaSequences[tid]) {
+  if (props.rnaSequences && props.rnaSequences[tid] && props.rnaSequences[tid].seq) {
     rnaSeq = props.rnaSequences[tid]
   }
   else {
@@ -197,7 +201,7 @@ const Detail = props => {
   let tl_id;
   if (transcript.translation) {
     tl_id = transcript.translation.id;
-    if (props.pepSequences && props.pepSequences[tl_id]) {
+    if (props.pepSequences && props.pepSequences[tl_id] && props.pepSequences[tl_id].seq) {
       pepSeq = props.pepSequences[tl_id];
     }
     else {
