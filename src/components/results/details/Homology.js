@@ -2,7 +2,10 @@ import React from 'react'
 import _ from 'lodash';
 import {connect} from "redux-bundler-react";
 import TreeVis from "gramene-genetree-vis";
-import treesClient from "gramene-trees-client";
+// Subpath imports avoid gramene-trees-client/index.js, whose require chain
+// fires a /swagger fetch at module load (see comment in bundles/api.js).
+import taxonomy from "gramene-trees-client/src/taxonomy";
+import genetree from "gramene-trees-client/src/genetree";
 import {
   TBrowse,
   computePivotState,
@@ -35,7 +38,7 @@ class Homology extends React.Component {
     if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
       props.requestGene(props.searchResult.id)
     }
-    this.taxonomy = treesClient.taxonomy.tree(Object.values(props.grameneTaxonomy))
+    this.taxonomy = taxonomy.tree(Object.values(props.grameneTaxonomy))
   }
   // ----- uiViewState accessors (with sensible defaults) -----
   getGeneId() { return this.props.searchResult.id; }
@@ -384,7 +387,7 @@ class Homology extends React.Component {
     else {
       const tree = this.props.grameneTrees[treeId];
       if (tree.hasOwnProperty('taxon_id')) {
-        this.tree = treesClient.genetree.tree([this.props.grameneTrees[treeId]]);
+        this.tree = genetree.tree([this.props.grameneTrees[treeId]]);
         this.orthologs = this.orthologList();
         this.paralogs = this.paralogList();
       }

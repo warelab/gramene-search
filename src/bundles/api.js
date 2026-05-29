@@ -1,7 +1,13 @@
 import { createAsyncResourceBundle, createSelector } from 'redux-bundler'
 import _ from 'lodash'
-import binsClient from "gramene-bins-client";
-import treesClient from "gramene-trees-client";
+// Import the leaf modules directly (not the package index) so we don't
+// trigger gramene-bins-client/index.js and gramene-trees-client/index.js,
+// each of which eagerly require()s ./src/promise -> gramene-search-client
+// -> grameneSwaggerClient.js, whose top-level IIFE fires a GET to /swagger
+// at module load. We never use the promise path, so the fetch was pure
+// waste — two requests per page load before this change.
+import bins from "gramene-bins-client/src/bins";
+import taxonomy from "gramene-trees-client/src/taxonomy";
 import {build} from "gramene-taxonomy-with-genomes";
 
 const facets = [
@@ -458,8 +464,8 @@ const grameneTaxDist = {
           grameneTaxonomy[tid].name = map.display_name;
         });
         const binnedResults = formatFacetCountsForViz(grameneSearch.facet_counts.facet_fields.fixed_1000__bin);
-        let speciesTree = treesClient.taxonomy.tree(Object.values(grameneTaxonomy));
-        let binMapper = binsClient.bins(grameneMaps);
+        let speciesTree = taxonomy.tree(Object.values(grameneTaxonomy));
+        let binMapper = bins(grameneMaps);
         let taxDist = build(binMapper, speciesTree);
         taxDist.setBinType('fixed',1000);
         taxDist.setResults(binnedResults);

@@ -2,7 +2,9 @@ import React from 'react'
 import {connect} from "redux-bundler-react";
 import FlatToNested from 'flat-to-nested';
 import {Explore, Links} from "./generic";
-import treesClient from "gramene-trees-client";
+// Subpath import avoids gramene-trees-client/index.js, whose require chain
+// fires a /swagger fetch at module load (see comment in bundles/api.js).
+import taxonomy from "gramene-trees-client/src/taxonomy";
 import TreeMenu from "react-simple-tree-menu";
 import '../../../../node_modules/react-simple-tree-menu/dist/main.css';
 
@@ -101,7 +103,7 @@ function buildIframeSrcDoc() {
 class Pathways extends React.Component {
   constructor(props) {
     super(props);
-    this.taxonomy = treesClient.taxonomy.tree(Object.values(props.grameneTaxonomy))
+    this.taxonomy = taxonomy.tree(Object.values(props.grameneTaxonomy))
     this.gene = props.geneDocs[props.searchResult.id];
     this.iframeRef = React.createRef();
     // srcDoc is constant — the per-instance pathway/reaction state is
