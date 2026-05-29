@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import {connect} from "redux-bundler-react";
 import {Tabs, Tab, Form, Row, Col} from 'react-bootstrap';
-import BAR, {haveBAR} from "gramene-efp-browser";
+import BAR, {haveBAR} from "./BAR";
 
 function DynamicIframe(props) {
   // Create a ref for the iframe element

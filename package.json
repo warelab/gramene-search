@@ -42,7 +42,6 @@
     "flat-to-nested": "^1.1.1",
     "gramene-bins-client": "^2.3.3",
     "gramene-dbxrefs": "^3.0.15",
-    "gramene-efp-browser": "^1.0.11",
     "gramene-genetree-vis": "^4.2.11",
     "gramene-mdview": "^2.0.8",
     "gramene-search-vis": "^4.2.5",

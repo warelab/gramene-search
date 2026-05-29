@@ -12,6 +12,19 @@ if (typeof console !== 'undefined' && typeof console.error === 'function') {
     'uses the legacy childContextTypes API',
     'uses the legacy contextTypes API',
     'findDOMNode is deprecated',
+    // Third-party libs (gramene-search-vis, gramene-mdview, Pathways, etc.)
+    // still use the pre-16.3 lifecycle methods. We can't fix them from here.
+    'componentWillReceiveProps has been renamed',
+    'componentWillMount has been renamed',
+    'componentWillUpdate has been renamed',
+    // Kept as a guard — react warns on any kebab-case inline-style property
+    // and Parcel's overlay turns that into a fatal runtime error. The known
+    // offender (BAR's max-width) was fixed when the component was absorbed
+    // from gramene-efp-browser, but the suppressor protects against any
+    // future regression in third-party libs.
+    'Unsupported style property',
+    // Stale-state setState after unmount in legacy class components.
+    "Can't perform a React state update on an unmounted component",
   ];
   console.error = function (...args) {
     const msg = typeof args[0] === 'string' ? args[0] : '';
