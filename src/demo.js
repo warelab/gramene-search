@@ -21,6 +21,7 @@ import {
 } from "react-router-dom";
 import Feedback from './components/Feedback';
 import MDView from 'gramene-mdview';
+import bootViewFromUrl from './utils/bootView';
 
 // const subsite = 'main';
 const subsite = process.env.SUBSITE;
@@ -547,6 +548,9 @@ cache.getAll().then(initialData => {
   window.store = store;
   const config = store.selectConfiguration();
   ReactGA.initialize(config.ga);
+  // If the URL has ?view=<hash>, hydrate the snapshot before the user
+  // interacts. Errors are non-fatal (see utils/bootView.js).
+  bootViewFromUrl(store);
   if (initialData.hasOwnProperty('grameneMaps')) {
     // check for hidden genomes
     let notHidden = {};

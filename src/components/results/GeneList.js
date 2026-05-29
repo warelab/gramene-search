@@ -190,10 +190,10 @@ const allDetails = [
 class Gene extends React.Component {
   constructor(props) {
     super(props);
+    // `details` is derived per-render config (which tabs the site enables,
+    // crossed with this row's `capabilities`) — keep it local.
     this.state = {
       details: allDetails.map(o => ({...o})).filter(d => props.config.details[d.id]),
-      expandedDetail: props.expandedDetail,
-      fullscreen: false,
     };
     let hasData = {};
     props.searchResult.capabilities.forEach(c => {
@@ -204,18 +204,38 @@ class Gene extends React.Component {
     });
     this.state.details.forEach(d => d.available |= hasData.hasOwnProperty(d.id));
   }
+  componentDidMount() {
+    // Seed the auto-open-homology intent (from GeneList when numFound===1) the
+    // first time this row mounts, only if the user hasn't already opened/closed
+    // a tab here. Without this, the bundle would have no entry and the prior
+    // "auto-expand homology on single-result" behavior would be lost.
+    if (this.props.expandedDetail && this.expandedDetail === undefined) {
+      this.props.doExpandGeneDetail({
+        geneId: this.props.searchResult.id,
+        detail: this.props.expandedDetail
+      });
+    }
+  }
+  get expandedDetail() {
+    const slice = this.props.uiViewState && this.props.uiViewState.byGene[this.props.searchResult.id];
+    return slice ? slice.expandedDetail : undefined;
+  }
+  get fullscreen() {
+    const slice = this.props.uiViewState && this.props.uiViewState.byGene[this.props.searchResult.id];
+    return !!(slice && slice.fullscreen);
+  }
   getDetailStatus(d) {
-    if (this.state.expandedDetail === d.id) return 'expanded';
+    if (this.expandedDetail === d.id) return 'expanded';
     if (d.available) return 'closed'
     return d.id === "pubs" ? 'empty' : 'disabled';
   }
   setExpanded(d) {
     if (d.available || d.id === "pubs") {
-      if (this.state.expandedDetail === d.id) {
-        this.setState({expandedDetail: null, fullscreen: false})
+      const geneId = this.props.searchResult.id;
+      if (this.expandedDetail === d.id) {
+        this.props.doExpandGeneDetail({geneId, detail: null});
       }
       else {
-        const geneId = this.props.searchResult.id;
         if (!(this.props.geneDocs && this.props.geneDocs.hasOwnProperty(geneId))) {
           this.props.requestGene(geneId)
         }
@@ -224,7 +244,7 @@ class Gene extends React.Component {
           action: 'Details',
           label: d.label
         });
-        this.setState({expandedDetail: d.id, fullscreen: false})
+        this.props.doExpandGeneDetail({geneId, detail: d.id});
       }
     }
   }
@@ -272,7 +292,7 @@ class Gene extends React.Component {
         </div>
         <div className="gene-detail-tabs">
           {this.state.details.map((d,idx) => {
-            const isExpanded = this.state.expandedDetail === d.id;
+            const isExpanded = this.expandedDetail === d.id;
             return (
               <OverlayTrigger
                 key={idx}
@@ -299,7 +319,7 @@ class Gene extends React.Component {
                       title="View full screen"
                       onClick={(e) => {
                         e.stopPropagation();
-                        this.setState({fullscreen: true});
+                        this.props.doSetGeneFullscreen({geneId: searchResult.id, fullscreen: true});
                       }}
                     />
                   )}
@@ -308,20 +328,30 @@ class Gene extends React.Component {
             );
           })}
         </div>
-        {this.state.expandedDetail && this.ensureGene(searchResult.id) && (
+        {this.expandedDetail && this.ensureGene(searchResult.id) && (
           <FullscreenContainer
             className="visible-detail"
-            fullscreen={this.state.fullscreen}
-            onExitFullscreen={() => this.setState({fullscreen: false})}
-            title={(this.state.details.find(d => d.id === this.state.expandedDetail) || {}).label}
+            fullscreen={this.fullscreen}
+            onExitFullscreen={() => this.props.doSetGeneFullscreen({geneId: searchResult.id, fullscreen: false})}
+            title={(this.state.details.find(d => d.id === this.expandedDetail) || {}).label}
           >
-            {React.createElement(inventory[this.state.expandedDetail], this.props)}
+            {React.createElement(inventory[this.expandedDetail], this.props)}
           </FullscreenContainer>
         )}
       </div>
     )
   }
 }
+
+// Wrap Gene so each row gets uiViewState + dispatchers. (We don't pull these
+// in at the GeneList level because the slice we care about is per-geneId; the
+// component-side getters read by row id.)
+const ConnectedGene = connect(
+  'selectUiViewState',
+  'doExpandGeneDetail',
+  'doSetGeneFullscreen',
+  Gene
+);
 
 const GeneList = props => {
   if (props.grameneSearch && props.grameneSearch.response && props.grameneTaxonomy) {
@@ -342,7 +372,7 @@ const GeneList = props => {
     return <div>
       <div>{prev}{page}{next}</div>
       {props.grameneSearch.response.docs.map((g,idx) => (
-        <Gene key={idx}
+        <ConnectedGene key={idx}
               searchResult={g}
               config={props.configuration}
               taxName={props.grameneTaxonomy[g.taxon_id].name}

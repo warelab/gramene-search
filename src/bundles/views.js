@@ -102,6 +102,21 @@ const grameneViews = {
           newState = Object.assign({}, state);
           newState.options.forEach(v => v.shouldScroll = false)
           return newState;
+        case 'GRAMENE_VIEWS_REPLACED': {
+          // Snapshot restore. payload: { on: Set|Array<id>, touched: {id: true} }
+          // Sets options[].show directly to 'on' or 'off' based on membership in
+          // `on`. Leaves 'disabled' entries untouched (site config wins).
+          const onSet = payload.on instanceof Set
+            ? payload.on
+            : new Set(payload.on || []);
+          newState = Object.assign({}, state);
+          newState.touched = { ...(payload.touched || {}) };
+          newState.options = state.options.map(v => {
+            if (v.show === 'disabled') return v;
+            return { ...v, show: onSet.has(v.id) ? 'on' : 'off', shouldScroll: false };
+          });
+          return newState;
+        }
         default:
           return state;
       }
@@ -115,6 +130,13 @@ const grameneViews = {
   },
   doCancelShouldScroll: () => ({dispatch, getState}) => {
     dispatch({type: 'GRAMENE_VIEW_SCROLLED', payload: null})
+  },
+  // Snapshot restore. `on` is an array of view ids to switch on; everything
+  // else (except disabled views) goes off. `touched` is the same map the
+  // user-toggled view bundle maintains, so the auto-default logic in
+  // selectGrameneViews respects what the user has explicitly set.
+  doReplaceGrameneViews: ({on, touched}) => ({dispatch}) => {
+    dispatch({type: 'GRAMENE_VIEWS_REPLACED', payload: {on, touched}});
   },
   selectRawGrameneViews: state => state.grameneViews,
   selectGrameneViews: createSelector(

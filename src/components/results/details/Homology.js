@@ -28,11 +28,68 @@ const TBROWSE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone, genomeZo
 class Homology extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {viewer: 'treevis', neighborhood: null, neighborhoodTreeId: null, geneStructures: null, geneStructuresTreeId: null, height: 600};
+    // Async data caches stay in local state (per mount, per tree). The
+    // user-controlled view state (viewer toggle, resize height, tbrowse
+    // ViewState) is lifted into the uiViewState bundle, keyed by geneId.
+    this.state = {neighborhood: null, neighborhoodTreeId: null, geneStructures: null, geneStructuresTreeId: null};
     if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
       props.requestGene(props.searchResult.id)
     }
     this.taxonomy = treesClient.taxonomy.tree(Object.values(props.grameneTaxonomy))
+  }
+  // ----- uiViewState accessors (with sensible defaults) -----
+  getGeneId() { return this.props.searchResult.id; }
+  getHomologySlice() {
+    const slice = this.props.uiViewState && this.props.uiViewState.byGene[this.getGeneId()];
+    return (slice && slice.homology) || {};
+  }
+  getViewer() { return this.getHomologySlice().viewer || 'treevis'; }
+  getHeight() {
+    const h = this.getHomologySlice().height;
+    return typeof h === 'number' ? h : 600;
+  }
+  setViewer(viewer) {
+    this.props.doSetHomologyViewer({geneId: this.getGeneId(), viewer});
+  }
+  setHeight(height) {
+    this.props.doSetHomologyHeight({geneId: this.getGeneId(), height});
+  }
+  setTbrowseViewState(viewState) {
+    this.props.doSetHomologyTbrowseViewState({geneId: this.getGeneId(), tbrowse: viewState});
+  }
+  // Seed the bundle with a pivot-computed initial tbrowse view state once the
+  // tree data is available and the user is actually looking at the tbrowse
+  // viewer. Called from lifecycle (not render) to avoid dispatching mid-render.
+  maybeSeedTbrowseViewState() {
+    if (this.getViewer() !== 'tbrowse') return;
+    if (this.getHomologySlice().tbrowse) return;
+    const id = this.getGeneId();
+    if (!this.props.geneDocs.hasOwnProperty(id)) return;
+    const gene = this.props.geneDocs[id];
+    if (!gene.homology) return;
+    const treeId = gene.homology.gene_tree.id;
+    const raw = this.props.grameneTrees[treeId];
+    if (!raw || !raw.taxon_id) return;
+    const adapted = fromGrameneGenetree([raw]);
+    const pivot = computePivotState(adapted.tree, gene._id);
+    const zoneIds = TBROWSE_ZONES.map(z => z.id);
+    this.setTbrowseViewState({
+      selectedNodeId: null,
+      collapsedNodeIds: pivot ? pivot.collapsedNodeIds : [],
+      prunedNodeIds: [],
+      swappedNodeIds: pivot ? pivot.swappedNodeIds : [],
+      compressedNodeIds: [],
+      nodeOfInterestId: pivot ? pivot.targetId : null,
+      zones: zoneIds.map(id => ({id, width: 25, visible: true})),
+      zoneStates: {},
+      search: null,
+    });
+  }
+  componentDidMount() {
+    this.maybeSeedTbrowseViewState();
+  }
+  componentDidUpdate() {
+    this.maybeSeedTbrowseViewState();
   }
   fetchNeighborhood(treeId) {
     if (this._neighborhoodFetchedFor === treeId) return;
@@ -94,11 +151,11 @@ class Homology extends React.Component {
   startResize(e) {
     e.preventDefault();
     const startY = e.clientY;
-    const startHeight = this.state.height;
+    const startHeight = this.getHeight();
 
     const onMouseMove = (moveEvent) => {
       const newHeight = Math.max(200, startHeight + (moveEvent.clientY - startY));
-      this.setState({ height: newHeight });
+      this.setHeight(newHeight);
     };
 
     const onMouseUp = () => {
@@ -122,7 +179,7 @@ class Homology extends React.Component {
   renderTreeVis() {
     return (
       <>
-        <div className="gene-genetree" style={{height: this.state.height, width: '100%'}}>
+        <div className="gene-genetree" style={{height: this.getHeight(), width: '100%'}}>
           <TreeVis genetree={this.tree}
                    initialGeneOfInterest={this.gene}
                    genomesOfInterest={this.props.grameneGenomes.active}
@@ -141,31 +198,21 @@ class Homology extends React.Component {
   renderTBrowse() {
     const treeId = this.gene.homology.gene_tree.id;
     if (this._tbrowseTreeId !== treeId) {
-      const raw = this.props.grameneTrees[treeId];
-      const adapted = fromGrameneGenetree([raw]);
       this._tbrowseTreeId = treeId;
-      this._tbrowseData = adapted;
-      const pivot = computePivotState(adapted.tree, this.gene._id);
-      const zoneIds = TBROWSE_ZONES.map(z => z.id);
-      this._tbrowseInitialViewState = {
-        selectedNodeId: null,
-        collapsedNodeIds: pivot ? pivot.collapsedNodeIds : [],
-        prunedNodeIds: [],
-        swappedNodeIds: pivot ? pivot.swappedNodeIds : [],
-        compressedNodeIds: [],
-        nodeOfInterestId: pivot ? pivot.targetId : null,
-        zones: zoneIds.map(id => ({id, width: 25, visible: true})),
-        zoneStates: {},
-        search: null,
-      };
+      this._tbrowseData = fromGrameneGenetree([this.props.grameneTrees[treeId]]);
     }
     this.fetchNeighborhood(treeId);
     this.fetchGeneStructures(treeId, this._tbrowseData.tree);
     const neighborhood = this.state.neighborhoodTreeId === treeId ? this.state.neighborhood : undefined;
     const geneStructures = this.state.geneStructuresTreeId === treeId ? this.state.geneStructures : undefined;
+    // Bundle-driven (controlled) view state. If we're rendering tbrowse before
+    // componentDidMount/Update has seeded the bundle slice, skip this turn and
+    // let the re-render with the seeded state do the work.
+    const tbrowseVS = this.getHomologySlice().tbrowse;
+    if (!tbrowseVS) return null;
     return (
       <>
-        <div className="gene-genetree" style={{height: this.state.height, width: '100%'}}>
+        <div className="gene-genetree" style={{height: this.getHeight(), width: '100%'}}>
           <TBrowse
             tree={this._tbrowseData.tree}
             taxonomy={this._tbrowseData.taxonomy}
@@ -177,7 +224,8 @@ class Homology extends React.Component {
             geneStructures={geneStructures}
             zones={TBROWSE_ZONES}
             nodeOfInterest={this.gene._id}
-            initialViewState={this._tbrowseInitialViewState}
+            viewState={tbrowseVS}
+            onViewStateChange={next => this.setTbrowseViewState(next)}
           />
         </div>
         {this.renderResizeHandle()}
@@ -185,12 +233,12 @@ class Homology extends React.Component {
     )
   }
   renderViewerToggle() {
-    const {viewer} = this.state;
+    const viewer = this.getViewer();
     const btn = (id, label) => (
       <button
         key={id}
         type="button"
-        onClick={() => this.setState({viewer: id})}
+        onClick={() => this.setViewer(id)}
         style={{
           padding: '4px 10px',
           marginRight: 4,
@@ -349,7 +397,7 @@ class Homology extends React.Component {
         </Description>
         {this.tree && <Content key="content">
           {this.renderViewerToggle()}
-          {this.state.viewer === 'tbrowse' ? this.renderTBrowse() : this.renderTreeVis()}
+          {this.getViewer() === 'tbrowse' ? this.renderTBrowse() : this.renderTreeVis()}
         </Content>}
         {this.tree && <Explore key="explore" explorations={this.explorations()}/>}
         <Links key="links" links={this.links()}/>
@@ -365,7 +413,11 @@ export default connect(
   'selectGrameneAPI',
   'selectConfiguration',
   'selectCuration',
+  'selectUiViewState',
   'doRequestGrameneTree',
+  'doSetHomologyViewer',
+  'doSetHomologyHeight',
+  'doSetHomologyTbrowseViewState',
   'doAcceptGrameneSuggestion',
   'doReplaceGrameneFilters',
   Homology
