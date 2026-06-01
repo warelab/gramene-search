@@ -14,11 +14,21 @@
 //   views: { on: [id,...], touched: {id: true, ...} },
 //   genomeSubset: { taxonId: true, ... } | null,
 //   searchPage: { offset: number, rows: number } | null,
+//   exprViz: {                                    // Expression-visualization view
+//     activeTaxon: <taxon_id|null>,
+//     byTaxon: { [taxon_id]: { selectedFields: [field,...], vizMode, scale, brushes } }
+//   } | undefined,                                // loaded rows re-fetch on apply
+//   ontologyEnrichment: {                         // Ontology Enrichment view
+//     activeTaxon: <taxon_id|null>,
+//     ui: { pAdjCutoff, minGSSize, maxGSSize, mostSpecific, ontology, search, sort }
+//   } | undefined,                                // facets re-fetch on apply
 //   expandedDetails: [
 //     { geneId,
 //       expandedDetail: string|null,
 //       fullscreen: boolean,
-//       homology: { viewer, height, tbrowse: <ViewState> } | undefined
+//       homology: { viewer, height, tbrowse: <ViewState> } | undefined,
+//       sequences: { tab, tid, upstream, downstream } | undefined,
+//       expression: { activeTab, atlasExperiment, barStudy } | undefined
 //     }, ...
 //   ]
 // }
@@ -75,6 +85,8 @@ const isMeaningfulGene = (entry) => {
     entry.homology.height !== undefined ||
     entry.homology.tbrowse !== undefined
   )) return true;
+  if (entry.sequences && Object.keys(entry.sequences).length) return true;
+  if (entry.expression && Object.keys(entry.expression).length) return true;
   return false;
 };
 
@@ -132,11 +144,27 @@ const viewSnapshot = {
         byGene[e.geneId] = {
           expandedDetail: e.expandedDetail || null,
           fullscreen: !!e.fullscreen,
-          homology: e.homology ? {...e.homology} : {}
+          homology: e.homology ? {...e.homology} : {},
+          sequences: e.sequences ? {...e.sequences} : {},
+          expression: e.expression ? {...e.expression} : {}
         };
       }
     }
     dispatch({type: 'UI_VIEW_STATE_REPLACED', payload: {byGene}});
+
+    // 5. Expression-visualization view config. Delegate to the exprViz bundle,
+    //    which flags each taxon for a re-fetch now that the restored filters/
+    //    genomes are in place. Done last so the re-fetch sees the live query.
+    if (snapshot.exprViz && store.doApplyExprVizSnapshot) {
+      store.doApplyExprVizSnapshot(snapshot.exprViz);
+    }
+
+    // 6. Ontology Enrichment view config. Setting the active taxon lets that
+    //    bundle's fetch reactor re-derive the enrichment for the restored
+    //    filters/genomes.
+    if (snapshot.ontologyEnrichment && store.doApplyOntologyEnrichmentSnapshot) {
+      store.doApplyOntologyEnrichmentSnapshot(snapshot.ontologyEnrichment);
+    }
 
     return { applied: true, warnings };
   },
@@ -194,10 +222,66 @@ function buildSnapshot(state) {
         geneId,
         expandedDetail: e.expandedDetail || null,
         fullscreen: !!e.fullscreen,
-        homology: e.homology && Object.keys(e.homology).length ? {...e.homology} : undefined
+        homology: e.homology && Object.keys(e.homology).length ? {...e.homology} : undefined,
+        sequences: e.sequences && Object.keys(e.sequences).length ? {...e.sequences} : undefined,
+        expression: e.expression && Object.keys(e.expression).length ? {...e.expression} : undefined
       }));
   } else {
     snap.expandedDetails = [];
+  }
+
+  // Expression-visualization view config. Capture only the selection/config
+  // (active genome tab, per-taxon selected fields + column order, viz mode,
+  // scale, brush ranges) — never the bulk fetched rows, which rehydrate via
+  // the view's re-fetch on apply.
+  if (state.exprViz) {
+    const ev = state.exprViz;
+    const byTaxon = {};
+    for (const tid of Object.keys(ev.byTaxon || {})) {
+      const t = ev.byTaxon[tid];
+      if (!t) continue;
+      const selectedFields = Array.isArray(t.selectedFields) ? t.selectedFields : [];
+      const brushes = t.brushes && Object.keys(t.brushes).length ? {...t.brushes} : undefined;
+      const nonDefaultMode = t.vizMode && t.vizMode !== 'heatmap';
+      const nonDefaultScale = t.scale && t.scale !== 'linear';
+      if (selectedFields.length || brushes || nonDefaultMode || nonDefaultScale) {
+        byTaxon[tid] = {
+          selectedFields,
+          vizMode: t.vizMode || 'heatmap',
+          scale: t.scale || 'linear',
+          ...(brushes ? { brushes } : {})
+        };
+      }
+    }
+    if (ev.activeTaxon || Object.keys(byTaxon).length) {
+      snap.exprViz = { activeTaxon: ev.activeTaxon || null, byTaxon };
+    }
+  }
+
+  // Ontology Enrichment view config: active genome + the analysis knobs
+  // (significance cutoff, gene-set-size bounds, most-specific, ontology
+  // section, term search, per-section sort). The enrichment facets re-fetch
+  // on apply, so no bulk term data is carried.
+  if (state.ontologyEnrichment) {
+    const oe = state.ontologyEnrichment;
+    const ui = oe.ui || {};
+    const DEF = { pAdjCutoff: 0.05, minGSSize: 10, maxGSSize: 500, mostSpecific: false, ontology: 'all', search: '' };
+    const hasSort = ui.sort && Object.keys(ui.sort).length;
+    const uiChanged = Object.keys(DEF).some(k => ui[k] !== DEF[k]) || hasSort;
+    if (oe.activeTaxon || uiChanged) {
+      snap.ontologyEnrichment = {
+        activeTaxon: oe.activeTaxon || null,
+        ui: {
+          pAdjCutoff: ui.pAdjCutoff != null ? ui.pAdjCutoff : DEF.pAdjCutoff,
+          minGSSize: ui.minGSSize != null ? ui.minGSSize : DEF.minGSSize,
+          maxGSSize: ui.maxGSSize != null ? ui.maxGSSize : DEF.maxGSSize,
+          mostSpecific: !!ui.mostSpecific,
+          ontology: ui.ontology || DEF.ontology,
+          search: ui.search || DEF.search,
+          ...(hasSort ? { sort: {...ui.sort} } : {})
+        }
+      };
+    }
   }
 
   return snap;

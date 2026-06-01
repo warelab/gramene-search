@@ -34,7 +34,19 @@ class Homology extends React.Component {
     // Async data caches stay in local state (per mount, per tree). The
     // user-controlled view state (viewer toggle, resize height, tbrowse
     // ViewState) is lifted into the uiViewState bundle, keyed by geneId.
-    this.state = {neighborhood: null, neighborhoodTreeId: null, geneStructures: null, geneStructuresTreeId: null};
+    //
+    // `*Status` fields track per-zone load lifecycle so the TBrowse
+    // toolbar can render loading/error affordances via its zoneStatus
+    // prop. They start `undefined` (no signal); flipped to 'loading'
+    // when the fetch kicks off and 'ready' / 'error' on settle.
+    this.state = {
+      neighborhood: null,
+      neighborhoodTreeId: null,
+      neighborhoodStatus: undefined,
+      geneStructures: null,
+      geneStructuresTreeId: null,
+      geneStructuresStatus: undefined,
+    };
     if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
       props.requestGene(props.searchResult.id)
     }
@@ -75,7 +87,6 @@ class Homology extends React.Component {
     if (!raw || !raw.taxon_id) return;
     const adapted = fromGrameneGenetree([raw]);
     const pivot = computePivotState(adapted.tree, gene._id);
-    const zoneIds = TBROWSE_ZONES.map(z => z.id);
     this.setTbrowseViewState({
       selectedNodeId: null,
       collapsedNodeIds: pivot ? pivot.collapsedNodeIds : [],
@@ -83,20 +94,60 @@ class Homology extends React.Component {
       swappedNodeIds: pivot ? pivot.swappedNodeIds : [],
       compressedNodeIds: [],
       nodeOfInterestId: pivot ? pivot.targetId : null,
-      zones: zoneIds.map(id => ({id, width: 25, visible: true})),
+      // Use each zone's intended fr-share + initial visibility from its
+      // definition (tree:30 / labels:20 / msa:50 / neighborhood:30 /
+      // genome:32) instead of uniform 25 across the board. Gives the MSA
+      // a wider initial pane and the tree a narrower one.
+      //
+      // `defaultVisible ?? true` matches tbrowse's own buildInitialViewState
+      // logic — zones default to visible unless their definition opts out
+      // (e.g. neighborhood and genome opt out so they only appear once
+      // their async data lands; tbrowse's Layout auto-flips them on then).
+      zones: TBROWSE_ZONES.map(z => ({
+        id: z.id,
+        width: z.defaultWidth,
+        visible: z.defaultVisible ?? true
+      })),
       zoneStates: {},
       search: null,
     });
   }
   componentDidMount() {
     this.maybeSeedTbrowseViewState();
+    this.maybeFetchTbrowseData();
   }
   componentDidUpdate() {
     this.maybeSeedTbrowseViewState();
+    this.maybeFetchTbrowseData();
+  }
+  // Kick off the neighborhood + gene-structure fetches from lifecycle,
+  // not render. Each fetch internally dedupes on `_*FetchedFor === treeId`
+  // so calling on every commit is cheap. Gated on the user actually being
+  // on the tbrowse viewer + the tree data being loaded — otherwise we'd
+  // pay network cost for genes the user never looks at.
+  maybeFetchTbrowseData() {
+    if (this.getViewer() !== 'tbrowse') return;
+    const id = this.getGeneId();
+    if (!this.props.geneDocs.hasOwnProperty(id)) return;
+    const gene = this.props.geneDocs[id];
+    if (!gene.homology) return;
+    const treeId = gene.homology.gene_tree.id;
+    const raw = this.props.grameneTrees[treeId];
+    if (!raw || !raw.taxon_id) return;
+    // Lazily compute the adapted tbrowse data the same way renderTBrowse
+    // does, so fetchGeneStructures has the leaf ids without rerunning
+    // fromGrameneGenetree on every commit.
+    if (this._tbrowseTreeId !== treeId) {
+      this._tbrowseTreeId = treeId;
+      this._tbrowseData = fromGrameneGenetree([raw]);
+    }
+    this.fetchNeighborhood(treeId);
+    this.fetchGeneStructures(treeId, this._tbrowseData.tree);
   }
   fetchNeighborhood(treeId) {
     if (this._neighborhoodFetchedFor === treeId) return;
     this._neighborhoodFetchedFor = treeId;
+    this.setState({neighborhoodStatus: 'loading'});
     const api = this.props.grameneAPI;
     const url = new URL(`${api}/search`);
     url.searchParams.set('fl', 'id,name,gene_tree,gene_idx,region,start,end,strand,biotype,system_name,description');
@@ -110,10 +161,19 @@ class Homology extends React.Component {
       })
       .then(json => {
         if (this._neighborhoodFetchedFor !== treeId) return;
-        this.setState({neighborhood: fromGrameneNeighborhood(json), neighborhoodTreeId: treeId});
+        this.setState({
+          neighborhood: fromGrameneNeighborhood(json),
+          neighborhoodTreeId: treeId,
+          neighborhoodStatus: 'ready',
+        });
       })
       .catch(err => {
         console.warn('tbrowse neighborhood fetch failed:', err);
+        // Surface the failure via the zoneStatus prop. Reset the
+        // dedupe key so a re-mount or tree-change can retry.
+        if (this._neighborhoodFetchedFor === treeId) {
+          this.setState({neighborhoodStatus: 'error'});
+        }
         this._neighborhoodFetchedFor = null;
       });
   }
@@ -124,6 +184,7 @@ class Homology extends React.Component {
       .filter(n => n.isLeaf && n.geneId)
       .map(n => n.geneId);
     if (ids.length === 0) return;
+    this.setState({geneStructuresStatus: 'loading'});
     const api = this.props.grameneAPI;
     const BATCH_SIZE = 50;
     const batches = [];
@@ -144,10 +205,17 @@ class Homology extends React.Component {
       .then(results => {
         if (this._geneStructuresFetchedFor !== treeId) return;
         const combined = [].concat(...results.map(r => Array.isArray(r) ? r : []));
-        this.setState({geneStructures: fromGrameneGeneStructures(combined), geneStructuresTreeId: treeId});
+        this.setState({
+          geneStructures: fromGrameneGeneStructures(combined),
+          geneStructuresTreeId: treeId,
+          geneStructuresStatus: 'ready',
+        });
       })
       .catch(err => {
         console.warn('tbrowse gene-structures fetch failed:', err);
+        if (this._geneStructuresFetchedFor === treeId) {
+          this.setState({geneStructuresStatus: 'error'});
+        }
         this._geneStructuresFetchedFor = null;
       });
   }
@@ -200,14 +268,27 @@ class Homology extends React.Component {
   }
   renderTBrowse() {
     const treeId = this.gene.homology.gene_tree.id;
+    // Adapted tbrowse data is computed lazily in maybeFetchTbrowseData
+    // (called from lifecycle). If the user just flipped to tbrowse and
+    // the lifecycle hasn't fired yet, compute it once here without
+    // calling any fetches — those will fire from componentDidUpdate.
     if (this._tbrowseTreeId !== treeId) {
       this._tbrowseTreeId = treeId;
       this._tbrowseData = fromGrameneGenetree([this.props.grameneTrees[treeId]]);
     }
-    this.fetchNeighborhood(treeId);
-    this.fetchGeneStructures(treeId, this._tbrowseData.tree);
     const neighborhood = this.state.neighborhoodTreeId === treeId ? this.state.neighborhood : undefined;
     const geneStructures = this.state.geneStructuresTreeId === treeId ? this.state.geneStructures : undefined;
+    // Per-zone status for the TBrowse toolbar — pulses while a fetch
+    // is in flight, turns red on failure. Tracked per-tree so a
+    // tree-change resets any stale 'ready'/'error' from the prior gene.
+    const zoneStatus = {
+      neighborhood: this.state.neighborhoodTreeId === treeId
+        ? this.state.neighborhoodStatus
+        : (this.state.neighborhoodStatus === 'loading' ? 'loading' : undefined),
+      genome: this.state.geneStructuresTreeId === treeId
+        ? this.state.geneStructuresStatus
+        : (this.state.geneStructuresStatus === 'loading' ? 'loading' : undefined),
+    };
     // Bundle-driven (controlled) view state. If we're rendering tbrowse before
     // componentDidMount/Update has seeded the bundle slice, skip this turn and
     // let the re-render with the seeded state do the work.
@@ -229,6 +310,8 @@ class Homology extends React.Component {
             nodeOfInterest={this.gene._id}
             viewState={tbrowseVS}
             onViewStateChange={next => this.setTbrowseViewState(next)}
+            defaultOpenSections={{ zones: true, search: true }}
+            zoneStatus={zoneStatus}
           />
         </div>
         {this.renderResizeHandle()}

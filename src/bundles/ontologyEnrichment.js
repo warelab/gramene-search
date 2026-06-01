@@ -70,7 +70,10 @@ const ontologyEnrichment = {
         maxGSSize: 500,
         mostSpecific: false,
         ontology: 'all',
-        search: ''
+        search: '',
+        // Per-section table sort, keyed by ontology section id (e.g.
+        // 'GO:biological_process'): { [sectionKey]: { key, dir } }.
+        sort: {}
       }
     };
 
@@ -195,6 +198,16 @@ const ontologyEnrichment = {
 
   doSetOntologyEnrichmentUI: patch => ({ dispatch }) =>
     dispatch({ type: 'ONTOLOGY_ENRICHMENT_UI_SET', payload: patch }),
+
+  // Re-apply persisted view config from a saved-view snapshot. Setting the
+  // active taxon (last) lets reactOntologyEnrichmentFetch re-fetch the
+  // foreground/background facets for the restored filters — no bulk data is
+  // carried in the snapshot.
+  doApplyOntologyEnrichmentSnapshot: snap => ({ dispatch }) => {
+    if (!snap || typeof snap !== 'object') return;
+    if (snap.ui) dispatch({ type: 'ONTOLOGY_ENRICHMENT_UI_SET', payload: snap.ui });
+    if (snap.activeTaxon) dispatch({ type: 'ONTOLOGY_ENRICHMENT_ACTIVE_TAXON_SET', payload: snap.activeTaxon });
+  },
 
   doFetchOntologyEnrichmentForeground: taxon => ({ dispatch, store }) => {
     const q = store.selectGrameneFiltersQueryString();

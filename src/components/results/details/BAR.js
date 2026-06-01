@@ -120,11 +120,17 @@ export default class BAR extends Component {
       return <img src={urls.spinner} alt="Loading…" />;
     }
     const efp_gene = browser.formatGene(gene);
-    const study = this.state.currentStudy || this.state.studies[0].value;
+    // `study`/`onStudyChange` let a host drive the selection (so a saved view
+    // can restore it); fall back to local state when uncontrolled.
+    const study = this.props.study || this.state.currentStudy || this.state.studies[0].value;
+    const onSelect = e => {
+      if (this.props.onStudyChange) this.props.onStudyChange(e.target.value);
+      else this.setState({ currentStudy: e.target.value });
+    };
     return (
       <div style={{ paddingTop: 10 }}>
         <label style={{ paddingLeft: 20, paddingRight: 10 }}>Select a study:</label>
-        <select value={study} onChange={e => this.setState({ currentStudy: e.target.value })}>
+        <select value={study} onChange={onSelect}>
           {this.state.studies.map((s, idx) => <option key={idx} value={s.value}>{s.label}</option>)}
         </select>
         <br />

@@ -92,6 +92,9 @@ const ExprVizViewCmp = props => {
                 onLoad={() => doFetchExprVizData(tid)}
                 onReorder={(next) => props.doReorderExprVizFields(tid, next)}
                 onAddRangeQuery={props.doAddGrameneRangeQuery}
+                onSetVizMode={(m) => props.doSetExprVizVizMode(tid, m)}
+                onSetScale={(s) => props.doSetExprVizScale(tid, s)}
+                onSetBrushes={(b) => props.doSetExprVizBrushes(tid, b)}
               />
             </Tab>
           );
@@ -248,13 +251,18 @@ function downloadTsv(filename, rows, fields, studies, expressionSamples) {
   URL.revokeObjectURL(url);
 }
 
-const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields, onLoad, onReorder, onAddRangeQuery }) => {
+const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields, onLoad, onReorder, onAddRangeQuery, onSetVizMode, onSetScale, onSetBrushes }) => {
   const selected = (tabState && tabState.selectedFields) || [];
   const rows = (tabState && tabState.rows) || [];
   const fetchInfo = (tabState && tabState.fetch) || { status: 'idle', total: 0 };
-  const [scale, setScale] = useState('linear');
-  const [vizMode, setVizMode] = useState('heatmap'); // 'parallel' | 'heatmap'
-  const [selections, setSelections] = useState({});
+  // View config (sub-tab, scale, brushes) is persisted in the exprViz bundle
+  // per taxon so a saved view can round-trip it. Driven controlled from here.
+  const scale = (tabState && tabState.scale) || 'linear';
+  const vizMode = (tabState && tabState.vizMode) || 'heatmap'; // 'parallel' | 'heatmap'
+  const selections = (tabState && tabState.brushes) || {};
+  const setScale = (s) => onSetScale && onSetScale(s);
+  const setVizMode = (m) => onSetVizMode && onSetVizMode(m);
+  const setSelections = (b) => onSetBrushes && onSetBrushes(b);
   const [clearVersion, setClearVersion] = useState(0);
   const [hoveredId, setHoveredId] = useState(null);
   const [plotHeight, setPlotHeight] = useState(320);
@@ -323,13 +331,6 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
     () => buildFieldInfo(visibleFields, studies, expressionSamples),
     [visibleFields, studies, expressionSamples]
   );
-
-  useEffect(() => {
-    if (rows.length === 0 && hasBrush) {
-      setSelections({});
-      setClearVersion(v => v + 1);
-    }
-  }, [rows.length, hasBrush]);
 
   return (
     <div className="exprviz-tab-panel">
@@ -429,6 +430,7 @@ const TaxonPanel = ({ taxon, studies, expressionSamples, tabState, onOpenFields,
               rows={rows}
               fields={visibleFields}
               scale={scale}
+              initialSelections={selections}
               onBrushChange={setSelections}
               onReorder={handleReorder}
               clearVersion={clearVersion}
@@ -472,6 +474,9 @@ export default connect(
   'doToggleExprVizFieldsModal',
   'doFetchExprVizData',
   'doReorderExprVizFields',
+  'doSetExprVizVizMode',
+  'doSetExprVizScale',
+  'doSetExprVizBrushes',
   'doAddGrameneRangeQuery',
   ExprVizViewCmp
 );

@@ -399,7 +399,7 @@ const SortableTh = ({ label, sortKey, activeKey, activeDir, onSort, numeric, hel
   );
 };
 
-const OntologySection = ({ block, search, onAddFilter }) => {
+const OntologySection = ({ block, search, sort, onSortChange, onAddFilter }) => {
   const filtered = useMemo(() => {
     if (!search) return block.rows;
     const needle = search.toLowerCase();
@@ -410,15 +410,16 @@ const OntologySection = ({ block, search, onAddFilter }) => {
   }, [block.rows, search]);
 
   const showType = ONTS_WITH_TYPE_COLUMN.has(block.ontology);
-  const [sortKey, setSortKey] = useState('pAdj');
-  const [sortDir, setSortDir] = useState('asc');
+  // Sort state is persisted per section in the bundle ui so a saved view
+  // restores it. Defaults match the historical local-state initials.
+  const sortKey = (sort && sort.key) || 'pAdj';
+  const sortDir = (sort && sort.dir) || 'asc';
 
   const handleSort = (key) => {
     if (key === sortKey) {
-      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+      onSortChange(block.ontology, sortKey, sortDir === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortKey(key);
-      setSortDir(SORT_DEFAULT_DIR[key] || 'asc');
+      onSortChange(block.ontology, key, SORT_DEFAULT_DIR[key] || 'asc');
     }
   };
 
@@ -512,6 +513,10 @@ const TaxonPanel = ({ taxon, ontologyEnrichment, results, ui, onUiChange, onAddF
   // Hide ontologies that aren't used in this species at all.
   const blocks = allBlocks.filter(b => b.tested > 0);
 
+  const handleSortChange = (sectionKey, key, dir) => {
+    onUiChange({ sort: { ...(ui.sort || {}), [sectionKey]: { key, dir } } });
+  };
+
   return (
     <div className="oe-panel">
       <div className="oe-summary">
@@ -525,6 +530,8 @@ const TaxonPanel = ({ taxon, ontologyEnrichment, results, ui, onUiChange, onAddF
             key={b.ontology}
             block={b}
             search={ui.search}
+            sort={ui.sort && ui.sort[b.ontology]}
+            onSortChange={handleSortChange}
             onAddFilter={onAddFilter}
           />
         ))}

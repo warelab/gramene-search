@@ -59,6 +59,7 @@ const ParallelCoordsPlot = ({
   rows,
   fields,
   scale = 'linear',
+  initialSelections = null,
   onBrushChange,
   onReorder,
   clearVersion = 0,
@@ -70,6 +71,13 @@ const ParallelCoordsPlot = ({
   // selections in data domain: { [field]: [lo, hi] }
   const selectionsRef = useRef({});
   const lastClearRef = useRef(0);
+  // Seed brushes from a restored saved view exactly once (the first render
+  // where `initialSelections` is non-empty). Read via a ref so a change to the
+  // prop — which happens on every brush as it round-trips through the store —
+  // doesn't force an SVG rebuild; the deps below already rerun on data changes.
+  const initialSelectionsRef = useRef(initialSelections);
+  initialSelectionsRef.current = initialSelections;
+  const seededRef = useRef(false);
   // Track container size so the d3 render reruns when the user drags the
   // pane resizer (or when the window is resized). The values themselves
   // aren't read inside the effect — the effect always reads clientWidth/
@@ -96,6 +104,13 @@ const ParallelCoordsPlot = ({
   }, []);
 
   useEffect(() => {
+    if (!seededRef.current) {
+      const init = initialSelectionsRef.current;
+      if (init && Object.keys(init).length) {
+        selectionsRef.current = { ...init };
+        seededRef.current = true;
+      }
+    }
     if (clearVersion !== lastClearRef.current) {
       selectionsRef.current = {};
       lastClearRef.current = clearVersion;

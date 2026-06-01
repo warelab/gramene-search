@@ -31,16 +31,35 @@ function DynamicIframe(props) {
 }
 
 const Detail = props => {
-  const gene = props.geneDocs[props.searchResult.id];
-  const [atlasExperiment, setAtlasExperiment] = useState(null);
+  const geneId = props.searchResult.id;
+  const gene = props.geneDocs[geneId];
+  // User-selected view state (active sub-tab, chosen GXA experiment, chosen eFP
+  // study) lives in the uiViewState bundle keyed by geneId, so the shareable-
+  // views snapshot can round-trip it. Fetched data + the dev-only Local API
+  // toggle stay in local state. Defaults match the old local-state initials.
+  const expr = (props.uiViewState && props.uiViewState.byGene[geneId]
+    && props.uiViewState.byGene[geneId].expression) || {};
+  const activeTab = expr.activeTab || 'gene';
+  const atlasExperiment = expr.atlasExperiment || null;
+  const setActiveTab = (k) => props.doSetExpressionState({geneId, patch: {activeTab: k}});
+  const setAtlasExperiment = (v) => props.doSetExpressionState({geneId, patch: {atlasExperiment: v}});
   const [atlasExperimentList, setAtlasExperimentList] = useState([]);
   const [atlasFacets, setAtlasFacets] = useState(null);
   const [isLocal, setIsLocal] = useState(false);
-  const [activeTab, setActiveTab] = useState('gene');
 
   const handleLocalAPIChange = (event) => {
     setIsLocal(event.target.checked);
   };
+  // The expressionStudies resource is otherwise fetched only when a top-level
+  // expression view (exprViz/expression/export) is on — but this per-gene
+  // Expression detail also needs it (the Paralogs sub-tab's experiment list and
+  // the atlasExperiment selection both derive from it). Self-fetch on mount so
+  // opening the detail populates the studies even when no such view is enabled.
+  useEffect(() => {
+    if (!props.expressionStudies && props.doFetchExpressionStudies) {
+      props.doFetchExpressionStudies();
+    }
+  }, [props.expressionStudies]);
   useEffect(() => {
     if (!props.expressionStudies) return;
     const tid = Math.floor(gene.taxon_id / 1000);
@@ -58,12 +77,17 @@ const Detail = props => {
       eList.forEach(e => {e.factors.forEach(factor => facets[e.type][factor] = 1);});
       setAtlasExperimentList(eList);
       setAtlasFacets(facets);
-      let refExp = eList.filter(e => e.isRef);
-      if (refExp.length === 1) {
-        setAtlasExperiment(refExp[0]._id);
-      } else {
-        // no reference experiment - choose first
-        setAtlasExperiment(eList[0]._id);
+      // Only pick a default experiment when the user (or a restored snapshot)
+      // hasn't already chosen one — otherwise we'd clobber a saved selection
+      // the moment the studies list loads.
+      if (!atlasExperiment) {
+        let refExp = eList.filter(e => e.isRef);
+        if (refExp.length === 1) {
+          setAtlasExperiment(refExp[0]._id);
+        } else {
+          // no reference experiment - choose first
+          setAtlasExperiment(eList[0]._id);
+        }
       }
     }
   }, [props.expressionStudies]);
@@ -91,6 +115,7 @@ const Detail = props => {
       <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
         <Form.Select aria-label='experiment selector'
                      placeholder='Select experiment'
+                     value={atlasExperiment || ''}
                      onChange={(e) => setAtlasExperiment(e.target.value)}>
           { atlasExperimentList.map((e,idx) =>
             <option key={idx} value={e._id}>{e.type}: {e.description || e._id}</option>
@@ -110,7 +135,11 @@ const Detail = props => {
       {activeTab === "gene" && <DynamicIframe url={gene_url}/> }
     </Tab>
     {haveBAR(gene) &&
-      <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser" key="bar"><BAR gene={gene}/></Tab>
+      <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser" key="bar">
+        <BAR gene={gene}
+             study={expr.barStudy}
+             onStudyChange={v => props.doSetExpressionState({geneId, patch: {barStudy: v}})}/>
+      </Tab>
     }
   </Tabs>
 };
@@ -118,7 +147,10 @@ const Detail = props => {
 export default connect(
   'selectGrameneParalogs',
   'selectExpressionStudies',
+  'selectUiViewState',
   'doRequestParalogs',
+  'doFetchExpressionStudies',
+  'doSetExpressionState',
   //'doRequestParalogExpression',
   Detail
 );

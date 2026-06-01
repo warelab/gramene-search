@@ -6,8 +6,12 @@ import { createSelector } from 'redux-bundler';
 //   activeTaxon: <taxon_id|null>,
 //   byTaxon: {
 //     [taxon_id]: {
-//       selectedFields: [<solr field name>...],
+//       selectedFields: [<solr field name>...],   // order = column/axis order
 //       fieldsModalOpen: <bool>,
+//       vizMode: 'heatmap'|'parallel',            // persisted view config
+//       scale: 'linear'|'log',                    // persisted view config
+//       brushes: { [field]: [lo, hi] },           // persisted parallel-coords brushes
+//       pendingLoad: <bool>,                       // transient: a restored view wants a re-fetch
 //       fetch: { status, offset, total, signature, requestId, error },
 //       rows: [<doc>...]
 //     }
@@ -54,6 +58,10 @@ const exprViz = {
       return {
         selectedFields: [],
         fieldsModalOpen: false,
+        vizMode: 'heatmap',
+        scale: 'linear',
+        brushes: {},
+        pendingLoad: false,
         fetch: { status: 'idle', offset: 0, total: 0, signature: null, requestId: 0, error: null },
         rows: [],
         availableAttrs: null,
@@ -96,11 +104,57 @@ const exprViz = {
               [payload.taxon]: {
                 ...t,
                 selectedFields: payload.fields,
+                // A new field selection invalidates any prior brushes (they
+                // reference axes that may no longer exist) and the loaded rows.
+                brushes: {},
                 rows: [],
                 fetch: { status: 'idle', offset: 0, total: 0, signature: null, requestId: 0, error: null }
               }
             }
           };
+        }
+        case 'EXPRVIZ_VIZMODE_SET': {
+          const t = ensureTaxon(state, payload.taxon);
+          return {
+            ...state,
+            byTaxon: { ...state.byTaxon, [payload.taxon]: { ...t, vizMode: payload.vizMode } }
+          };
+        }
+        case 'EXPRVIZ_SCALE_SET': {
+          const t = ensureTaxon(state, payload.taxon);
+          return {
+            ...state,
+            byTaxon: { ...state.byTaxon, [payload.taxon]: { ...t, scale: payload.scale } }
+          };
+        }
+        case 'EXPRVIZ_BRUSHES_SET': {
+          const t = ensureTaxon(state, payload.taxon);
+          return {
+            ...state,
+            byTaxon: { ...state.byTaxon, [payload.taxon]: { ...t, brushes: payload.brushes || {} } }
+          };
+        }
+        case 'EXPRVIZ_RESTORED': {
+          // Re-apply persisted view config from a saved-view snapshot. Async
+          // data (rows) is NOT in the snapshot — instead each taxon with a
+          // field selection is flagged pendingLoad so reactExprVizRestoreLoad
+          // re-fetches it once the search context is ready.
+          const byTaxon = { ...state.byTaxon };
+          const cfg = payload.byTaxon || {};
+          for (const tid of Object.keys(cfg)) {
+            const base = ensureTaxon(state, tid);
+            const c = cfg[tid] || {};
+            const selectedFields = Array.isArray(c.selectedFields) ? c.selectedFields : [];
+            byTaxon[tid] = {
+              ...base,
+              selectedFields,
+              vizMode: c.vizMode || 'heatmap',
+              scale: c.scale || 'linear',
+              brushes: c.brushes || {},
+              pendingLoad: selectedFields.length > 0
+            };
+          }
+          return { ...state, activeTaxon: payload.activeTaxon || state.activeTaxon, byTaxon };
         }
         case 'EXPRVIZ_FIELDS_REORDERED': {
           const t = state.byTaxon[payload.taxon];
@@ -128,6 +182,7 @@ const exprViz = {
               ...state.byTaxon,
               [payload.taxon]: {
                 ...t,
+                pendingLoad: false,
                 fetch: { ...t.fetch, status: 'loading', signature: payload.signature, requestId: payload.requestId, error: null }
               }
             }
@@ -309,6 +364,24 @@ const exprViz = {
   doReorderExprVizFields: (taxon, fields) => ({ dispatch }) =>
     dispatch({ type: 'EXPRVIZ_FIELDS_REORDERED', payload: { taxon, fields } }),
 
+  doSetExprVizVizMode: (taxon, vizMode) => ({ dispatch }) =>
+    dispatch({ type: 'EXPRVIZ_VIZMODE_SET', payload: { taxon, vizMode } }),
+
+  doSetExprVizScale: (taxon, scale) => ({ dispatch }) =>
+    dispatch({ type: 'EXPRVIZ_SCALE_SET', payload: { taxon, scale } }),
+
+  doSetExprVizBrushes: (taxon, brushes) => ({ dispatch }) =>
+    dispatch({ type: 'EXPRVIZ_BRUSHES_SET', payload: { taxon, brushes } }),
+
+  // Re-apply persisted exprViz view config from a saved-view snapshot. Called
+  // by viewSnapshot's doApplyViewSnapshot after filters/views have been
+  // restored, so the re-fetch (driven by reactExprVizRestoreLoad) sees the
+  // restored query context.
+  doApplyExprVizSnapshot: snap => ({ dispatch }) => {
+    if (!snap || typeof snap !== 'object') return;
+    dispatch({ type: 'EXPRVIZ_RESTORED', payload: { activeTaxon: snap.activeTaxon || null, byTaxon: snap.byTaxon || {} } });
+  },
+
   doFetchExprVizData: taxon => ({ dispatch, store }) => {
     const ev = store.selectExprViz();
     const t = ev.byTaxon[taxon];
@@ -410,6 +483,29 @@ const exprViz = {
       if (ev.pivot.status === 'loading') return;
       if (ev.pivot.signature === sig && ev.pivot.status === 'ready') return;
       return { actionCreator: 'doFetchExprVizPivot' };
+    }
+  ),
+
+  // After a saved view is applied, EXPRVIZ_RESTORED flags each taxon that had
+  // a field selection with pendingLoad. Once the search context is live (not
+  // 'init') and the view is on, re-fetch that taxon's rows. Fires one taxon at
+  // a time; EXPRVIZ_FETCH_STARTED clears the flag so this won't loop. Robust to
+  // a GRAMENE_SEARCH_CLEARED that wipes rows mid-restore — the flag persists.
+  reactExprVizRestoreLoad: createSelector(
+    'selectExprViz',
+    'selectGrameneFiltersStatus',
+    'selectGrameneViews',
+    (ev, filtersStatus, views) => {
+      if (!ev || filtersStatus === 'init') return;
+      const onView = views && views.options && views.options.find(v => v.id === 'exprViz');
+      if (!onView || onView.show !== 'on') return;
+      for (const tid of Object.keys(ev.byTaxon || {})) {
+        const t = ev.byTaxon[tid];
+        if (t && t.pendingLoad && t.selectedFields.length > 0
+            && t.rows.length === 0 && t.fetch.status !== 'loading') {
+          return { actionCreator: 'doFetchExprVizData', args: [tid] };
+        }
+      }
     }
   ),
 

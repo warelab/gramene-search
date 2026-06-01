@@ -169,11 +169,21 @@ const buildId = (gene, geneSeq, up, down) => {
   return `${geneSeq.genome}|${gene._id}|${gene.location.region}:${gs}..${ge} ${extras.join('|')}`
 };
 const Detail = props => {
-  const gene = props.geneDocs[props.searchResult.id];
-  const [tab, setTab] = useState('dna');
-  const [upstream, setUpstream] = useState(0);
-  const [downstream, setDownstream] = useState(0);
-  const [tid, setTid] = useState(gene.gene_structure.canonical_transcript);
+  const geneId = props.searchResult.id;
+  const gene = props.geneDocs[geneId];
+  // Sub-tab + selected isoform + flanking lengths live in the uiViewState
+  // bundle (keyed by geneId) so the shareable-views snapshot can round-trip
+  // them. Defaults match the old local-state initial values.
+  const slice = (props.uiViewState && props.uiViewState.byGene[geneId]
+    && props.uiViewState.byGene[geneId].sequences) || {};
+  const tab = slice.tab || 'dna';
+  const tid = slice.tid || gene.gene_structure.canonical_transcript;
+  const upstream = slice.upstream || 0;
+  const downstream = slice.downstream || 0;
+  const setTab = (k) => props.doSetSequencesState({geneId, patch: {tab: k}});
+  const setTid = (v) => props.doSetSequencesState({geneId, patch: {tid: v}});
+  const setUpstream = (v) => props.doSetSequencesState({geneId, patch: {upstream: +v}});
+  const setDownstream = (v) => props.doSetSequencesState({geneId, patch: {downstream: +v}});
   let geneSeq;
   let rnaSeq;
   let pepSeq;
@@ -333,9 +343,11 @@ export default connect(
   'selectGeneSequences',
   'selectRnaSequences',
   'selectPepSequences',
+  'selectUiViewState',
   'doRequestGeneSequence',
   'doRequestRnaSequence',
   'doRequestPepSequence',
+  'doSetSequencesState',
   Detail
 );
 
