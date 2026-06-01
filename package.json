@@ -3,6 +3,10 @@
   "version": "2.1.11",
   "description": "search wrapper for gramene",
   "main": "dist/index.js",
+  "alias": {
+    "react": "./node_modules/react",
+    "react-dom": "./node_modules/react-dom"
+  },
   "targets": {
     "main": {
       "source": "src/index.js"
