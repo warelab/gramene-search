@@ -18,6 +18,12 @@ const grameneViews = {
           shouldScroll: false
         },
         {
+          id: 'taxTree',
+          name: 'Taxonomic distribution',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
           id: 'list',
           name: 'Gene list',
           show: 'on',
@@ -149,7 +155,7 @@ const grameneViews = {
       const touched = raw.touched || {};
       const numFound = (search && search.response && search.response.numFound) || 0;
       const hasFilters = !!(filters && filters.rightIdx > 1);
-      const resultDependentIds = new Set(['taxonomy', 'list', 'export', 'exprViz', 'ontologyEnrichment']);
+      const resultDependentIds = new Set(['taxonomy', 'taxTree', 'list', 'export', 'exprViz', 'ontologyEnrichment']);
       const autoDisable = (numFound === 0) || !hasFilters;
       const hasFirebase = !!(config && config.firebaseConfig);
 

@@ -22,6 +22,10 @@
 //     activeTaxon: <taxon_id|null>,
 //     ui: { pAdjCutoff, minGSSize, maxGSSize, mostSpecific, ontology, search, sort }
 //   } | undefined,                                // facets re-fetch on apply
+//   taxTree: {                                    // Taxonomic distribution (tree) view
+//     collapseEmpties: bool, comparaOnly: bool,
+//     viewState: <tbrowse ViewState, prunedNodeIds stripped>
+//   } | undefined,                                // prune recomputed on apply
 //   expandedDetails: [
 //     { geneId,
 //       expandedDetail: string|null,
@@ -166,6 +170,11 @@ const viewSnapshot = {
       store.doApplyOntologyEnrichmentSnapshot(snapshot.ontologyEnrichment);
     }
 
+    // 7. Taxonomic-distribution (tree) view state.
+    if (snapshot.taxTree && store.doApplyTaxTreeSnapshot) {
+      store.doApplyTaxTreeSnapshot(snapshot.taxTree);
+    }
+
     return { applied: true, warnings };
   },
 
@@ -280,6 +289,23 @@ function buildSnapshot(state) {
           search: ui.search || DEF.search,
           ...(hasSort ? { sort: {...ui.sort} } : {})
         }
+      };
+    }
+  }
+
+  // Taxonomic-distribution (tree) view: the controlled tbrowse ViewState
+  // (zones arrangement/sizes/names, tree layout mode, collapses, search) plus
+  // the two host controls. prunedNodeIds is control-derived (recomputed on
+  // apply from collapse-empties/compara + facet data), so it's stripped to
+  // keep the snapshot small.
+  if (state.taxTreeView) {
+    const tv = state.taxTreeView;
+    const hasVS = tv.viewState && typeof tv.viewState === 'object';
+    if (hasVS || tv.collapseEmpties !== true || tv.comparaOnly !== true) {
+      snap.taxTree = {
+        collapseEmpties: tv.collapseEmpties !== false,
+        comparaOnly: tv.comparaOnly !== false,
+        ...(hasVS ? { viewState: { ...tv.viewState, prunedNodeIds: [] } } : {}),
       };
     }
   }

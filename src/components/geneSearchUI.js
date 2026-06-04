@@ -14,6 +14,7 @@ import UserGeneLists from './results/UserGeneLists'
 import ExporterView from './exporter/ExporterView'
 import ExprVizView from './exprViz/ExprVizView'
 import OntologyEnrichment from './results/OntologyEnrichment'
+import TaxDistTbrowse from './results/TaxDistTbrowse'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
@@ -40,6 +41,7 @@ const inventory = {
   help: HelpDemo,
   list: GeneList,
   taxonomy: TaxDist,
+  taxTree: TaxDistTbrowse,
   attribs: GeneAttribs,
   expression: Expression,
   exprViz: ExprVizView,

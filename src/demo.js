@@ -152,6 +152,13 @@ const panSites = [
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
     partialCompara: true,
+    // The tree-based taxonomic distribution (taxTree) replaces the legacy
+    // canvas one (taxonomy) on SorghumBase: hide the old, default-on the new.
+    // Mirrors sorghum-webapp/search_app/config.json.
+    views: {
+      taxonomy: 'hidden',
+      taxTree: 'on'
+    },
     details: {
       sequences: true,
       VEP: true,
