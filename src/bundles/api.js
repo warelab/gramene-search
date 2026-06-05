@@ -459,11 +459,19 @@ const grameneTaxDist = {
     'selectGrameneTaxonomy',
     'selectGrameneMaps',
     (grameneSearch,grameneTaxonomy,grameneMaps) => {
-      if (grameneSearch && grameneTaxonomy && grameneMaps) {
+      // The bin facet can be absent during a saved-view restore (a search is
+      // present but its faceted response with `fixed_1000__bin` hasn't landed
+      // yet, or a non-faceted search is transiently in state). Bail to null
+      // until it's there rather than crashing on `a.length`.
+      const binFacet = grameneSearch
+        && grameneSearch.facet_counts
+        && grameneSearch.facet_counts.facet_fields
+        && grameneSearch.facet_counts.facet_fields.fixed_1000__bin;
+      if (binFacet && grameneTaxonomy && grameneMaps) {
         _.forIn(grameneMaps, (map, tid) => {
-          grameneTaxonomy[tid].name = map.display_name;
+          if (grameneTaxonomy[tid]) grameneTaxonomy[tid].name = map.display_name;
         });
-        const binnedResults = formatFacetCountsForViz(grameneSearch.facet_counts.facet_fields.fixed_1000__bin);
+        const binnedResults = formatFacetCountsForViz(binFacet);
         let speciesTree = taxonomy.tree(Object.values(grameneTaxonomy));
         let binMapper = bins(grameneMaps);
         let taxDist = build(binMapper, speciesTree);

@@ -155,7 +155,10 @@ const grameneViews = {
       const touched = raw.touched || {};
       const numFound = (search && search.response && search.response.numFound) || 0;
       const hasFilters = !!(filters && filters.rightIdx > 1);
-      const resultDependentIds = new Set(['taxonomy', 'taxTree', 'list', 'export', 'exprViz', 'ontologyEnrichment', 'userLists']);
+      // Views whose content depends on a current search: auto-off when no
+      // filters are set or no results came back. userLists is deliberately
+      // NOT here — it's user-owned and meaningful regardless of search state.
+      const resultDependentIds = new Set(['taxonomy', 'taxTree', 'list', 'export', 'exprViz', 'ontologyEnrichment']);
       const autoDisable = (numFound === 0) || !hasFilters;
       const hasFirebase = !!(config && config.firebaseConfig);
 

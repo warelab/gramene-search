@@ -73,8 +73,10 @@ function computeSelectedTaxa(
   if (!grameneSearch) return selected;
 
   if (collapseEmpties) {
-    const tids = grameneSearch.facet_counts.facet_fields.taxon_id;
-    for (let i = 0; i < tids.length; i += 2) selected[tids[i]] = true;
+    const tids = grameneSearch.facet_counts
+      && grameneSearch.facet_counts.facet_fields
+      && grameneSearch.facet_counts.facet_fields.taxon_id;
+    if (tids) for (let i = 0; i < tids.length; i += 2) selected[tids[i]] = true;
   } else {
     const active = (grameneGenomes && grameneGenomes.active) || {};
     if (Object.keys(active).length === 0 && grameneMaps) {
@@ -129,6 +131,7 @@ const TaxDistTbrowse = (props) => {
   const hostData = useMemo(() => {
     const facet = props.grameneSearch
       && props.grameneSearch.facet_counts
+      && props.grameneSearch.facet_counts.facet_fields
       && props.grameneSearch.facet_counts.facet_fields.taxon_id;
     return {
       bins: extractGenomeData(grameneTaxDist),
