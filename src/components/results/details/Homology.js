@@ -26,7 +26,9 @@ import '../../../../node_modules/gramene-genetree-vis/src/styles/tree.less';
 import './tree-view.css';
 
 const genomeZone = createGenomeZone({id: 'genome'});
-const TBROWSE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone, genomeZone];
+// The genome (gene-structure) zone is gated behind the site-config flag
+// `enable_tbrowse_genome_zone` (defaults to false) — see getTbrowseZones().
+const TBROWSE_BASE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone];
 
 class Homology extends React.Component {
   constructor(props) {
@@ -58,7 +60,17 @@ class Homology extends React.Component {
     const slice = this.props.uiViewState && this.props.uiViewState.byGene[this.getGeneId()];
     return (slice && slice.homology) || {};
   }
-  getViewer() { return this.getHomologySlice().viewer || 'treevis'; }
+  getViewer() { return this.getHomologySlice().viewer || 'tbrowse'; }
+  // The genome (gene-structure) zone is opt-in per site via
+  // `enable_tbrowse_genome_zone` (defaults to false).
+  isGenomeZoneEnabled() {
+    return !!(this.props.configuration && this.props.configuration.enable_tbrowse_genome_zone);
+  }
+  getTbrowseZones() {
+    return this.isGenomeZoneEnabled()
+      ? [...TBROWSE_BASE_ZONES, genomeZone]
+      : TBROWSE_BASE_ZONES;
+  }
   getHeight() {
     const h = this.getHomologySlice().height;
     return typeof h === 'number' ? h : 600;
@@ -103,7 +115,7 @@ class Homology extends React.Component {
       // logic — zones default to visible unless their definition opts out
       // (e.g. neighborhood and genome opt out so they only appear once
       // their async data lands; tbrowse's Layout auto-flips them on then).
-      zones: TBROWSE_ZONES.map(z => ({
+      zones: this.getTbrowseZones().map(z => ({
         id: z.id,
         width: z.defaultWidth,
         visible: z.defaultVisible ?? true
@@ -142,7 +154,10 @@ class Homology extends React.Component {
       this._tbrowseData = fromGrameneGenetree([raw]);
     }
     this.fetchNeighborhood(treeId);
-    this.fetchGeneStructures(treeId, this._tbrowseData.tree);
+    // Only pay for gene-structure data when the genome zone is actually enabled.
+    if (this.isGenomeZoneEnabled()) {
+      this.fetchGeneStructures(treeId, this._tbrowseData.tree);
+    }
   }
   fetchNeighborhood(treeId) {
     if (this._neighborhoodFetchedFor === treeId) return;
@@ -306,7 +321,7 @@ class Homology extends React.Component {
             exonJunctions={this._tbrowseData.exonJunctions}
             neighborhood={neighborhood}
             geneStructures={geneStructures}
-            zones={TBROWSE_ZONES}
+            zones={this.getTbrowseZones()}
             nodeOfInterest={this.gene._id}
             viewState={tbrowseVS}
             onViewStateChange={next => this.setTbrowseViewState(next)}
@@ -340,8 +355,8 @@ class Homology extends React.Component {
     );
     return (
       <div style={{margin: '8px 0'}}>
+        {btn('tbrowse', 'TBrowse')}
         {btn('treevis', 'TreeVis')}
-        {btn('tbrowse', 'TBrowse (beta)')}
       </div>
     );
   }
