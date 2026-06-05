@@ -10,6 +10,14 @@
 //   data.hostData.bins = { genomesByTaxon: { [taxonId]: genome }, maxScore }
 // where `genome` is a gramene-bins-client genome (fullGenomeSize,
 // _regionsArray, region.bin(i)/binCount()/size/name, bin.results.count).
+//
+// Pan/zoom: a single shared horizontal transform { scale, leftFrac } (fraction
+// space, so it's width-independent and aligns every genome to the same relative
+// window) lives in the ephemeral binsUI store. The header toggles between two
+// interaction modes: 'select' (drag selects a region to count/filter genes,
+// the original gesture) and 'panzoom' (drag pans, wheel zooms toward the
+// cursor). All hit-testing/coordinates are in genome-fraction [0,1] so
+// hovers/selections stay anchored to the genome as you pan and zoom.
 
 import React, { useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import { EditableZoneName } from 'tbrowse';
@@ -48,31 +56,70 @@ function updateScore(currentScore, baseCount, binScore, binBasesUsed) {
   return binScore;
 }
 
-// Draw one genome's distribution into [x, x+width) at vertical [y, y+height).
-// Ported from drawGenome() in gramene-search-vis, collapsed to a single row.
-function drawGenomeRow(ctx, genome, x, y, width, height, maxScore) {
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const MAX_SCALE = 1000; // zoom far enough to isolate a single bin
+
+// Locate the region/bin cursor at a target base offset, so a zoomed draw can
+// start partway into the genome without iterating skipped pixels. Returns null
+// past the end of the genome.
+function seekCursor(regions, targetBase) {
+  let acc = 0;
+  for (let regionIdx = 0; regionIdx < regions.length; regionIdx++) {
+    const region = regions[regionIdx];
+    const n = region.binCount();
+    for (let binIdx = 0; binIdx < n; binIdx++) {
+      const bin = region.bin(binIdx);
+      const size = bin.end - bin.start + 1;
+      if (acc + size > targetBase) {
+        return { regionIdx, binIdx, basesInBinUsedAlready: Math.max(0, targetBase - acc) };
+      }
+      acc += size;
+    }
+  }
+  return null;
+}
+
+// Draw one genome's distribution into the visible [0, widthPx) strip at
+// vertical [y, y+height), under the shared { scale, leftFrac } transform. Only
+// the visible pixels are drawn (the cursor is fast-forwarded to the window's
+// left edge); consecutive equal-colour columns are batched into one fillRect,
+// which makes zoomed-in draws (where each bin spans many px) cheap. Ported from
+// drawGenome() in gramene-search-vis, generalised for pan/zoom.
+function drawGenomeRow(ctx, genome, y, widthPx, height, maxScore, scale, leftFrac) {
   const regions = genome && genome._regionsArray;
-  if (!regions || regions.length === 0 || !genome.fullGenomeSize) return;
-  const basesPerPx = genome.fullGenomeSize / width;
+  const full = genome && genome.fullGenomeSize;
+  if (!regions || regions.length === 0 || !full) return;
+  const virtualWidth = widthPx * scale; // full genome spans this many px when zoomed
+  const basesPerPx = full / virtualWidth;
   if (!(basesPerPx > 0)) return;
 
-  let binIdx = 0;
-  let basesInBinUsedAlready = 0;
-  let regionIdx = 0;
+  const cursor = seekCursor(regions, leftFrac * full);
+  if (!cursor) return;
+  let { regionIdx, binIdx, basesInBinUsedAlready } = cursor;
   let region = regions[regionIdx];
   let regionUnanchored = region.name === 'UNANCHORED';
 
-  for (let px = 0; px < width; px++) {
+  let runColor = null;
+  let runStart = 0;
+  const flush = (endExclusive) => {
+    if (runColor !== null && endExclusive > runStart) {
+      ctx.fillStyle = runColor;
+      ctx.fillRect(runStart, y, endExclusive - runStart, height);
+    }
+  };
+
+  let px = 0;
+  for (; px < widthPx; px++) {
     let baseCount = 0;
     let score;
-    let basesAvailableInBin = 0;
+    let ended = false;
 
     while (baseCount < basesPerPx) {
       const basesNeededByThisPixel = basesPerPx - baseCount;
       const bin = region.bin(binIdx);
       const binSize = bin.end - bin.start + 1;
       const binScore = maxScore ? (bin.results ? bin.results.count : 0) / maxScore : 0;
-      basesAvailableInBin = binSize - basesInBinUsedAlready;
+      const basesAvailableInBin = binSize - basesInBinUsedAlready;
 
       let binBasesUsed;
       if (basesAvailableInBin <= basesNeededByThisPixel) {
@@ -90,15 +137,25 @@ function drawGenomeRow(ctx, genome, x, y, width, height, maxScore) {
       if (binIdx === region.binCount()) {
         binIdx = 0;
         regionIdx++;
-        if (regionIdx === regions.length) break;
+        if (regionIdx === regions.length) { ended = true; break; }
         region = regions[regionIdx];
         regionUnanchored = region.name === 'UNANCHORED';
       }
     }
 
-    ctx.fillStyle = binColor(regionIdx, score || 0, regionUnanchored);
-    ctx.fillRect(x + px, y, 1, height);
+    const idxForColor = regionIdx >= regions.length ? regions.length - 1 : regionIdx;
+    const color = binColor(idxForColor, score || 0, regionUnanchored);
+    if (runColor === null) {
+      runColor = color;
+      runStart = px;
+    } else if (color !== runColor) {
+      flush(px);
+      runColor = color;
+      runStart = px;
+    }
+    if (ended) { px++; break; }
   }
+  flush(px);
 }
 
 // ── data extraction ───────────────────────────────────────────────────────
@@ -122,9 +179,11 @@ export function extractGenomeData(taxDist) {
 
 // ── interaction store (shared between Header and Body via hostData) ──────────
 // A tiny pub/sub kept OUT of the controlled tbrowse viewState so per-mousemove
-// hover/drag updates don't churn the whole tree. Holds the hovered chromosome,
-// the in-progress drag, and the committed drag-selections.
-const EMPTY_UI = { hovered: null, inProgress: null, selections: [] };
+// hover/drag/pan/zoom updates don't churn the whole tree. Holds the hovered
+// chromosome, the in-progress select-drag, the committed drag-selections, and
+// the shared horizontal pan/zoom transform.
+const DEFAULT_TRANSFORM = { scale: 1, leftFrac: 0 };
+const EMPTY_UI = { hovered: null, inProgress: null, selections: [], transform: DEFAULT_TRANSFORM };
 const NOOP_SUB = () => () => {};
 const NOOP_GET = () => EMPTY_UI;
 
@@ -137,22 +196,24 @@ export function createBinsUiStore() {
     subscribe: (l) => { listeners.add(l); return () => listeners.delete(l); },
     setHovered: (h) => { state = { ...state, hovered: h }; emit(); },
     setInProgress: (p) => { state = { ...state, inProgress: p }; emit(); },
+    setTransform: (t) => { state = { ...state, transform: t }; emit(); },
+    resetTransform: () => { state = { ...state, transform: DEFAULT_TRANSFORM }; emit(); },
     // Add a selection, merging it with any existing selection on the SAME
-    // genome whose pixel range overlaps — so overlapping drags become one
+    // genome whose fraction range overlaps — so overlapping drags become one
     // region and shared bins aren't double-counted. Bins are unioned by their
     // global index.
     addSelection: (sel) => {
       let merged = sel;
       const rest = [];
       for (const s of state.selections) {
-        if (s.taxonId === merged.taxonId && s.x0 <= merged.x1 && s.x1 >= merged.x0) {
+        if (s.taxonId === merged.taxonId && s.f0 <= merged.f1 && s.f1 >= merged.f0) {
           const byIdx = new Map();
           for (const b of s.bins) byIdx.set(b.idx, b.count);
           for (const b of merged.bins) byIdx.set(b.idx, b.count);
           merged = {
             taxonId: merged.taxonId,
-            x0: Math.min(s.x0, merged.x0),
-            x1: Math.max(s.x1, merged.x1),
+            f0: Math.min(s.f0, merged.f0),
+            f1: Math.max(s.f1, merged.f1),
             bins: [...byIdx].map(([idx, count]) => ({ idx, count })),
           };
         } else {
@@ -162,7 +223,11 @@ export function createBinsUiStore() {
       state = { ...state, selections: [...rest, merged] };
       emit();
     },
-    clear: () => { state = EMPTY_UI; emit(); },
+    // Clear hover/selections but keep the current zoom/pan transform — clearing
+    // selections shouldn't yank the user back out of their zoom.
+    clear: () => { state = { ...EMPTY_UI, transform: state.transform }; emit(); },
+    // Full reset (new result set): drop everything including the transform.
+    reset: () => { state = EMPTY_UI; emit(); },
   };
 }
 
@@ -183,46 +248,47 @@ export function selectedBinIdxs(selections) {
   return [...set];
 }
 
-// Per-genome pixel layout across the [0,width) strip: region spans (for
+// Per-genome layout in genome-fraction space [0,1]: region spans (for
 // chromosome hit-testing) and bin spans with gene counts (for summing a
-// drag-selected range). Mirrors drawGenomeRow's region/bin walk.
-function buildGenomeLayout(genome, width) {
+// drag-selected range). Width/zoom-independent — the transform maps fractions
+// to screen pixels at render time.
+function buildGenomeLayout(genome) {
   const out = { regions: [] };
   const regions = genome && genome._regionsArray;
-  if (!regions || !genome.fullGenomeSize || !(width > 0)) return out;
-  const basesPerPx = genome.fullGenomeSize / width;
-  if (!(basesPerPx > 0)) return out;
-  let px = 0;
+  const full = genome && genome.fullGenomeSize;
+  if (!regions || !full) return out;
+  let base = 0;
   for (const region of regions) {
-    const x0 = px;
+    const f0 = base / full;
     const binsArr = [];
     const n = region.binCount();
     for (let i = 0; i < n; i++) {
       const bin = region.bin(i);
-      const bw = (bin.end - bin.start + 1) / basesPerPx;
-      binsArr.push({ x0: px, x1: px + bw, count: (bin.results && bin.results.count) || 0, idx: bin.idx });
-      px += bw;
+      const size = bin.end - bin.start + 1;
+      const bf0 = base / full;
+      base += size;
+      binsArr.push({ f0: bf0, f1: base / full, count: (bin.results && bin.results.count) || 0, idx: bin.idx });
     }
-    out.regions.push({ name: region.name, x0, x1: px, bins: binsArr });
+    out.regions.push({ name: region.name, f0, f1: base / full, bins: binsArr });
   }
   return out;
 }
 
-function regionAtPx(layout, mx) {
-  for (const r of layout.regions) if (mx >= r.x0 && mx < r.x1) return r;
+function regionAtFrac(layout, f) {
+  for (const r of layout.regions) if (f >= r.f0 && f < r.f1) return r;
   return null;
 }
 
-// Non-empty bins overlapping a pixel range, as {idx, count}. Empty bins are
+// Non-empty bins overlapping a fraction range, as {idx, count}. Empty bins are
 // excluded by design (the selection / filter only covers bins with genes).
-function selectedBinsInPxRange(layout, a, b) {
+function selectedBinsInFracRange(layout, a, b) {
   const lo = Math.min(a, b);
   const hi = Math.max(a, b);
   const bins = [];
   for (const r of layout.regions) {
-    if (r.x1 < lo || r.x0 > hi) continue;
+    if (r.f1 < lo || r.f0 > hi) continue;
     for (const bin of r.bins) {
-      if (bin.x1 > lo && bin.x0 < hi && bin.count > 0) bins.push({ idx: bin.idx, count: bin.count });
+      if (bin.f1 > lo && bin.f0 < hi && bin.count > 0) bins.push({ idx: bin.idx, count: bin.count });
     }
   }
   return bins;
@@ -230,6 +296,39 @@ function selectedBinsInPxRange(layout, a, b) {
 
 // ── zone components ─────────────────────────────────────────────────────────
 const HEADER_BTN = { fontSize: 11, lineHeight: 1, padding: '1px 6px', cursor: 'pointer' };
+
+function ModeToggle({ mode, setMode }) {
+  const seg = (id, label) => (
+    <button
+      type="button"
+      onClick={() => setMode(id)}
+      title={id === 'select' ? 'Drag to select a region' : 'Drag to pan, scroll to zoom'}
+      style={{
+        fontSize: 11,
+        lineHeight: 1,
+        padding: '2px 7px',
+        cursor: 'pointer',
+        border: 'none',
+        background: mode === id ? 'var(--tbrowse-accent, #2878dc)' : 'transparent',
+        color: mode === id ? '#fff' : 'var(--tbrowse-text-muted)',
+      }}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div style={{
+      display: 'inline-flex',
+      border: '1px solid var(--tbrowse-border-soft)',
+      borderRadius: 4,
+      overflow: 'hidden',
+    }}
+    >
+      {seg('select', 'Select')}
+      {seg('panzoom', 'Pan/Zoom')}
+    </div>
+  );
+}
 
 const BinsHeader = ({ data, zoneState, setZoneState }) => {
   const store = data.hostData && data.hostData.binsUI;
@@ -239,6 +338,9 @@ const BinsHeader = ({ data, zoneState, setZoneState }) => {
   );
   const total = totalSelectedGenes(snap.selections);
   const hovered = snap.hovered;
+  const scale = snap.transform ? snap.transform.scale : 1;
+  const mode = (zoneState && zoneState.mode) || 'select';
+  const setMode = (m) => setZoneState((s) => ({ ...(s ?? {}), mode: m }));
 
   return (
     <div
@@ -253,13 +355,24 @@ const BinsHeader = ({ data, zoneState, setZoneState }) => {
         color: 'var(--tbrowse-text)',
       }}
     >
-      {/* Row 1: editable zone name + selection summary + actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 0 }}>
+      {/* Row 1: name + mode toggle + zoom readout/reset + selection summary */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 0, flexWrap: 'wrap' }}>
         <EditableZoneName
           defaultName="Genome distribution"
           customName={zoneState?.name}
           onChange={(next) => setZoneState((s) => ({ ...(s ?? {}), name: next }))}
         />
+        <ModeToggle mode={mode} setMode={setMode} />
+        {scale > 1.0001 && (
+          <>
+            <span style={{ color: 'var(--tbrowse-text-muted)', fontSize: 11, whiteSpace: 'nowrap' }}>
+              {scale.toFixed(scale < 10 ? 1 : 0)}×
+            </span>
+            <button type="button" style={HEADER_BTN} title="Reset zoom" onClick={() => store && store.resetTransform()}>
+              reset zoom
+            </button>
+          </>
+        )}
         {snap.selections.length > 0 && (
           <>
             <span style={{ color: 'var(--tbrowse-text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
@@ -316,7 +429,7 @@ function rowHighlight(isSelected, isExactHover, isInHoveredSubtree) {
 
 const BinsBody = (props) => {
   const {
-    visibleRows, rowRange, width, data,
+    visibleRows, rowRange, width, data, zoneState,
     hoveredNodeId, hoveredSubtreeIds, selectedNodeId, onHoverNode, onSelectNode,
   } = props;
   const canvasRef = useRef(null);
@@ -331,6 +444,8 @@ const BinsBody = (props) => {
     store ? store.subscribe : NOOP_SUB,
     store ? store.getState : NOOP_GET,
   );
+  const transform = snap.transform || DEFAULT_TRANSFORM;
+  const mode = (zoneState && zoneState.mode) || 'select';
 
   const totalHeight = visibleRows.length
     ? visibleRows[visibleRows.length - 1].y + visibleRows[visibleRows.length - 1].height
@@ -339,19 +454,25 @@ const BinsBody = (props) => {
   const rows = visibleRows.slice(rowRange.startIndex, rowRange.endIndex);
   const w = Math.max(1, Math.floor(width));
 
-  // Pixel layout per visible genome row (regions + bins), for hit-testing.
+  // Fraction-space layout per visible genome row (regions + bins), for
+  // hit-testing. Independent of width/zoom, so it only rebuilds when the row
+  // set changes.
   const layouts = useMemo(() => {
     const m = {};
     if (bins) {
       for (const r of rows) {
         if (r.kind !== 'leaf') continue;
         const g = bins.genomesByTaxon[r.nodeId];
-        if (g) m[r.nodeId] = buildGenomeLayout(g, w);
+        if (g) m[r.nodeId] = buildGenomeLayout(g);
       }
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bins, w, rowRange.startIndex, rowRange.endIndex, visibleRows]);
+  }, [bins, rowRange.startIndex, rowRange.endIndex, visibleRows]);
+
+  // Fraction <-> screen-pixel helpers under the current transform.
+  const fracToScreen = (f) => (f - transform.leftFrac) * transform.scale * w;
+  const screenToFrac = (px) => transform.leftFrac + (px / w) / transform.scale;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -369,16 +490,46 @@ const BinsBody = (props) => {
       const genome = bins.genomesByTaxon[r.nodeId];
       if (!genome) continue;
       const innerH = Math.max(1, r.height - 2 * ROW_PAD_Y);
-      drawGenomeRow(ctx, genome, 0, r.y + ROW_PAD_Y, w, innerH, bins.maxScore);
+      drawGenomeRow(
+        ctx, genome, r.y + ROW_PAD_Y, w, innerH, bins.maxScore,
+        transform.scale, transform.leftFrac,
+      );
     }
-  }, [visibleRows, rowRange.startIndex, rowRange.endIndex, w, totalHeight, bins]);
+  }, [visibleRows, rowRange.startIndex, rowRange.endIndex, w, totalHeight, bins,
+    transform.scale, transform.leftFrac]);
 
   const pxFromEvent = (e) => {
     const el = containerRef.current;
     if (!el) return 0;
     const rect = el.getBoundingClientRect();
-    return Math.max(0, Math.min(w, e.clientX - rect.left));
+    return clamp(e.clientX - rect.left, 0, w);
   };
+
+  // Wheel-to-zoom (panzoom mode only), centred on the cursor. Native non-passive
+  // listener so we can preventDefault the page scroll; re-attached when mode/
+  // width change. Transform is read live from the store to avoid stale closures.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !store) return undefined;
+    const onWheel = (e) => {
+      if (mode !== 'panzoom') return; // let the page scroll normally
+      e.preventDefault();
+      const t = store.getState().transform || DEFAULT_TRANSFORM;
+      const rect = el.getBoundingClientRect();
+      const cursorPx = clamp(e.clientX - rect.left, 0, w);
+      const fracAtCursor = t.leftFrac + (cursorPx / w) / t.scale;
+      const factor = Math.exp(-e.deltaY * 0.0015);
+      const newScale = clamp(t.scale * factor, 1, MAX_SCALE);
+      const newLeft = clamp(
+        fracAtCursor - (cursorPx / w) / newScale,
+        0,
+        1 - 1 / newScale,
+      );
+      store.setTransform({ scale: newScale, leftFrac: newLeft });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [store, w, mode]);
 
   const genomeName = (taxonId) => {
     const tax = data.taxonomy && data.taxonomy[taxonId];
@@ -387,7 +538,7 @@ const BinsBody = (props) => {
 
   const onRowMouseMove = (e, r) => {
     if (!store || dragRef.current || !layouts[r.nodeId]) return;
-    const reg = regionAtPx(layouts[r.nodeId], pxFromEvent(e));
+    const reg = regionAtFrac(layouts[r.nodeId], screenToFrac(pxFromEvent(e)));
     if (!reg) { store.setHovered(null); return; }
     const geneCount = reg.bins.reduce((a, b) => a + b.count, 0);
     store.setHovered({
@@ -395,23 +546,48 @@ const BinsBody = (props) => {
       genomeName: genomeName(r.nodeId),
       regionName: reg.name,
       geneCount,
-      x0: reg.x0,
-      x1: reg.x1,
+      f0: reg.f0,
+      f1: reg.f1,
     });
   };
 
-  const onRowPointerDown = (e, r) => {
-    if (!store || !layouts[r.nodeId]) return;
+  // Pan drag (panzoom mode): translate leftFrac by the cursor delta, scaled by
+  // the current zoom. Shared transform → every genome row pans together.
+  const startPan = (e) => {
     e.preventDefault();
     const startPx = pxFromEvent(e);
-    dragRef.current = { taxonId: r.nodeId, startPx, moved: false };
-    store.setInProgress({ taxonId: r.nodeId, x0: startPx, x1: startPx });
+    const t0 = store.getState().transform || DEFAULT_TRANSFORM;
+    let moved = false;
+    const onMove = (ev) => {
+      const dx = pxFromEvent(ev) - startPx;
+      if (Math.abs(dx) > 2) moved = true;
+      const t = store.getState().transform || DEFAULT_TRANSFORM;
+      const newLeft = clamp(t0.leftFrac - (dx / w) / t.scale, 0, 1 - 1 / t.scale);
+      store.setTransform({ scale: t.scale, leftFrac: newLeft });
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      if (moved) suppressClickRef.current = true;
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
+
+  // Select drag (select mode): brush a fraction range and add the non-empty
+  // bins under it as a committed selection.
+  const startSelect = (e, r) => {
+    if (!layouts[r.nodeId]) return;
+    e.preventDefault();
+    const startFrac = screenToFrac(pxFromEvent(e));
+    dragRef.current = { taxonId: r.nodeId, startFrac, moved: false };
+    store.setInProgress({ taxonId: r.nodeId, f0: startFrac, f1: startFrac });
     const onMove = (ev) => {
       const d = dragRef.current;
       if (!d) return;
-      const cur = pxFromEvent(ev);
-      if (Math.abs(cur - d.startPx) > 2) d.moved = true;
-      store.setInProgress({ taxonId: d.taxonId, x0: Math.min(d.startPx, cur), x1: Math.max(d.startPx, cur) });
+      const cur = screenToFrac(pxFromEvent(ev));
+      if (Math.abs(cur - d.startFrac) * w * transform.scale > 2) d.moved = true;
+      store.setInProgress({ taxonId: d.taxonId, f0: Math.min(d.startFrac, cur), f1: Math.max(d.startFrac, cur) });
     };
     const onUp = (ev) => {
       const d = dragRef.current;
@@ -421,13 +597,13 @@ const BinsBody = (props) => {
       store.setInProgress(null);
       if (d && d.moved) {
         suppressClickRef.current = true; // swallow the click that follows a drag
-        const cur = pxFromEvent(ev);
-        const x0 = Math.min(d.startPx, cur);
-        const x1 = Math.max(d.startPx, cur);
+        const cur = screenToFrac(pxFromEvent(ev));
+        const f0 = Math.min(d.startFrac, cur);
+        const f1 = Math.max(d.startFrac, cur);
         const lay = layouts[d.taxonId];
         if (lay) {
-          const bins = selectedBinsInPxRange(lay, x0, x1);
-          if (bins.length) store.addSelection({ taxonId: d.taxonId, x0, x1, bins });
+          const selBins = selectedBinsInFracRange(lay, f0, f1);
+          if (selBins.length) store.addSelection({ taxonId: d.taxonId, f0, f1, bins: selBins });
         }
       }
     };
@@ -435,12 +611,24 @@ const BinsBody = (props) => {
     document.addEventListener('pointerup', onUp);
   };
 
+  const onRowPointerDown = (e, r) => {
+    if (!store) return;
+    if (mode === 'panzoom') { startPan(e); return; }
+    startSelect(e, r);
+  };
+
   const rowByTaxon = new Map(rows.map((r) => [r.nodeId, r]));
-  // Outline rectangles (drawn above the canvas; pointer-events:none). The y
-  // comes from the current row so they track vertical scroll.
-  const outline = (key, taxonId, x0, x1, color, dashed) => {
+  // Outline rectangles (drawn above the canvas; pointer-events:none). Stored in
+  // fraction space and projected to screen px under the transform, clipped to
+  // the visible strip. The y comes from the current row so they track scroll.
+  const outline = (key, taxonId, f0, f1, color, dashed) => {
     const r = rowByTaxon.get(taxonId);
     if (!r) return null;
+    let x0 = fracToScreen(f0);
+    let x1 = fracToScreen(f1);
+    if (x1 <= 0 || x0 >= w) return null; // fully outside the visible window
+    x0 = Math.max(0, x0);
+    x1 = Math.min(w, x1);
     return (
       <div
         key={key}
@@ -457,6 +645,8 @@ const BinsBody = (props) => {
       />
     );
   };
+
+  const rowCursor = mode === 'panzoom' ? 'grab' : 'crosshair';
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width, height: totalHeight }}>
@@ -484,7 +674,7 @@ const BinsBody = (props) => {
               hoveredNodeId === r.nodeId,
               !!(hoveredSubtreeIds && hoveredSubtreeIds.has(r.nodeId)),
             ),
-            cursor: 'crosshair',
+            cursor: rowCursor,
             opacity: r.opacity ?? 1,
           }}
         />
@@ -495,11 +685,11 @@ const BinsBody = (props) => {
       />
       {/* Outlines above the bins. */}
       {snap.hovered && !snap.inProgress
-        && outline('hover', snap.hovered.taxonId, snap.hovered.x0, snap.hovered.x1, 'var(--tbrowse-accent, #2878dc)', false)}
+        && outline('hover', snap.hovered.taxonId, snap.hovered.f0, snap.hovered.f1, 'var(--tbrowse-accent, #2878dc)', false)}
       {snap.selections.map((s, i) =>
-        outline(`sel-${i}`, s.taxonId, s.x0, s.x1, '#d62728', false))}
+        outline(`sel-${i}`, s.taxonId, s.f0, s.f1, '#d62728', false))}
       {snap.inProgress
-        && outline('drag', snap.inProgress.taxonId, snap.inProgress.x0, snap.inProgress.x1, '#d62728', true)}
+        && outline('drag', snap.inProgress.taxonId, snap.inProgress.f0, snap.inProgress.f1, '#d62728', true)}
     </div>
   );
 };
@@ -511,7 +701,7 @@ export const binsZone = {
   Body: BinsBody,
   defaultWidth: 60,
   minWidth: 200,
-  defaultZoneState: {},
+  defaultZoneState: { mode: 'select' },
   isAvailable: (data) =>
     Boolean(
       data.hostData &&

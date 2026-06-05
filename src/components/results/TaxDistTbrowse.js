@@ -107,7 +107,7 @@ const TaxDistTbrowse = (props) => {
   // stable across renders; cleared when the result set changes (counts stale).
   const binsUiRef = useRef(null);
   if (!binsUiRef.current) binsUiRef.current = createBinsUiStore();
-  useEffect(() => { binsUiRef.current.clear(); }, [grameneTaxDist]);
+  useEffect(() => { binsUiRef.current.reset(); }, [grameneTaxDist]);
 
   // "Apply as filter": turn the drag-selections' non-empty bins into a
   // fixed_1000__bin range filter on the search.
