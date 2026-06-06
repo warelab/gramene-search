@@ -53,6 +53,9 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
+# prepack backup (restored by postpack)
+.package.json.bak
+
 # Yarn Integrity file
 .yarn-integrity
 

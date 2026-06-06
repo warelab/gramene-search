@@ -1,6 +1,6 @@
 {
   "name": "gramene-search",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "search wrapper for gramene",
   "main": "dist/index.js",
   "files": [
@@ -34,7 +34,8 @@
     "start-main": "SUBSITE=main parcel src/index.html",
     "start-sorghum": "SUBSITE=sorghum parcel src/sorghum.html",
     "start-rice": "SUBSITE=rice parcel src/rice.html",
-    "prepare": "rm -rf dist && npx parcel build"
+    "prepare": "rm -rf dist && npx parcel build && node -e \"const c=process.env.npm_command;if(c==='pack'||c==='publish'){const fs=require('fs');fs.copyFileSync('package.json','.package.json.bak');const p=JSON.parse(fs.readFileSync('package.json'));delete p.alias;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\\n')}\"",
+    "postpack": "node -e \"const fs=require('fs');if(fs.existsSync('.package.json.bak'))fs.renameSync('.package.json.bak','package.json')\""
   },
   "author": "Andrew Olson",
   "license": "MIT",
