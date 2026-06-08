@@ -84,6 +84,46 @@ class Homology extends React.Component {
   setTbrowseViewState(viewState) {
     this.props.doSetHomologyTbrowseViewState({geneId: this.getGeneId(), tbrowse: viewState});
   }
+  // When the user has limited the search to a subset of genomes
+  // (grameneGenomes.active), prune the gene tree to genes from those genomes
+  // — mirroring the taxon_id filter api.js applies to the search itself, and
+  // the genomesOfInterest TreeVis already honours. Returns the ids of the
+  // highest nodes whose entire subtree lies outside the active set (maximal
+  // excluded clades), rather than individual leaves: tbrowse then sheds one
+  // stub per clade instead of one per leaf, and its single-marker count is
+  // meaningful. The gene of interest is always kept so the tree never
+  // collapses to nothing. Empty active set means "no limit" → full tree.
+  getGenomePrunedIds() {
+    const active = (this.props.grameneGenomes && this.props.grameneGenomes.active) || {};
+    const activeIds = Object.keys(active);
+    if (activeIds.length === 0) return [];
+    if (!this._tbrowseData) return [];
+    const activeSet = new Set(activeIds.map(String));
+    const keepGeneId = this.gene && this.gene._id;
+    const nodes = this._tbrowseData.tree.nodes;
+    const children = {};
+    Object.values(nodes).forEach(n => {
+      if (n.parentId != null) (children[n.parentId] = children[n.parentId] || []).push(n.id);
+    });
+    // hasKept(node): does the subtree contain a leaf we must keep (its taxon
+    // is active, or it's the gene of interest)? Memoised post-order walk.
+    const memo = {};
+    const hasKept = (id) => {
+      if (id in memo) return memo[id];
+      const n = nodes[id];
+      const v = n.isLeaf
+        ? ((n.taxonomyId != null && activeSet.has(String(n.taxonomyId))) || n.geneId === keepGeneId)
+        : (children[id] || []).some(hasKept);
+      memo[id] = v;
+      return v;
+    };
+    // A node is a maximal excluded clade when it keeps nothing but its parent
+    // does (or it's the root) — i.e. the highest fully-excluded node on its
+    // path. The root always keeps the gene of interest, so it is never pruned.
+    return Object.values(nodes)
+      .filter(n => !hasKept(n.id) && (n.parentId == null || hasKept(n.parentId)))
+      .map(n => n.id);
+  }
   // Seed the bundle with a pivot-computed initial tbrowse view state once the
   // tree data is available and the user is actually looking at the tbrowse
   // viewer. Called from lifecycle (not render) to avoid dispatching mid-render.
@@ -309,6 +349,23 @@ class Homology extends React.Component {
     // let the re-render with the seeded state do the work.
     const tbrowseVS = this.getHomologySlice().tbrowse;
     if (!tbrowseVS) return null;
+    // Layer the genome-limit prune set on top of the user's own prunes for the
+    // controlled view state, but persist only the user's prunes (strip the
+    // genome-derived ones in onViewStateChange) so the bundle stays free of
+    // filter-derived state and re-applies cleanly when the filter changes.
+    const genomePrunedIds = this.getGenomePrunedIds();
+    const effectiveVS = genomePrunedIds.length
+      ? {...tbrowseVS, prunedNodeIds: _.union(tbrowseVS.prunedNodeIds || [], genomePrunedIds)}
+      : tbrowseVS;
+    const onViewStateChange = genomePrunedIds.length
+      ? (next => {
+          const genomeSet = new Set(genomePrunedIds);
+          this.setTbrowseViewState({
+            ...next,
+            prunedNodeIds: (next.prunedNodeIds || []).filter(id => !genomeSet.has(id)),
+          });
+        })
+      : (next => this.setTbrowseViewState(next));
     return (
       <>
         <div className="gene-genetree" style={{height: this.getHeight(), width: '100%'}}>
@@ -323,8 +380,8 @@ class Homology extends React.Component {
             geneStructures={geneStructures}
             zones={this.getTbrowseZones()}
             nodeOfInterest={this.gene._id}
-            viewState={tbrowseVS}
-            onViewStateChange={next => this.setTbrowseViewState(next)}
+            viewState={effectiveVS}
+            onViewStateChange={onViewStateChange}
             defaultOpenSections={{ zones: true, search: true }}
             zoneStatus={zoneStatus}
           />
