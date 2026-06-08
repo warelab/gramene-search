@@ -230,14 +230,16 @@ class Pathways extends React.Component {
   }
 
   makeTaxonSpecific(docs, taxon_id) {
-    let lineageField = 'lineage_' + taxon_id;
-    if (!docs[0].hasOwnProperty(lineageField)) {
-      let tid = Math.floor(taxon_id / 1000);
-      lineageField = 'lineage_' + tid;
-    }
+    // Each pathway doc may carry lineage under lineage_<taxon_id> or
+    // lineage_<floor(taxon_id/1000)>. Resolve per-doc rather than inferring
+    // from docs[0] — when docs is heterogeneous (some species-specific, some
+    // generic), inferring from the first entry leaves the rest with undefined
+    // lineage and crashes getHierarchy.
+    const primaryField = 'lineage_' + taxon_id;
+    const fallbackField = 'lineage_' + Math.floor(taxon_id / 1000);
     return docs.map(doc => {
       let tsDoc = _.pick(doc, ['_id', 'name', 'type']);
-      tsDoc.lineage = doc[lineageField];
+      tsDoc.lineage = doc[primaryField] || doc[fallbackField];
       return tsDoc;
     });
   }
@@ -248,6 +250,7 @@ class Pathways extends React.Component {
     this.pathwayIds.forEach(pwyId => {
       if (pathways[pwyId]) {
         const pwy = pathways[pwyId];
+        if (!pwy.lineage) return; // no lineage for this species — skip
         pwy.lineage.forEach(line => {
           const parentOffset = line.length - 2;
           nodes.push({
@@ -276,8 +279,16 @@ class Pathways extends React.Component {
         this.loadDiagram(this.stableId(node.id));
       } else {
         const reaction = this.stableId(node.id);
-        const pathway = this.stableId(node.parent.split("/").pop());
-        this.loadDiagram(pathway, reaction);
+        // node.parent is a slash-delimited ancestor path supplied by
+        // react-simple-tree-menu; for a root-level Reaction with no parent
+        // pathway in the tree, fall back to loading the reaction directly
+        // rather than crashing on undefined.split.
+        const parentKey = typeof node.parent === 'string' ? node.parent.split("/").pop() : null;
+        if (parentKey) {
+          this.loadDiagram(this.stableId(parentKey), reaction);
+        } else {
+          this.loadDiagram(reaction);
+        }
       }
       this.setState({ selectedNode });
     }
