@@ -146,12 +146,13 @@ const panSites = [
     ensemblURL: 'https://ensembl.sorghumbase.org',
     ensemblSite: 'https://ensembl.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.sorghumbase.org/sorghum_v10',
+    grameneData: 'https://data.sorghumbase.org/sorghum_v11',
     ga: 'G-L5KXDCCZ16',
     targetTaxonId: 4558001,
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
     partialCompara: true,
+    enable_tbrowse_expression_zone: true,
     // The tree-based taxonomic distribution (taxTree) replaces the legacy
     // canvas one (taxonomy) on SorghumBase: hide the old, default-on the new.
     // Mirrors sorghum-webapp/search_app/config.json.

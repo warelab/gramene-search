@@ -19,6 +19,7 @@ import {
   treeZone,
 } from "tbrowse";
 import {Detail, Title, Description, Content, Explore, Links} from "./generic";
+import {exprAttrsZone, buildExprData} from "./exprAttrsZone";
 import {suggestionToFilters} from "../../utils";
 import {Spinner} from "react-bootstrap";
 import '../../../../node_modules/gramene-genetree-vis/src/styles/msa.less';
@@ -48,6 +49,9 @@ class Homology extends React.Component {
       geneStructures: null,
       geneStructuresTreeId: null,
       geneStructuresStatus: undefined,
+      exprAttrs: null,
+      exprAttrsTreeId: null,
+      exprAttrsStatus: undefined,
     };
     if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
       props.requestGene(props.searchResult.id)
@@ -66,10 +70,17 @@ class Homology extends React.Component {
   isGenomeZoneEnabled() {
     return !!(this.props.configuration && this.props.configuration.enable_tbrowse_genome_zone);
   }
+  // The expression-attributes zone is opt-in per site via
+  // `enable_tbrowse_expression_zone` (defaults to false) — the expr_*__attr_*
+  // fields are sorghum-specific.
+  isExpressionZoneEnabled() {
+    return !!(this.props.configuration && this.props.configuration.enable_tbrowse_expression_zone);
+  }
   getTbrowseZones() {
-    return this.isGenomeZoneEnabled()
-      ? [...TBROWSE_BASE_ZONES, genomeZone]
-      : TBROWSE_BASE_ZONES;
+    const zones = [...TBROWSE_BASE_ZONES];
+    if (this.isGenomeZoneEnabled()) zones.push(genomeZone);
+    if (this.isExpressionZoneEnabled()) zones.push(exprAttrsZone);
+    return zones;
   }
   getHeight() {
     const h = this.getHomologySlice().height;
@@ -198,6 +209,10 @@ class Homology extends React.Component {
     if (this.isGenomeZoneEnabled()) {
       this.fetchGeneStructures(treeId, this._tbrowseData.tree);
     }
+    // Same for the per-gene expression attributes zone.
+    if (this.isExpressionZoneEnabled()) {
+      this.fetchExprAttrs(treeId, this._tbrowseData.tree);
+    }
   }
   fetchNeighborhood(treeId) {
     if (this._neighborhoodFetchedFor === treeId) return;
@@ -274,6 +289,46 @@ class Homology extends React.Component {
         this._geneStructuresFetchedFor = null;
       });
   }
+  // Fetch the expression attributes (expr_*__attr_*) for this tree's genes in a
+  // single query: scope by gene_tree and the `expression_attributes` capability
+  // so only genes that actually have the data come back (rows high enough to
+  // cover the whole tree). Uses /search (not /genes, whose trimmed docs omit the
+  // attr fields) with an fl glob so the columns are discovered from the data
+  // rather than hard-coded. `tree` is still needed to map gene ids to leaf node
+  // ids (see buildExprByNode).
+  fetchExprAttrs(treeId, tree) {
+    if (this._exprAttrsFetchedFor === treeId) return;
+    this._exprAttrsFetchedFor = treeId;
+    this.setState({exprAttrsStatus: 'loading'});
+    const api = this.props.grameneAPI;
+    const url = new URL(`${api}/search`);
+    url.searchParams.set('q', '*:*');
+    url.searchParams.append('fq', `gene_tree:${treeId}`);
+    url.searchParams.append('fq', 'capabilities:expression_attributes');
+    url.searchParams.set('fl', 'id,expr_*__attr_*');
+    url.searchParams.set('rows', '10000');
+    fetch(url.toString(), {headers: {Accept: 'application/json'}})
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(json => {
+        if (this._exprAttrsFetchedFor !== treeId) return;
+        const docs = (json && json.response && Array.isArray(json.response.docs)) ? json.response.docs : [];
+        this.setState({
+          exprAttrs: buildExprData(docs, tree),
+          exprAttrsTreeId: treeId,
+          exprAttrsStatus: 'ready',
+        });
+      })
+      .catch(err => {
+        console.warn('tbrowse expression-attrs fetch failed:', err);
+        if (this._exprAttrsFetchedFor === treeId) {
+          this.setState({exprAttrsStatus: 'error'});
+        }
+        this._exprAttrsFetchedFor = null;
+      });
+  }
   startResize(e) {
     e.preventDefault();
     const startY = e.clientY;
@@ -333,6 +388,7 @@ class Homology extends React.Component {
     }
     const neighborhood = this.state.neighborhoodTreeId === treeId ? this.state.neighborhood : undefined;
     const geneStructures = this.state.geneStructuresTreeId === treeId ? this.state.geneStructures : undefined;
+    const exprAttrs = this.state.exprAttrsTreeId === treeId ? this.state.exprAttrs : undefined;
     // Per-zone status for the TBrowse toolbar — pulses while a fetch
     // is in flight, turns red on failure. Tracked per-tree so a
     // tree-change resets any stale 'ready'/'error' from the prior gene.
@@ -343,6 +399,9 @@ class Homology extends React.Component {
       genome: this.state.geneStructuresTreeId === treeId
         ? this.state.geneStructuresStatus
         : (this.state.geneStructuresStatus === 'loading' ? 'loading' : undefined),
+      expression: this.state.exprAttrsTreeId === treeId
+        ? this.state.exprAttrsStatus
+        : (this.state.exprAttrsStatus === 'loading' ? 'loading' : undefined),
     };
     // Bundle-driven (controlled) view state. If we're rendering tbrowse before
     // componentDidMount/Update has seeded the bundle slice, skip this turn and
@@ -378,6 +437,7 @@ class Homology extends React.Component {
             exonJunctions={this._tbrowseData.exonJunctions}
             neighborhood={neighborhood}
             geneStructures={geneStructures}
+            hostData={exprAttrs ? {exprAttrs} : undefined}
             zones={this.getTbrowseZones()}
             nodeOfInterest={this.gene._id}
             viewState={effectiveVS}
