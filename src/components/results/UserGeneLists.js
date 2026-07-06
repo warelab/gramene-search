@@ -1,12 +1,12 @@
 import {connect} from "redux-bundler-react";
 import React, { useEffect, useMemo, useState } from 'react';
-import {Table, Form, Button, Alert, Spinner, Container, Row, Col, Modal} from 'react-bootstrap';
+import {Table, Form, Button, ButtonGroup, Alert, Spinner, Container, Row, Col, Modal} from 'react-bootstrap';
 import { getFirebaseApp } from "../utils";
 import {getAuth, onAuthStateChanged} from "firebase/auth";
 
 const MAX_GENE_IDS = 1000; // Define the maximum number of gene IDs allowed
 
-const formatCreatedAt = (value) => {
+const formatDate = (value) => {
   if (!value) return '';
   const d = new Date(value);
   if (isNaN(d.getTime())) return '';
@@ -22,7 +22,7 @@ const applySortFilter = (lists, search, sort) => {
   const mult = dir === 'asc' ? 1 : -1;
   result.sort((a, b) => {
     let av = a[key], bv = b[key];
-    if (key === 'createdAt') {
+    if (key === 'createdAt' || key === 'deletedAt') {
       av = av ? new Date(av).getTime() : 0;
       bv = bv ? new Date(bv).getTime() : 0;
     } else if (key === 'n_genes') {
@@ -60,13 +60,15 @@ const GeneListDisplayComponent = props => {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [user, setUser] = useState({});
+  const [viewMode, setViewMode] = useState('active'); // 'active' | 'trash'
   const [editingId, setEditingId] = useState(null);
   const [editLabel, setEditLabel] = useState('');
   const [editIsPublic, setEditIsPublic] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { list, permanent }
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState({ key: 'createdAt', dir: 'desc' });
   const auth = props.auth;
+  const isTrash = viewMode === 'trash';
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
@@ -89,7 +91,9 @@ const GeneListDisplayComponent = props => {
     [mergedLists, search, sort]
   );
 
-  const fetchPrivateGeneLists = async () => {
+  // includeDeleted: 'active' (default) or 'trash'. Trash is auth-only and holds
+  // the caller's own soft-deleted lists (restorable for 30 days).
+  const fetchPrivateGeneLists = async (includeDeleted = 'active') => {
     if (!auth) {
       setPrivateGeneLists([]);
       setError(null);
@@ -99,23 +103,29 @@ const GeneListDisplayComponent = props => {
     if (!user || typeof user.getIdToken !== 'function') {
       setPrivateGeneLists([]);
       setError(null);
-      setNotice('Log in to create and manage your personal gene lists.');
+      setNotice(includeDeleted === 'trash'
+        ? 'Log in to view your deleted gene lists.'
+        : 'Log in to create and manage your personal gene lists.');
       return;
     }
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`${props.api}/gene_lists?site=${props.site}&isPublic=false`, {
-        method: 'GET',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+      const response = await fetch(
+        `${props.api}/gene_lists?site=${props.site}&isPublic=false&includeDeleted=${includeDeleted}`,
+        {
+          method: 'GET',
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
         }
-      });
+      );
       const result = await response.json();
 
       if (response.ok) {
         setError(null);
-        setNotice(null);
+        // Keep any restore/delete notice; only clear the "log in" prompt.
+        setNotice(n => (n && /Log in/.test(n)) ? null : n);
         setPrivateGeneLists(result);
       } else {
         setError('Error fetching gene lists.');
@@ -124,15 +134,16 @@ const GeneListDisplayComponent = props => {
       setError('Failed to fetch private gene lists. Please try again later.');
     }
   };
-  // Fetch saved gene lists from a backend or local storage
+
+  // Public lists are always active (soft-deleted lists are never public-visible;
+  // the trash view is caller-scoped).
   const fetchPublicGeneLists = async () => {
     try {
-      // Replace this with actual fetch from your backend or storage
       const response = await fetch(`${props.api}/gene_lists?site=${props.site}&isPublic=true`);
       const result = await response.json();
 
       if (response.ok) {
-        setPublicGeneLists(result); // array of saved gene lists
+        setPublicGeneLists(result);
       } else {
         setError('Error fetching gene lists.');
       }
@@ -141,7 +152,35 @@ const GeneListDisplayComponent = props => {
     }
   };
 
-  // Example functions for viewing and deleting lists
+  const refresh = () => {
+    if (isTrash) {
+      setPublicGeneLists([]);
+      fetchPrivateGeneLists('trash');
+    } else {
+      fetchPublicGeneLists();
+      fetchPrivateGeneLists('active');
+    }
+  };
+
+  // Fetch when the user, view mode, or an external save (refreshKey) changes.
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, viewMode, props.refreshKey]);
+
+  // A logged-out user has no trash; fall back to the active (public) view.
+  useEffect(() => {
+    if (!currentUid && isTrash) setViewMode('active');
+  }, [currentUid, isTrash]);
+
+  const switchView = (mode) => {
+    setViewMode(mode);
+    setEditingId(null);
+    setSearch('');
+    setNotice(null);
+    setSort({ key: mode === 'trash' ? 'deletedAt' : 'createdAt', dir: 'desc' });
+  };
+
   const viewGeneList = (list) => {
     props.addFilter({
       category: 'Gene List',
@@ -177,8 +216,7 @@ const GeneListDisplayComponent = props => {
       if (response.ok) {
         cancelEdit();
         setError(null);
-        await fetchPrivateGeneLists();
-        await fetchPublicGeneLists();
+        refresh();
       } else if (response.status === 401) {
         setError('You must be signed in to edit a gene list.');
       } else if (response.status === 404) {
@@ -193,162 +231,219 @@ const GeneListDisplayComponent = props => {
     }
   };
 
-  const requestDelete = (list) => setDeleteTarget(list);
+  const restoreList = async (list) => {
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`${props.api}/gene_lists/restore?listId=${encodeURIComponent(list._id)}`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        setError(null);
+        setNotice(`Restored “${list.label}”.`);
+        refresh();
+      } else if (response.status === 404) {
+        setError('This list has been purged and can no longer be restored.');
+      } else if (response.status === 401) {
+        setError('You must be signed in to restore a gene list.');
+      } else {
+        setError('Failed to restore gene list.');
+      }
+    } catch (err) {
+      setError('Failed to restore gene list.');
+    }
+  };
+
+  const requestDelete = (list, permanent) => setDeleteTarget({ list, permanent: !!permanent });
   const cancelDelete = () => setDeleteTarget(null);
 
+  // Default DELETE is a soft delete (moves to trash, restorable 30 days).
+  // `force=true` permanently removes it (offered from the trash view).
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    const listId = deleteTarget._id;
+    const { list, permanent } = deleteTarget;
     setDeleteTarget(null);
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`${props.api}/gene_lists?listId=${encodeURIComponent(listId)}`, {
+      const url = `${props.api}/gene_lists?listId=${encodeURIComponent(list._id)}${permanent ? '&force=true' : ''}`;
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (response.ok) {
-        await fetchPrivateGeneLists();
-        await fetchPublicGeneLists();
+        setError(null);
+        setNotice(permanent
+          ? `Permanently deleted “${list.label}”.`
+          : `Moved “${list.label}” to trash — restore within 30 days from the Trash tab.`);
+        refresh();
       } else if (response.status === 401) {
-        alert('You must be signed in to delete a gene list.');
+        setError('You must be signed in to delete a gene list.');
       } else if (response.status === 404) {
-        alert('Gene list not found or you do not own it.');
+        setError('Gene list not found or you do not own it.');
       } else {
-        alert('Failed to delete gene list.');
+        setError('Failed to delete gene list.');
       }
     } catch (err) {
-      alert('Failed to delete gene list.');
+      setError('Failed to delete gene list.');
     }
   };
 
-  // Fetch data when the component is mounted or after a save
-  useEffect(() => {
-    fetchPublicGeneLists();
-  }, [props.refreshKey]);
-  useEffect(() => {
-    fetchPrivateGeneLists();
-  }, [user, props.refreshKey]);
+  const dateKey = isTrash ? 'deletedAt' : 'createdAt';
+  const dateLabel = isTrash ? 'Deleted' : 'Created';
 
   return (
     <div className="gene-list-display-component">
       {error && (
-        <Alert variant="danger">
+        <Alert variant="danger" onClose={() => setError(null)} dismissible>
           {error}
         </Alert>
       )}
 
       {notice && (
-        <Alert variant="info">
+        <Alert variant="info" onClose={() => setNotice(null)} dismissible>
           {notice}
         </Alert>
       )}
 
+      <div className="d-flex justify-content-between align-items-center mb-2 mt-4">
+        <ButtonGroup size="sm">
+          <Button variant={!isTrash ? 'primary' : 'outline-secondary'} onClick={() => switchView('active')}>
+            Active
+          </Button>
+          {currentUid && (
+            <Button variant={isTrash ? 'primary' : 'outline-secondary'} onClick={() => switchView('trash')}>
+              Trash
+            </Button>
+          )}
+        </ButtonGroup>
+        <Form.Control
+          type="search"
+          placeholder="Search..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ maxWidth: 220 }}
+          size="sm"
+        />
+      </div>
+
       {mergedLists.length > 0 ? (
-        <div className="mt-4">
-          <div className="d-flex justify-content-end mb-2">
-            <Form.Control
-              type="search"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ maxWidth: 220 }}
-              size="sm"
-            />
-          </div>
-          <div style={{ maxHeight: 500, overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: 4 }}>
+        <div style={{ maxHeight: 500, overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: 4 }}>
           <Table striped hover className="mb-0">
-          <thead>
-          <tr>
-            <SortHeader label="List Name" sortKey="label" sort={sort} onToggle={toggleSort} />
-            <SortHeader label="Owner" sortKey="owner" sort={sort} onToggle={toggleSort} />
-            <SortHeader label="Genes" sortKey="n_genes" sort={sort} onToggle={toggleSort} />
-            <SortHeader label="Created" sortKey="createdAt" sort={sort} onToggle={toggleSort} />
-            <th style={stickyHeaderStyle}>Actions</th>
-          </tr>
-          </thead>
-          <tbody>
-          {displayedLists.map((list, index) => {
-            const isMine = currentUid && list.uid === currentUid;
-            const ownerLabel = isMine ? 'You' : (list.owner || 'Unknown');
-            return editingId === list._id ? (
-              <tr key={index}>
-                <td>
-                  <Form.Control
-                    type="text"
-                    value={editLabel}
-                    onChange={(e) => setEditLabel(e.target.value)}
-                    placeholder="List name"
-                  />
-                  <Form.Check
-                    type="switch"
-                    id={`edit-public-${list._id}`}
-                    label="Public"
-                    checked={editIsPublic}
-                    onChange={() => setEditIsPublic(!editIsPublic)}
-                    className="mt-2"
-                  />
-                </td>
-                <td>{ownerLabel}</td>
-                <td>{list.n_genes || 0}</td>
-                <td>{formatCreatedAt(list.createdAt)}</td>
-                <td>
-                  <Button variant="primary" size="sm" onClick={() => saveEdit(list._id)}>
-                    Save
-                  </Button>
-                  <Button variant="outline-secondary" size="sm" onClick={cancelEdit} className="ml-2">
-                    Cancel
-                  </Button>
-                </td>
-              </tr>
-            ) : (
-              <tr key={index}>
-                <td>{list.label}{list.isPublic ? ' (public)' : ''}</td>
-                <td>{ownerLabel}</td>
-                <td>{list.n_genes || 0}</td>
-                <td>{formatCreatedAt(list.createdAt)}</td>
-                <td>
-                  <Button variant="outline-secondary" size="sm" onClick={() => viewGeneList(list)}>
-                    View
-                  </Button>
-                  {isMine && (
-                    <Button variant="outline-secondary" size="sm" onClick={() => startEdit(list)} className="ml-2">
-                      Edit
+            <thead>
+            <tr>
+              <SortHeader label="List Name" sortKey="label" sort={sort} onToggle={toggleSort} />
+              <SortHeader label="Owner" sortKey="owner" sort={sort} onToggle={toggleSort} />
+              <SortHeader label="Genes" sortKey="n_genes" sort={sort} onToggle={toggleSort} />
+              <SortHeader label={dateLabel} sortKey={dateKey} sort={sort} onToggle={toggleSort} />
+              <th style={stickyHeaderStyle}>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {displayedLists.map((list, index) => {
+              const isMine = currentUid && list.uid === currentUid;
+              const ownerLabel = isMine ? 'You' : (list.owner || 'Unknown');
+              const dateVal = formatDate(isTrash ? list.deletedAt : list.createdAt);
+              return (!isTrash && editingId === list._id) ? (
+                <tr key={index}>
+                  <td>
+                    <Form.Control
+                      type="text"
+                      value={editLabel}
+                      onChange={(e) => setEditLabel(e.target.value)}
+                      placeholder="List name"
+                    />
+                    <Form.Check
+                      type="switch"
+                      id={`edit-public-${list._id}`}
+                      label="Public"
+                      checked={editIsPublic}
+                      onChange={() => setEditIsPublic(!editIsPublic)}
+                      className="mt-2"
+                    />
+                  </td>
+                  <td>{ownerLabel}</td>
+                  <td>{list.n_genes || 0}</td>
+                  <td>{dateVal}</td>
+                  <td>
+                    <Button variant="primary" size="sm" onClick={() => saveEdit(list._id)}>
+                      Save
                     </Button>
-                  )}
-                  {isMine && (
-                    <Button variant="outline-danger" size="sm" onClick={() => requestDelete(list)} className="ml-2">
-                      Delete
+                    <Button variant="outline-secondary" size="sm" onClick={cancelEdit} className="ml-2">
+                      Cancel
                     </Button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-          </tbody>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={index}>
+                  <td>{list.label}{list.isPublic ? ' (public)' : ''}</td>
+                  <td>{ownerLabel}</td>
+                  <td>{list.n_genes || 0}</td>
+                  <td>{dateVal}</td>
+                  <td>
+                    {isTrash ? (
+                      isMine && (
+                        <>
+                          <Button variant="outline-success" size="sm" onClick={() => restoreList(list)}>
+                            Restore
+                          </Button>
+                          <Button variant="outline-danger" size="sm" onClick={() => requestDelete(list, true)} className="ml-2">
+                            Delete forever
+                          </Button>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <Button variant="outline-secondary" size="sm" onClick={() => viewGeneList(list)}>
+                          View
+                        </Button>
+                        {isMine && (
+                          <Button variant="outline-secondary" size="sm" onClick={() => startEdit(list)} className="ml-2">
+                            Edit
+                          </Button>
+                        )}
+                        {isMine && (
+                          <Button variant="outline-danger" size="sm" onClick={() => requestDelete(list, false)} className="ml-2">
+                            Delete
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            </tbody>
           </Table>
-          </div>
         </div>
       ) : (
-        <Alert variant="warning" className="mt-4">
-          No saved gene lists found.
+        <Alert variant="warning" className="mt-2">
+          {isTrash ? 'Trash is empty.' : 'No saved gene lists found.'}
         </Alert>
       )}
 
       <Modal show={!!deleteTarget} onHide={cancelDelete} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Delete gene list?</Modal.Title>
+          <Modal.Title>
+            {deleteTarget && deleteTarget.permanent ? 'Permanently delete gene list?' : 'Move gene list to trash?'}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Are you sure you want to delete
-          {deleteTarget ? <> <strong>{deleteTarget.label}</strong></> : ' this gene list'}?
-          This action cannot be undone.
+          {deleteTarget && deleteTarget.permanent ? (
+            <>Permanently delete <strong>{deleteTarget.list.label}</strong>? This cannot be undone.</>
+          ) : (
+            <>Move <strong>{deleteTarget ? deleteTarget.list.label : 'this list'}</strong> to trash?
+              {' '}You can restore it within 30 days from the Trash tab.</>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={cancelDelete} autoFocus>
             Cancel
           </Button>
           <Button variant="danger" onClick={confirmDelete}>
-            Delete
+            {deleteTarget && deleteTarget.permanent ? 'Delete forever' : 'Move to trash'}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -546,6 +641,7 @@ const GeneListComponent = props => {
               type='switch'
               id='listIsPublic'
               label='Public'
+              checked={listIsPublic}
               onChange={(e) => setListIsPublic(!listIsPublic)}
             />
           </Form.Group>
