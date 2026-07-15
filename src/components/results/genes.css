@@ -72,6 +72,10 @@ table.xrefs td:nth-child(3) {
 .gene-synonyms {
     font-size: small;
 }
+.gene-alt-ids {
+    font-size: small;
+    color: #6c757d;
+}
 .gene-extras {
     border: dashed 1px blue;
 }

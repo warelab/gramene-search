@@ -284,6 +284,9 @@ class Gene extends React.Component {
               <h3 className="gene-name">{searchResult.name}
                 {searchResult.id !== searchResult.name && <small className="gene-id">&nbsp;{searchResult.id}</small>}
               </h3>
+              {Array.isArray(searchResult.alt_id) && searchResult.alt_id.length > 0 && (
+                <div className="gene-alt-ids">{searchResult.alt_id.join(', ')}</div>
+              )}
             </div>
             {searchResult.synonyms && <small className="gene-synonyms">{searchResult.synonyms.join(', ')}</small>}
             {searchResult.description !== "unknown" && (numWordsInDescription > 1 || searchResult.can_show.pubs) && <p className="gene-description">{searchResult.description}</p>}
