@@ -1,6 +1,6 @@
 {
   "name": "gramene-search",
-  "version": "2.11.2",
+  "version": "2.12.0",
   "description": "search wrapper for gramene",
   "main": "dist/index.js",
   "files": [
@@ -72,7 +72,7 @@
     "react-switch": "^7.0.0",
     "redux-bundler": "21.0.0",
     "redux-bundler-react": "^1.2.0",
-    "tbrowse": "^2.7.0"
+    "tbrowse": "^2.8.0"
   },
   "prettier": {
     "singleQuote": true,
