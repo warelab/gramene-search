@@ -2,18 +2,38 @@ import { createSelector } from 'redux-bundler';
 import { EXPR_ATTR_FIELDS } from '../components/exprAttrs/exprAttrCommon';
 
 // Backing store for the "Attribute table" view: the genes in the current search
-// result set, fetched in pages and rendered as a gene × attribute table (basic
-// identity columns + the expression-attribute heatmap + any extra attribute
-// columns the user picks from the field catalog).
+// result set, fetched in pages and rendered as a gene × attribute table.
 //
 // Paging mirrors exprViz's doFetchExprVizData: a recursive fetchPage(offset)
 // with a request-id guard so a superseded fetch can never write stale rows.
+//
+// The offered columns are deliberately limited to two field-catalog groups —
+// Core identifiers and Expression attributes — and *all* of them are fetched up
+// front. That keeps the column picker a pure visibility control: toggling a
+// column is instant and never triggers a refetch.
 
 const PAGE_SIZE = 1000;
 const MAX_GENES = 5000;
 
-// Identity/basic columns that are always fetched.
-const BASE_FIELDS = ['id', 'name', 'system_name', 'taxon_id', 'biotype', 'region', 'start', 'end'];
+// The catalog groups whose fields the column picker offers.
+const OFFERED_GROUPS = ['core', 'exprattrs'];
+
+// The 'core' group's fields (bundles/../fieldCatalog.overlay.json).
+const CORE_FIELDS = [
+  'id', 'name', 'alt_id', 'synonyms', 'description', 'summary',
+  'biotype', 'system_name', 'taxon_id', 'db_type'
+];
+
+// Always fetched, so visibility toggles never need the network. taxon_id is
+// needed by the genome filter even when its column is hidden.
+const FETCH_FIELDS = [...new Set([...CORE_FIELDS, ...EXPR_ATTR_FIELDS])];
+
+const DEFAULT_VISIBLE = [
+  'id', 'name', 'system_name', 'biotype',
+  'expr_class__attr_ss', 'expr_organ_level__attr_ss',
+  'expr_tau__attr_f', 'expr_max_tpm__attr_f',
+  'expr_activated_by__attr_ss', 'expr_repressed_by__attr_ss'
+];
 
 let fetchPendingId = 0;
 
@@ -32,8 +52,10 @@ function genomeSubset(g, m) {
   };
 }
 
-function computeSignature(q, g, m, selectedFields) {
-  return `${q}|${genomeSubset(g, m).key}|${(selectedFields || []).slice().sort().join(',')}`;
+// Visible columns are deliberately NOT part of the signature — they don't
+// affect what we fetch.
+function computeSignature(q, g, m) {
+  return `${q}|${genomeSubset(g, m).key}`;
 }
 
 const attrTable = {
@@ -48,7 +70,7 @@ const attrTable = {
       signature: null,
       error: null,
       requestId: 0,
-      selectedFields: [] // extra attribute columns chosen from the field catalog
+      visibleFields: DEFAULT_VISIBLE.slice()
     };
 
     return (state = initialState, { type, payload }) => {
@@ -83,23 +105,26 @@ const attrTable = {
           return { ...state, status: 'error', error: payload.error };
 
         case 'ATTRTABLE_FIELD_TOGGLED': {
-          const set = new Set(state.selectedFields);
+          const set = new Set(state.visibleFields);
           if (set.has(payload)) set.delete(payload);
           else set.add(payload);
-          return { ...state, selectedFields: [...set] };
+          return { ...state, visibleFields: [...set] };
         }
 
         case 'ATTRTABLE_FIELDS_BULK_SET': {
-          const set = new Set(state.selectedFields);
+          const set = new Set(state.visibleFields);
           (payload.names || []).forEach(n => {
             if (payload.selected) set.add(n);
             else set.delete(n);
           });
-          return { ...state, selectedFields: [...set] };
+          return { ...state, visibleFields: [...set] };
         }
 
+        case 'ATTRTABLE_FIELDS_RESET':
+          return { ...state, visibleFields: DEFAULT_VISIBLE.slice() };
+
         case 'GRAMENE_SEARCH_CLEARED':
-          return { ...initialState, selectedFields: state.selectedFields };
+          return { ...initialState, visibleFields: state.visibleFields };
 
         default:
           return state;
@@ -108,18 +133,15 @@ const attrTable = {
   },
 
   doFetchAttrTable: () => ({ dispatch, store }) => {
-    const { selectedFields } = store.selectAttrTable();
     const q = store.selectGrameneFiltersQueryString();
     const { fq } = genomeSubset(store.selectGrameneGenomes(), store.selectGrameneMaps());
-    const signature = computeSignature(
-      q, store.selectGrameneGenomes(), store.selectGrameneMaps(), selectedFields
-    );
+    const signature = computeSignature(q, store.selectGrameneGenomes(), store.selectGrameneMaps());
     const requestId = ++fetchPendingId;
     dispatch({ type: 'ATTRTABLE_FETCH_STARTED', payload: { requestId, signature } });
 
     const api = store.selectGrameneAPI();
     // Explicit fl — never fl=*, which would drag in every per-sample __expr column.
-    const fl = [...new Set([...BASE_FIELDS, ...EXPR_ATTR_FIELDS, ...selectedFields])].join(',');
+    const fl = FETCH_FIELDS.join(',');
 
     const fetchPage = (offset) => {
       if (requestId !== fetchPendingId) return; // superseded
@@ -149,12 +171,13 @@ const attrTable = {
   doBulkSetAttrTableFields: (names, selected) => ({ dispatch }) =>
     dispatch({ type: 'ATTRTABLE_FIELDS_BULK_SET', payload: { names, selected } }),
 
-  selectAttrTable: state => state.attrTable,
-  selectAttrTableSelectedFields: state => state.attrTable.selectedFields,
+  doResetAttrTableFields: () => ({ dispatch }) =>
+    dispatch({ type: 'ATTRTABLE_FIELDS_RESET' }),
 
-  // Fetch only while the view is actually on, and only when the query context or
-  // the chosen columns have changed. A toggle made mid-load is picked up when the
-  // in-flight fetch settles (the signature will no longer match).
+  selectAttrTable: state => state.attrTable,
+  selectAttrTableVisibleFields: state => state.attrTable.visibleFields,
+
+  // Fetch only while the view is on, and only when the query context changes.
   reactAttrTableFetch: createSelector(
     'selectAttrTable',
     'selectGrameneFiltersStatus',
@@ -166,7 +189,7 @@ const attrTable = {
       if (!at || filtersStatus === 'init') return;
       if (!viewsOn || !viewsOn.has('attrTable')) return;
       if (at.status === 'loading') return;
-      const sig = computeSignature(q, g, m, at.selectedFields);
+      const sig = computeSignature(q, g, m);
       if (at.signature === sig && (at.status === 'ready' || at.status === 'error')) return;
       return { actionCreator: 'doFetchAttrTable' };
     }
@@ -174,4 +197,5 @@ const attrTable = {
 };
 
 export const ATTR_TABLE_LIMITS = { PAGE_SIZE, MAX_GENES };
+export { OFFERED_GROUPS, CORE_FIELDS, DEFAULT_VISIBLE };
 export default attrTable;

@@ -9,12 +9,16 @@ import '../exporter/styles.css';
 import {
   abbrOrgan, organLabel, orderOrgans, extractExprAttrs,
   LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, LEVEL_RANK, MARKER, STRESS,
-  tpmBackground, fmtTpm, fmtClass,
+  tpmBackground, fmtTpm, EXPR_ATTR_FIELDS,
 } from '../exprAttrs/exprAttrCommon';
-import { ATTR_TABLE_LIMITS } from '../../bundles/attrTable';
+import { ATTR_TABLE_LIMITS, OFFERED_GROUPS, CORE_FIELDS } from '../../bundles/attrTable';
 import './styles.css';
 
 const { MAX_GENES } = ATTR_TABLE_LIMITS;
+
+// expr_organ_level expands into one column per organ (the heatmap block); every
+// other offered field maps to exactly one column.
+const ORGAN_FIELD = 'expr_organ_level__attr_ss';
 
 const DEFAULT_COL_DEF = {
   resizable: true,
@@ -23,24 +27,33 @@ const DEFAULT_COL_DEF = {
   suppressHeaderMenuButton: true
 };
 
-// ↑activated / ↓repressed condition chips, matching the tbrowse Expression zone.
-const StressCell = ({ value }) => {
-  const { up = [], down = [] } = value || {};
-  if (!up.length && !down.length) return null;
-  const chip = (c, dir, key) => (
-    <span
-      key={key}
-      style={{
-        fontSize: 10, lineHeight: '16px', padding: '0 4px', borderRadius: 2,
-        marginRight: 3, whiteSpace: 'nowrap',
-        background: STRESS[dir].bg, color: STRESS[dir].fg
-      }}
-    >{(dir === 'up' ? '↑' : '↓') + c}</span>
-  );
+const WIDTHS = {
+  id: 190, name: 130, system_name: 150, biotype: 120, taxon_id: 100, db_type: 100,
+  alt_id: 180, synonyms: 160, description: 260, summary: 260,
+  expr_class__attr_ss: 150, expr_tau__attr_f: 80, expr_max_tpm__attr_f: 100,
+  expr_n_organs_detected__attr_i: 90,
+  expr_activated_by__attr_ss: 190, expr_repressed_by__attr_ss: 190,
+  expr_specific_to__attr_ss: 150, expr_enhanced_in__attr_ss: 150, expr_high_in__attr_ss: 150
+};
+
+const joinValues = p => (Array.isArray(p.value) ? p.value.map(v => String(v).replace(/_/g, ' ')).join(', ') : (p.value ?? ''));
+
+// ↑activated / ↓repressed condition chips.
+const chipRenderer = dir => ({ value }) => {
+  const list = Array.isArray(value) ? value : (value ? [value] : []);
+  if (!list.length) return null;
   return (
     <span>
-      {up.map((c, i) => chip(c, 'up', `u${i}`))}
-      {down.map((c, i) => chip(c, 'down', `d${i}`))}
+      {list.map((c, i) => (
+        <span
+          key={i}
+          style={{
+            fontSize: 10, lineHeight: '16px', padding: '0 4px', borderRadius: 2,
+            marginRight: 3, whiteSpace: 'nowrap',
+            background: STRESS[dir].bg, color: STRESS[dir].fg
+          }}
+        >{(dir === 'up' ? '↑' : '↓') + c}</span>
+      ))}
     </span>
   );
 };
@@ -48,14 +61,15 @@ const StressCell = ({ value }) => {
 const AttrTableViewCmp = props => {
   const {
     attrTable, fieldCatalog, fieldCatalogByName,
-    doToggleAttrTableField, doBulkSetAttrTableFields
+    doToggleAttrTableField, doBulkSetAttrTableFields, doResetAttrTableFields
   } = props;
   const [showColumns, setShowColumns] = useState(false);
   const [fieldQuery, setFieldQuery] = useState('');
 
-  const { docs, total, truncated, status, error, selectedFields } = attrTable;
+  const { docs, total, truncated, status, error, visibleFields } = attrTable;
+  const visibleSet = useMemo(() => new Set(visibleFields), [visibleFields]);
 
-  // Row objects + the organ union and TPM range needed to build the heatmap.
+  // Rows + the organ union and TPM range the heatmap needs.
   const { rows, organs, tpmRange } = useMemo(() => {
     const organSet = new Set();
     let tpmMin = Infinity;
@@ -67,114 +81,105 @@ const AttrTableViewCmp = props => {
         if (a.maxTpm < tpmMin) tpmMin = a.maxTpm;
         if (a.maxTpm > tpmMax) tpmMax = a.maxTpm;
       }
-      const row = {
-        id: d.id,
-        name: d.name,
-        system_name: d.system_name,
-        biotype: d.biotype,
-        location: d.region ? `${d.region}:${d.start}-${d.end}` : '',
-        _cls: fmtClass(a.cls) || '',
-        _tau: a.tau,
-        _maxTpm: a.maxTpm,
-        _stress: { up: a.activatedBy, down: a.repressedBy },
-        _organ: a.organLevels,
-        _specific: a.specificTo,
-        _enhanced: a.enhancedIn
-      };
-      (selectedFields || []).forEach(f => { row[f] = d[f]; });
-      return row;
+      return { ...d, _organ: a.organLevels, _specific: a.specificTo, _enhanced: a.enhancedIn };
     });
     return {
       rows: out,
       organs: orderOrgans(organSet),
       tpmRange: { min: tpmMin === Infinity ? 0 : tpmMin, max: tpmMax === -Infinity ? 0 : tpmMax }
     };
-  }, [docs, selectedFields]);
+  }, [docs]);
+
+  // Only the Core identifiers + Expression attributes groups are offered, in
+  // catalog order. Falls back to the built-in lists until the catalog loads.
+  const orderedFields = useMemo(() => {
+    const groups = (fieldCatalog && fieldCatalog.groups) || [];
+    const out = [];
+    OFFERED_GROUPS.forEach(gid => {
+      const g = groups.find(x => x.id === gid);
+      if (g && g.fields) out.push(...g.fields);
+    });
+    return out.length ? out : [...CORE_FIELDS, ...EXPR_ATTR_FIELDS];
+  }, [fieldCatalog]);
+
+  const pickerCatalog = useMemo(() => {
+    if (!fieldCatalog || !fieldCatalog.groups) return null;
+    return { ...fieldCatalog, groups: fieldCatalog.groups.filter(g => OFFERED_GROUPS.includes(g.id)) };
+  }, [fieldCatalog]);
 
   const columnDefs = useMemo(() => {
-    const cols = [
-      { colId: 'id', field: 'id', headerName: 'Gene ID', pinned: 'left', width: 190 },
-      { colId: 'name', field: 'name', headerName: 'Name', pinned: 'left', width: 130 },
-      { colId: 'system_name', field: 'system_name', headerName: 'Species', width: 150 },
-      { colId: 'biotype', field: 'biotype', headerName: 'Biotype', width: 120 },
-      { colId: 'location', field: 'location', headerName: 'Location', width: 150 },
-      { colId: '_cls', field: '_cls', headerName: 'Expression class', width: 150 },
-      {
-        colId: '_tau',
-        field: '_tau',
-        headerName: 'Tau',
-        width: 80,
-        type: 'numericColumn',
-        valueFormatter: p => (Number.isFinite(p.value) ? p.value.toFixed(3) : '')
-      },
-      {
-        colId: '_maxTpm',
-        field: '_maxTpm',
-        headerName: 'Max TPM',
-        width: 100,
-        type: 'numericColumn',
-        valueFormatter: p => fmtTpm(p.value),
-        cellStyle: p => ({ background: tpmBackground(p.value, tpmRange) })
-      },
-      {
-        colId: '_stress',
-        field: '_stress',
-        headerName: 'Stress',
-        width: 220,
-        sortable: false,
-        // The renderer draws the chips; the formatter just keeps ag-grid from
-        // warning about an object-valued cell with no formatter.
-        valueFormatter: () => '',
-        cellRenderer: StressCell
+    const labelOf = f => ((fieldCatalogByName && fieldCatalogByName[f] && fieldCatalogByName[f].label) || f);
+    const cols = [];
+
+    orderedFields.forEach(f => {
+      if (!visibleSet.has(f)) return;
+      const headerName = labelOf(f);
+      const width = WIDTHS[f] || 150;
+
+      if (f === ORGAN_FIELD) {
+        organs.forEach(o => cols.push({
+          // No ':' in colId — ag-grid uses colId in internal CSS selectors, where
+          // a colon is a metacharacter and silently breaks the column.
+          colId: `organ_${o}`,
+          headerName: abbrOrgan(o),
+          headerTooltip: organLabel(o),
+          width: 46,
+          valueGetter: p => (p.data && p.data._organ[o]) || '',
+          valueFormatter: () => '', // colour carries the value
+          tooltipValueGetter: p => {
+            const lvl = p.data && p.data._organ[o];
+            if (!lvl) return `${organLabel(o)}: not assayed`;
+            const sp = p.data._specific.has(o) ? ' · specific' : (p.data._enhanced.has(o) ? ' · enhanced' : '');
+            return `${organLabel(o)}: ${LEVEL_LABEL[lvl] || lvl}${sp}`;
+          },
+          comparator: (a, b) => (LEVEL_RANK[a] ?? -1) - (LEVEL_RANK[b] ?? -1),
+          cellStyle: p => {
+            const style = { background: p.value ? (LEVEL_COLOR[p.value] || 'transparent') : 'transparent' };
+            if (p.data && p.data._specific.has(o)) style.boxShadow = `inset 0 0 0 2px ${MARKER}`;
+            else if (p.data && p.data._enhanced.has(o)) style.boxShadow = `inset 0 0 0 1px ${MARKER}`;
+            return style;
+          }
+        }));
+        return;
       }
-    ];
 
-    // Per-organ heatmap: one narrow, colour-only column per organ.
-    organs.forEach(o => {
-      cols.push({
-        // No ':' in colId — ag-grid uses colId in internal CSS selectors, where a
-        // colon is a metacharacter and silently breaks rendering of the column.
-        colId: `organ_${o}`,
-        headerName: abbrOrgan(o),
-        headerTooltip: organLabel(o),
-        width: 46,
-        valueGetter: p => (p.data && p.data._organ[o]) || '',
-        valueFormatter: () => '', // colour carries the value
-        tooltipValueGetter: p => {
-          const lvl = p.data && p.data._organ[o];
-          if (!lvl) return `${organLabel(o)}: not assayed`;
-          const sp = p.data._specific.has(o) ? ' · specific' : (p.data._enhanced.has(o) ? ' · enhanced' : '');
-          return `${organLabel(o)}: ${LEVEL_LABEL[lvl] || lvl}${sp}`;
-        },
-        comparator: (a, b) => (LEVEL_RANK[a] ?? -1) - (LEVEL_RANK[b] ?? -1),
-        cellStyle: p => {
-          const lvl = p.value;
-          const style = { background: lvl ? (LEVEL_COLOR[lvl] || 'transparent') : 'transparent' };
-          if (p.data && p.data._specific.has(o)) style.boxShadow = `inset 0 0 0 2px ${MARKER}`;
-          else if (p.data && p.data._enhanced.has(o)) style.boxShadow = `inset 0 0 0 1px ${MARKER}`;
-          return style;
-        }
-      });
-    });
+      if (f === 'expr_max_tpm__attr_f') {
+        cols.push({
+          colId: f, field: f, headerName, width, type: 'numericColumn',
+          valueFormatter: p => fmtTpm(p.value),
+          cellStyle: p => ({ background: tpmBackground(p.value, tpmRange) })
+        });
+        return;
+      }
+      if (f === 'expr_tau__attr_f') {
+        cols.push({
+          colId: f, field: f, headerName, width, type: 'numericColumn',
+          valueFormatter: p => (Number.isFinite(p.value) ? p.value.toFixed(3) : '')
+        });
+        return;
+      }
+      if (f === 'expr_activated_by__attr_ss' || f === 'expr_repressed_by__attr_ss') {
+        cols.push({
+          colId: f, field: f, headerName, width, sortable: false,
+          valueFormatter: () => '',
+          cellRenderer: chipRenderer(f === 'expr_activated_by__attr_ss' ? 'up' : 'down')
+        });
+        return;
+      }
 
-    // Extra attribute columns chosen from the field catalog.
-    (selectedFields || []).forEach(f => {
-      const meta = (fieldCatalogByName && fieldCatalogByName[f]) || {};
       cols.push({
-        colId: f,
-        field: f,
-        headerName: meta.label || f,
-        headerTooltip: f,
-        width: 170,
-        valueFormatter: p => (Array.isArray(p.value) ? p.value.join(', ') : (p.value ?? ''))
+        colId: f, field: f, headerName, headerTooltip: f, width,
+        pinned: (f === 'id' || f === 'name') ? 'left' : undefined,
+        valueFormatter: joinValues
       });
     });
 
     return cols;
-  }, [organs, selectedFields, fieldCatalogByName, tpmRange]);
+  }, [orderedFields, visibleSet, organs, tpmRange, fieldCatalogByName]);
 
   const shown = rows.length;
   const loading = status === 'loading';
+  const organShown = visibleSet.has(ORGAN_FIELD);
 
   return (
     <div className="attrtable-view">
@@ -185,14 +190,16 @@ const AttrTableViewCmp = props => {
           {total > 0 && <> of <strong>{total.toLocaleString()}</strong></>}
           {loading && ' — loading…'}
         </div>
-        <div className="attrtable-legend" title="expression level">
-          {LEVEL_ORDER.map(lv => (
-            <span key={lv} title={LEVEL_LABEL[lv]} style={{ background: LEVEL_COLOR[lv] }} />
-          ))}
-        </div>
+        {organShown && (
+          <div className="attrtable-legend" title="expression level">
+            {LEVEL_ORDER.map(lv => (
+              <span key={lv} title={LEVEL_LABEL[lv]} style={{ background: LEVEL_COLOR[lv] }} />
+            ))}
+          </div>
+        )}
         <Button size="sm" variant={showColumns ? 'primary' : 'outline-secondary'}
                 onClick={() => setShowColumns(v => !v)}>
-          Columns{selectedFields.length ? ` (${selectedFields.length})` : ''}
+          Columns ({columnDefs.length})
         </Button>
       </div>
 
@@ -206,25 +213,34 @@ const AttrTableViewCmp = props => {
 
       {showColumns && (
         <div className="attrtable-columns-panel">
-          <input
-            type="search"
-            className="form-control form-control-sm attrtable-field-search"
-            placeholder="Search fields…"
-            value={fieldQuery}
-            onChange={e => setFieldQuery(e.target.value)}
-          />
-          <FieldTree
-            catalog={fieldCatalog}
-            selectedFields={selectedFields}
-            onToggle={doToggleAttrTableField}
-            onBulkSet={doBulkSetAttrTableFields}
-            query={fieldQuery}
-          />
+          <div className="attrtable-columns-head">
+            <input
+              type="search"
+              className="form-control form-control-sm attrtable-field-search"
+              placeholder="Search fields…"
+              value={fieldQuery}
+              onChange={e => setFieldQuery(e.target.value)}
+            />
+            <Button size="sm" variant="link" onClick={doResetAttrTableFields}>Reset</Button>
+          </div>
+          {pickerCatalog
+            ? (
+              <FieldTree
+                catalog={pickerCatalog}
+                selectedFields={visibleFields}
+                onToggle={doToggleAttrTableField}
+                onBulkSet={doBulkSetAttrTableFields}
+                query={fieldQuery}
+              />
+            )
+            : <div className="exporter-panel-empty">Loading field catalog…</div>}
         </div>
       )}
 
       {rows.length === 0 && !loading ? (
         <div className="attrtable-empty"><em>No genes to show.</em></div>
+      ) : columnDefs.length === 0 ? (
+        <div className="attrtable-empty"><em>No columns selected — pick some under “Columns”.</em></div>
       ) : (
         <div className="ag-theme-quartz attrtable-aggrid">
           <AgGridReact
@@ -250,5 +266,6 @@ export default connect(
   'selectFieldCatalogByName',
   'doToggleAttrTableField',
   'doBulkSetAttrTableFields',
+  'doResetAttrTableFields',
   AttrTableViewCmp
 );

@@ -191,8 +191,9 @@ const grameneFieldCatalog = createAsyncResourceBundle({
 });
 
 // Auto-fetch the field catalog only when a view that needs it (exprViz fields
-// modal, exporter field tree) is enabled. Other views never read it.
-const FIELD_CATALOG_VIEWS = ['exprViz', 'export'];
+// modal, exporter field tree, attribute-table column picker) is enabled. Other
+// views never read it.
+const FIELD_CATALOG_VIEWS = ['exprViz', 'export', 'attrTable'];
 grameneFieldCatalog.reactGrameneFieldCatalog = createSelector(
   'selectGrameneFieldCatalogShouldUpdate',
   'selectGrameneViewsOn',

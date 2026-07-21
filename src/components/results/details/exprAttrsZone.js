@@ -235,4 +235,8 @@ export const exprAttrsZone = {
     && data.hostData.exprAttrs.organs.length,
   ),
   defaultVisible: false,
+  // Join tbrowse's built-in 'detail' group (MSA / Neighborhood / Gene
+  // structure): only one of these wide per-leaf tracks shows at a time
+  // unless the user decouples the group with the `multi` toggle.
+  exclusiveGroup: 'detail',
 };

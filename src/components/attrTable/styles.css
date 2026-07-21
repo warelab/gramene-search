@@ -45,8 +45,15 @@
     overflow-y: auto;
 }
 
-.attrtable-field-search {
+.attrtable-columns-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.5rem;
+}
+
+.attrtable-field-search {
+    flex: 1;
 }
 
 .attrtable-aggrid {
