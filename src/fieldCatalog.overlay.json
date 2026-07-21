@@ -4,6 +4,7 @@
     "location":     { "label": "Genomic location",       "order": 1 },
     "structure":    { "label": "Gene structure",         "order": 2 },
     "homology":     { "label": "Homology",               "order": 3 },
+    "exprattrs":    { "label": "Expression attributes",  "order": 3.5 },
     "expression":   { "label": "Gene expression",        "order": 4 },
     "differential": { "label": "Differential expression","order": 5 },
     "hierarchical": { "label": "Hierarchical annotations","order": 6 },
@@ -97,13 +98,14 @@
   "fields": {
     "id":          { "group": "core", "label": "Gene ID", "order": 1 },
     "name":        { "group": "core", "label": "Name", "order": 2 },
-    "description": { "group": "core", "label": "Description", "order": 4 },
-    "summary":     { "group": "core", "label": "Summary", "order": 5 },
-    "synonyms":    { "group": "core", "label": "Synonyms", "multiValued": true, "order": 3 },
-    "biotype":     { "group": "core", "label": "Biotype", "order": 6 },
-    "taxon_id":    { "group": "core", "label": "Taxon ID", "order": 8 },
-    "system_name": { "group": "core", "label": "System name", "order": 7 },
-    "db_type":     { "group": "core", "label": "DB type", "order": 9 },
+    "alt_id":      { "group": "core", "label": "Alternative identifiers", "multiValued": true, "order": 3, "description": "Identifiers for this gene from earlier annotation releases" },
+    "synonyms":    { "group": "core", "label": "Synonyms", "multiValued": true, "order": 4 },
+    "description": { "group": "core", "label": "Description", "order": 5 },
+    "summary":     { "group": "core", "label": "Summary", "order": 6 },
+    "biotype":     { "group": "core", "label": "Biotype", "order": 7 },
+    "system_name": { "group": "core", "label": "System name", "order": 8 },
+    "taxon_id":    { "group": "core", "label": "Taxon ID", "order": 9 },
+    "db_type":     { "group": "core", "label": "DB type", "order": 10 },
 
     "closest_rep_id":          { "group": "homology", "label": "Closest representative ID", "order": 1 },
     "closest_rep_name":        { "group": "homology", "label": "Closest representative name", "order": 2 },
@@ -118,6 +120,18 @@
 
     "gene_tree": { "group": "homology", "label": "Gene tree ID", "order": 11 },
     "pan_tree":  { "group": "homology", "label": "Pan-gene tree ID", "order": 14 },
+    "grassius_homolog__attr_ss": { "group": "homology", "label": "Grassius family", "multiValued": true, "order": 15, "description": "Transcription factor / coregulator family assignment from GRASSIUS" },
+
+    "expr_class__attr_ss":            { "group": "exprattrs", "label": "Expression class", "multiValued": true, "order": 1, "description": "tissue_specific, tissue_enhanced, broadly_expressed, ubiquitous, not_expressed or insufficient_data" },
+    "expr_organ_level__attr_ss":      { "group": "exprattrs", "label": "Expression level by organ", "multiValued": true, "order": 2, "description": "organ:level pairs, where level is not_expressed, low, medium, high or very_high" },
+    "expr_specific_to__attr_ss":      { "group": "exprattrs", "label": "Specific to organ", "multiValued": true, "order": 3, "description": "Organs this gene is expressed in almost exclusively" },
+    "expr_enhanced_in__attr_ss":      { "group": "exprattrs", "label": "Enhanced in organ", "multiValued": true, "order": 4, "description": "Organs with expression notably above this gene's average" },
+    "expr_high_in__attr_ss":          { "group": "exprattrs", "label": "High in organ", "multiValued": true, "order": 5, "description": "Organs where this gene is highly expressed" },
+    "expr_activated_by__attr_ss":     { "group": "exprattrs", "label": "Activated by condition", "multiValued": true, "order": 6, "description": "Stress or treatment conditions that induce this gene" },
+    "expr_repressed_by__attr_ss":     { "group": "exprattrs", "label": "Repressed by condition", "multiValued": true, "order": 7, "description": "Stress or treatment conditions that repress this gene" },
+    "expr_tau__attr_f":               { "group": "exprattrs", "label": "Tissue specificity (tau)", "order": 8, "description": "0 = broadly expressed, 1 = highly tissue specific" },
+    "expr_max_tpm__attr_f":           { "group": "exprattrs", "label": "Maximum expression (TPM)", "order": 9, "description": "Highest expression level observed across organs" },
+    "expr_n_organs_detected__attr_i": { "group": "exprattrs", "label": "Organs with detected expression", "order": 10 },
 
     "capabilities": { "group": "other", "label": "Capabilities", "multiValued": true },
 

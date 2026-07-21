@@ -7,6 +7,8 @@ const MULTIVALUED_PATTERNS = [
   /__expr$/,
   /__ancestors$/,
   /__xrefs$/,
+  /__attr_ss$/, // Solr `_ss` dynamic fields are multi-valued strings
+  /^alt_id$/,
   /^VEP__/,
   /^homology__/
 ];
