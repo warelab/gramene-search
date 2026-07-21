@@ -158,7 +158,8 @@ const panSites = [
     // Mirrors sorghum-webapp/search_app/config.json.
     views: {
       taxonomy: 'hidden',
-      taxTree: 'on'
+      taxTree: 'on',
+      attrTable: 'on'
     },
     details: {
       sequences: true,

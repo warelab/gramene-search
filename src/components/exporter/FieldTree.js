@@ -157,20 +157,22 @@ const GroupNode = ({ group, depth, catalog, selectedSet, onToggle, onBulkSet, op
   );
 };
 
-const FieldTreeCmp = props => {
-  const { fieldCatalog: catalog, exporterSelectedFields, doToggleExporterField, doBulkSetExporterFields, query = '' } = props;
+// Pure, reusable field picker. Callers supply the catalog, the currently
+// selected field names, and toggle/bulk handlers — so the Data exporter and the
+// Attribute table view can each drive it from their own bundle state.
+export const FieldTree = ({ catalog, selectedFields, onToggle, onBulkSet, query = '' }) => {
   const [openMap, setOpenMap] = useState({});
 
-  const selectedSet = useMemo(() => new Set(exporterSelectedFields), [exporterSelectedFields]);
+  const selectedSet = useMemo(() => new Set(selectedFields), [selectedFields]);
 
   const handleToggle = (name) => {
     const f = catalog && catalog.fields && catalog.fields[name];
     const linked = f && f.linkedFields;
     if (linked) {
       const allSelected = linked.every(n => selectedSet.has(n));
-      doBulkSetExporterFields(linked, !allSelected);
+      onBulkSet(linked, !allSelected);
     } else {
-      doToggleExporterField(name);
+      onToggle(name);
     }
   };
 
@@ -201,7 +203,7 @@ const FieldTreeCmp = props => {
             catalog={catalog}
             selectedSet={selectedSet}
             onToggle={handleToggle}
-            onBulkSet={doBulkSetExporterFields}
+            onBulkSet={onBulkSet}
             openMap={openMap}
             setOpen={setOpen}
             forceOpen={forceOpen}
@@ -214,6 +216,17 @@ const FieldTreeCmp = props => {
     </div>
   );
 };
+
+// Exporter-bound wrapper — preserves the existing default-export usage.
+const FieldTreeCmp = props => (
+  <FieldTree
+    catalog={props.fieldCatalog}
+    selectedFields={props.exporterSelectedFields}
+    onToggle={props.doToggleExporterField}
+    onBulkSet={props.doBulkSetExporterFields}
+    query={props.query}
+  />
+);
 
 export default connect(
   'selectFieldCatalog',

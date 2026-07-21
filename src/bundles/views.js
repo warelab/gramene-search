@@ -36,6 +36,12 @@ const grameneViews = {
           shouldScroll: false
         },
         {
+          id: 'attrTable',
+          name: 'Attribute table',
+          show: 'off',
+          shouldScroll: false
+        },
+        {
           id: 'ontologyEnrichment',
           name: 'Ontology Enrichment',
           show: 'off',
@@ -158,7 +164,7 @@ const grameneViews = {
       // Views whose content depends on a current search: auto-off when no
       // filters are set or no results came back. userLists is deliberately
       // NOT here — it's user-owned and meaningful regardless of search state.
-      const resultDependentIds = new Set(['taxonomy', 'taxTree', 'list', 'export', 'exprViz', 'ontologyEnrichment']);
+      const resultDependentIds = new Set(['taxonomy', 'taxTree', 'list', 'export', 'exprViz', 'attrTable', 'ontologyEnrichment']);
       const autoDisable = (numFound === 0) || !hasFilters;
       const hasFirebase = !!(config && config.firebaseConfig);
 

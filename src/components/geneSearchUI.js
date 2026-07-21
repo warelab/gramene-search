@@ -13,6 +13,7 @@ import Expression from './results/Expression'
 import UserGeneLists from './results/UserGeneLists'
 import ExporterView from './exporter/ExporterView'
 import ExprVizView from './exprViz/ExprVizView'
+import AttrTableView from './attrTable/AttrTableView'
 import OntologyEnrichment from './results/OntologyEnrichment'
 import TaxDistTbrowse from './results/TaxDistTbrowse'
 import Auth from './Auth'
@@ -45,6 +46,7 @@ const inventory = {
   attribs: GeneAttribs,
   expression: Expression,
   exprViz: ExprVizView,
+  attrTable: AttrTableView,
   ontologyEnrichment: OntologyEnrichment,
   userLists: UserGeneLists,
   export: ExporterView

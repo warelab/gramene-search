@@ -1,0 +1,69 @@
+.attrtable-view {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.attrtable-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.25rem 0 0.5rem;
+}
+
+.attrtable-status {
+    font-size: small;
+}
+
+/* pale → dark = low → high, matching the tbrowse Expression zone */
+.attrtable-legend {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    margin-left: auto;
+}
+
+.attrtable-legend span {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.attrtable-notice {
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: small;
+}
+
+.attrtable-columns-panel {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.attrtable-field-search {
+    margin-bottom: 0.5rem;
+}
+
+.attrtable-aggrid {
+    width: 100%;
+    height: 600px;
+    /* Block the browser's edge-of-scroll back/forward gesture when scrolling
+     * all the way left or right inside the grid. */
+    overscroll-behavior-x: contain;
+}
+
+.attrtable-aggrid .ag-body-viewport,
+.attrtable-aggrid .ag-body-horizontal-scroll-viewport,
+.attrtable-aggrid .ag-center-cols-viewport {
+    overscroll-behavior-x: contain;
+}
+
+.attrtable-empty {
+    padding: 1rem;
+    color: #6c757d;
+}

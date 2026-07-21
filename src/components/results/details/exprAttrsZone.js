@@ -11,43 +11,12 @@
 
 import React from 'react';
 import { EditableZoneName } from 'tbrowse';
-
-// Canonical anatomical ordering (vegetative → reproductive → seed). Organs not
-// listed here are appended alphabetically so nothing is ever dropped.
-const ORGAN_ORDER = [
-  'root', 'shoot', 'stem', 'leaf', 'meristem', 'vasculature', 'tuber', 'cotyledon',
-  'inflorescence', 'flower', 'anther_pollen', 'fruit', 'pericarp', 'seed', 'endosperm', 'embryo',
-];
-
-// Short column-header codes; unknown organs fall back to their first 3 letters.
-const ORGAN_ABBR = {
-  root: 'rt', shoot: 'sht', stem: 'stm', leaf: 'lf', meristem: 'mer', vasculature: 'vas',
-  tuber: 'tbr', cotyledon: 'cot', inflorescence: 'inf', flower: 'flw', anther_pollen: 'ant',
-  fruit: 'frt', pericarp: 'per', seed: 'sd', endosperm: 'end', embryo: 'emb',
-};
-const abbr = (o) => ORGAN_ABBR[o] || o.slice(0, 3);
-
-// Ordinal expression level → color. not_expressed gets a distinct pale tint (it
-// IS a measurement); an organ a species doesn't report stays transparent (= not
-// assayed). Ramp matches HeatmapPlot's pale→dark blue.
-const LEVEL_ORDER = ['not_expressed', 'low', 'medium', 'high', 'very_high'];
-const LEVEL_COLOR = {
-  not_expressed: '#eef2f6',
-  low: '#cfe0ee',
-  medium: '#8fbbdc',
-  high: '#3f86c2',
-  very_high: '#0a3d72',
-};
-const LEVEL_LABEL = {
-  not_expressed: 'not expressed', low: 'low', medium: 'medium', high: 'high', very_high: 'very high',
-};
-
-// Stress chips: activated (induced) = warm, repressed = cool.
-const STRESS = {
-  up: { bg: '#fdecea', fg: '#c0392b' },
-  down: { bg: '#eaf2fb', fg: '#2e6fae' },
-};
-const MARKER = '#d35400'; // specific-to dot / enhanced-in outline
+import {
+  abbrOrgan as abbr, organLabel,
+  LEVEL_ORDER, LEVEL_COLOR, LEVEL_LABEL,
+  STRESS, MARKER,
+  extractExprAttrs, orderOrgans, tpmFraction, fmtTpm, fmtClass,
+} from '../../exprAttrs/exprAttrCommon';
 
 const ORGAN_CELL_W = 16;
 const MAXTPM_W = 46;
@@ -78,33 +47,16 @@ export function buildExprData(docs, tree) {
     if (!d || !d.id) return;
     const nodeId = nodeOf[d.id];
     if (!nodeId) return;
-    const organLevels = {};
-    (d.expr_organ_level__attr_ss || []).forEach((t) => {
-      const i = t.lastIndexOf(':');
-      if (i < 0) return;
-      const organ = t.slice(0, i);
-      organLevels[organ] = t.slice(i + 1);
-      organSet.add(organ);
-    });
-    const maxTpm = Number.isFinite(+d.expr_max_tpm__attr_f) ? +d.expr_max_tpm__attr_f : null;
-    if (maxTpm !== null) {
-      if (maxTpm < tpmMin) tpmMin = maxTpm;
-      if (maxTpm > tpmMax) tpmMax = maxTpm;
+    const attrs = extractExprAttrs(d);
+    Object.keys(attrs.organLevels).forEach((o) => organSet.add(o));
+    if (attrs.maxTpm !== null) {
+      if (attrs.maxTpm < tpmMin) tpmMin = attrs.maxTpm;
+      if (attrs.maxTpm > tpmMax) tpmMax = attrs.maxTpm;
     }
-    byNode[nodeId] = {
-      cls: d.expr_class__attr_ss || [],
-      organLevels,
-      specificTo: new Set(d.expr_specific_to__attr_ss || []),
-      enhancedIn: new Set(d.expr_enhanced_in__attr_ss || []),
-      maxTpm,
-      activatedBy: d.expr_activated_by__attr_ss || [],
-      repressedBy: d.expr_repressed_by__attr_ss || [],
-    };
+    byNode[nodeId] = attrs;
   });
-  const known = ORGAN_ORDER.filter((o) => organSet.has(o));
-  const unknown = [...organSet].filter((o) => !ORGAN_ORDER.includes(o)).sort();
   return {
-    organs: [...known, ...unknown],
+    organs: orderOrgans(organSet),
     byNode,
     nodeGene,
     maxTpm: { min: tpmMin === Infinity ? 0 : tpmMin, max: tpmMax === -Infinity ? 0 : tpmMax },
@@ -118,22 +70,6 @@ function rowHighlight(isSelected, isExactHover, isInHoveredSubtree) {
   if (isExactHover) return 'var(--tbrowse-row-hover-bg)';
   if (isInHoveredSubtree) return 'var(--tbrowse-row-subtree-bg)';
   return 'transparent';
-}
-
-// Log-scaled fraction of v within [min,max], for the Max TPM heat background.
-function tpmFraction(v, range) {
-  if (!Number.isFinite(v)) return null;
-  const lo = Math.log10((range.min || 0) + 1);
-  const hi = Math.log10((range.max || 0) + 1);
-  if (hi <= lo) return 0.5;
-  return Math.max(0, Math.min(1, (Math.log10(v + 1) - lo) / (hi - lo)));
-}
-function fmtTpm(v) {
-  if (!Number.isFinite(v)) return '';
-  return v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
-}
-function fmtClass(cls) {
-  return cls && cls.length ? cls.map((c) => c.replace(/_/g, ' ')).join(', ') : null;
 }
 
 const gridBorder = '1px solid var(--tbrowse-grid-line, rgba(0,0,0,0.06))';
@@ -173,7 +109,7 @@ const ExprHeader = ({ zoneState, setZoneState, width, data, hoveredNodeId }) => 
       </div>
       <div style={{ display: 'flex', width }}>
         {organs.map((o) => (
-          <div key={o} title={o.replace(/_/g, ' ')} style={{ width: ORGAN_CELL_W, fontSize: 8, textAlign: 'center', overflow: 'hidden', whiteSpace: 'nowrap', borderRight: gridBorder, opacity: 0.8 }}>
+          <div key={o} title={organLabel(o)} style={{ width: ORGAN_CELL_W, fontSize: 8, textAlign: 'center', overflow: 'hidden', whiteSpace: 'nowrap', borderRight: gridBorder, opacity: 0.8 }}>
             {abbr(o)}
           </div>
         ))}
@@ -189,8 +125,8 @@ const OrganCell = ({ organ, gene }) => {
   const specific = !!(gene && gene.specificTo.has(organ));
   const enhanced = !!(gene && gene.enhancedIn.has(organ));
   const title = level
-    ? `${organ.replace(/_/g, ' ')}: ${LEVEL_LABEL[level] || level}${specific ? ' · specific' : enhanced ? ' · enhanced' : ''}`
-    : `${organ.replace(/_/g, ' ')}: not assayed`;
+    ? `${organLabel(organ)}: ${LEVEL_LABEL[level] || level}${specific ? ' · specific' : enhanced ? ' · enhanced' : ''}`
+    : `${organLabel(organ)}: not assayed`;
   const style = {
     position: 'relative',
     width: ORGAN_CELL_W,
