@@ -118,10 +118,18 @@
     padding: 0 !important;
 }
 
-/* Column separators between all columns... */
+/* Drop the theme's resize-handle grip (a 2px bar drawn on every header cell's
+ * right edge) — it read as a heavy, header-only column separator. Resizing by
+ * dragging the edge still works; only the decoration is gone. */
+.attrtable-aggrid .ag-header-cell-resize::after {
+    display: none;
+}
+
+/* Column separators between all columns, clearly visible in both the header and
+ * the body (the theme's default border is near-invisible on white). */
 .attrtable-aggrid .ag-cell,
 .attrtable-aggrid .ag-header-cell {
-    border-right: 1px solid var(--ag-border-color, rgba(0, 0, 0, 0.13));
+    border-right: 1px solid #c6ccd2;
 }
 
 /* ...except within the expression heatmap: the organ columns read as one
@@ -135,7 +143,7 @@
 
 .attrtable-aggrid .attrtable-organ-cell.attrtable-organ-last,
 .attrtable-aggrid .attrtable-organ-header.attrtable-organ-last {
-    border-right: 1px solid var(--ag-border-color, rgba(0, 0, 0, 0.13));
+    border-right: 1px solid #c6ccd2;
 }
 
 /* With the tall header (organ heatmap shown), sit the plain column labels at

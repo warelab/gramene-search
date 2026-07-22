@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { connect } from 'redux-bundler-react';
 import { Button, Alert, Spinner } from 'react-bootstrap';
 import { AgGridReact } from 'ag-grid-react';
@@ -59,12 +59,24 @@ const chipRenderer = dir => ({ value }) => {
 };
 
 // Vertical header for the narrow organ columns, so full tissue names stay
-// legible without widening the heatmap. Clicking still sorts the column.
+// legible without widening the heatmap. Clicking still sorts the column, and a
+// rotated sort arrow is drawn before the label (the default ag-grid sort UI is
+// replaced by this custom header, so we render our own indicator). The arrow
+// sits in the rotated span, so ▲ (asc) renders pointing left and ▼ (desc) right.
 const RotatedHeader = props => {
+  const [sort, setSort] = useState(props.column.getSort ? props.column.getSort() : null);
+  useEffect(() => {
+    const col = props.column;
+    const onSort = () => setSort(col.getSort ? col.getSort() : null);
+    col.addEventListener('sortChanged', onSort);
+    onSort();
+    return () => col.removeEventListener('sortChanged', onSort);
+  }, [props.column]);
   const onClick = e => props.progressSort && props.progressSort(e.shiftKey);
+  const arrow = sort === 'asc' ? '▲ ' : sort === 'desc' ? '▼ ' : '';
   return (
     <div className="attrtable-rot-header" title={props.displayName} onClick={onClick}>
-      <span>{props.displayName}</span>
+      <span>{arrow}{props.displayName}</span>
     </div>
   );
 };
