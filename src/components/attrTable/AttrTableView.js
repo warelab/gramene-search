@@ -128,14 +128,18 @@ const AttrTableViewCmp = props => {
       const width = WIDTHS[f] || 150;
 
       if (f === ORGAN_FIELD) {
-        organs.forEach(o => cols.push({
+        organs.forEach((o, i) => {
+          // The last organ keeps a right border (heatmap's outer edge); the rest
+          // drop it so the heatmap reads as one continuous block.
+          const last = i === organs.length - 1 ? ' attrtable-organ-last' : '';
+          cols.push({
           // No ':' in colId — ag-grid uses colId in internal CSS selectors, where
           // a colon is a metacharacter and silently breaks the column.
           colId: `organ_${o}`,
           headerName: organLabel(o),
           headerComponent: RotatedHeader,
-          headerClass: 'attrtable-organ-header',
-          cellClass: 'attrtable-organ-cell',
+          headerClass: `attrtable-organ-header${last}`,
+          cellClass: `attrtable-organ-cell${last}`,
           headerTooltip: organLabel(o),
           width: 22,
           minWidth: 18,
@@ -154,7 +158,8 @@ const AttrTableViewCmp = props => {
             else if (p.data && p.data._enhanced.has(o)) style.boxShadow = `inset 0 0 0 1px ${MARKER}`;
             return style;
           }
-        }));
+          });
+        });
         return;
       }
 

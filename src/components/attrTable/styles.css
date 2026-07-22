@@ -91,14 +91,22 @@
 .attrtable-rot-header {
     height: 100%;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
     overflow: hidden;
     cursor: pointer;
 }
 
+/* Left-justified: the label is anchored at the bottom-left and rises straight
+ * up, so every tissue name starts on the same line just above the heatmap
+ * (rather than floating centred in the tall header). */
 .attrtable-rot-header > span {
+    position: absolute;
+    /* Rotating -90° about the baseline throws the glyph height to the left of
+     * the pivot, so anchor the pivot ~13px in to keep the text inside its own
+     * 22px column. */
+    left: 13px;
+    bottom: 3px;
+    transform-origin: left bottom;
     transform: rotate(-90deg);
     white-space: nowrap;
     font-size: 10px;
@@ -108,6 +116,26 @@
 /* Tight heatmap cells: colour fills the whole (narrow) cell, no padding. */
 .attrtable-aggrid .attrtable-organ-cell {
     padding: 0 !important;
+}
+
+/* Column separators between all columns... */
+.attrtable-aggrid .ag-cell,
+.attrtable-aggrid .ag-header-cell {
+    border-right: 1px solid var(--ag-border-color, rgba(0, 0, 0, 0.13));
+}
+
+/* ...except within the expression heatmap: the organ columns read as one
+ * continuous block, so drop their internal separators. The last organ column
+ * keeps its right border so the heatmap's outer edge is still divided from the
+ * next column. */
+.attrtable-aggrid .attrtable-organ-cell,
+.attrtable-aggrid .attrtable-organ-header {
+    border-right: none;
+}
+
+.attrtable-aggrid .attrtable-organ-cell.attrtable-organ-last,
+.attrtable-aggrid .attrtable-organ-header.attrtable-organ-last {
+    border-right: 1px solid var(--ag-border-color, rgba(0, 0, 0, 0.13));
 }
 
 /* With the tall header (organ heatmap shown), sit the plain column labels at
