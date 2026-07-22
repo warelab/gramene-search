@@ -62,7 +62,8 @@ const chipRenderer = dir => ({ value }) => {
 // legible without widening the heatmap. Clicking still sorts the column, and a
 // rotated sort arrow is drawn before the label (the default ag-grid sort UI is
 // replaced by this custom header, so we render our own indicator). The arrow
-// sits in the rotated span, so ▲ (asc) renders pointing left and ▼ (desc) right.
+// sits in the -90°-rotated span, so a → (asc) renders pointing up and a
+// ← (desc) pointing down.
 const RotatedHeader = props => {
   const [sort, setSort] = useState(props.column.getSort ? props.column.getSort() : null);
   useEffect(() => {
@@ -73,7 +74,7 @@ const RotatedHeader = props => {
     return () => col.removeEventListener('sortChanged', onSort);
   }, [props.column]);
   const onClick = e => props.progressSort && props.progressSort(e.shiftKey);
-  const arrow = sort === 'asc' ? '▲ ' : sort === 'desc' ? '▼ ' : '';
+  const arrow = sort === 'asc' ? '→ ' : sort === 'desc' ? '← ' : '';
   return (
     <div className="attrtable-rot-header" title={props.displayName} onClick={onClick}>
       <span>{arrow}{props.displayName}</span>
