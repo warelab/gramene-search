@@ -75,30 +75,24 @@
     color: #6c757d;
 }
 
-/* Slanted headers for the narrow organ columns. The label pivots at its
- * bottom-left and rises up-right so full tissue names stay legible while the
- * heatmap columns stay compact. Let it overflow the narrow cell. */
-.attrtable-aggrid .attrtable-organ-header,
-.attrtable-aggrid .attrtable-organ-header .ag-header-cell-comp-wrapper {
-    overflow: visible;
-}
-
+/* Vertical headers for the narrow organ columns: full tissue names read
+ * bottom-to-top, centred within each column so they stay inside the cell and
+ * never cross the column separators (which they did when slanted). */
 .attrtable-rot-header {
     height: 100%;
     width: 100%;
     display: flex;
-    align-items: flex-end;
-    overflow: visible;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
     cursor: pointer;
 }
 
 .attrtable-rot-header > span {
-    transform: rotate(-45deg);
-    transform-origin: left bottom;
+    transform: rotate(-90deg);
     white-space: nowrap;
     font-size: 10px;
     line-height: 1;
-    padding-left: 3px;
 }
 
 /* Tight heatmap cells: colour fills the whole (narrow) cell, no padding. */

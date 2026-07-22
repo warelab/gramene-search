@@ -58,7 +58,7 @@ const chipRenderer = dir => ({ value }) => {
   );
 };
 
-// Slanted header for the narrow organ columns, so full tissue names stay
+// Vertical header for the narrow organ columns, so full tissue names stay
 // legible without widening the heatmap. Clicking still sorts the column.
 const RotatedHeader = props => {
   const onClick = e => props.progressSort && props.progressSort(e.shiftKey);
