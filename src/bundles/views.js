@@ -37,7 +37,7 @@ const grameneViews = {
         },
         {
           id: 'attrTable',
-          name: 'Attribute table',
+          name: 'Gene attributes',
           show: 'off',
           shouldScroll: false
         },

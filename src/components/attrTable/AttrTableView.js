@@ -7,7 +7,7 @@ import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { FieldTree } from '../exporter/FieldTree';
 import '../exporter/styles.css';
 import {
-  abbrOrgan, organLabel, orderOrgans, extractExprAttrs,
+  organLabel, orderOrgans, extractExprAttrs,
   LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, LEVEL_RANK, MARKER, STRESS,
   tpmBackground, fmtTpm, EXPR_ATTR_FIELDS,
 } from '../exprAttrs/exprAttrCommon';
@@ -55,6 +55,17 @@ const chipRenderer = dir => ({ value }) => {
         >{(dir === 'up' ? '↑' : '↓') + c}</span>
       ))}
     </span>
+  );
+};
+
+// Slanted header for the narrow organ columns, so full tissue names stay
+// legible without widening the heatmap. Clicking still sorts the column.
+const RotatedHeader = props => {
+  const onClick = e => props.progressSort && props.progressSort(e.shiftKey);
+  return (
+    <div className="attrtable-rot-header" title={props.displayName} onClick={onClick}>
+      <span>{props.displayName}</span>
+    </div>
   );
 };
 
@@ -121,9 +132,13 @@ const AttrTableViewCmp = props => {
           // No ':' in colId — ag-grid uses colId in internal CSS selectors, where
           // a colon is a metacharacter and silently breaks the column.
           colId: `organ_${o}`,
-          headerName: abbrOrgan(o),
+          headerName: organLabel(o),
+          headerComponent: RotatedHeader,
+          headerClass: 'attrtable-organ-header',
+          cellClass: 'attrtable-organ-cell',
           headerTooltip: organLabel(o),
-          width: 46,
+          width: 22,
+          minWidth: 18,
           valueGetter: p => (p.data && p.data._organ[o]) || '',
           valueFormatter: () => '', // colour carries the value
           tooltipValueGetter: p => {
@@ -242,7 +257,7 @@ const AttrTableViewCmp = props => {
       ) : columnDefs.length === 0 ? (
         <div className="attrtable-empty"><em>No columns selected — pick some under “Columns”.</em></div>
       ) : (
-        <div className="ag-theme-quartz attrtable-aggrid">
+        <div className={`ag-theme-quartz attrtable-aggrid${organShown ? ' attrtable-tall-header' : ''}`}>
           <AgGridReact
             rowData={rows}
             columnDefs={columnDefs}
@@ -252,7 +267,7 @@ const AttrTableViewCmp = props => {
             suppressDragLeaveHidesColumns={true}
             tooltipShowDelay={300}
             rowHeight={22}
-            headerHeight={26}
+            headerHeight={organShown ? 92 : 28}
           />
         </div>
       )}

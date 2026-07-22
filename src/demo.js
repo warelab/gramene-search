@@ -159,7 +159,8 @@ const panSites = [
     views: {
       taxonomy: 'hidden',
       taxTree: 'on',
-      attrTable: 'off'
+      attrTable: 'off',
+      attribs: 'hidden'
     },
     details: {
       sequences: true,
