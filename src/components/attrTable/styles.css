@@ -78,6 +78,16 @@
 /* Vertical headers for the narrow organ columns: full tissue names read
  * bottom-to-top, centred within each column so they stay inside the cell and
  * never cross the column separators (which they did when slanted). */
+
+/* The quartz theme gives header cells 16px of horizontal padding, which on a
+ * 22px organ column leaves the label no room (its container collapses to 0 and
+ * overflow:hidden clips it). Zero it so the vertical label uses the full column
+ * width — the column itself stays 22px, so the heatmap doesn't get wider. */
+.attrtable-aggrid .attrtable-organ-header {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
 .attrtable-rot-header {
     height: 100%;
     width: 100%;
