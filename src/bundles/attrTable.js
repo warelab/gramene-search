@@ -28,10 +28,13 @@ const CORE_FIELDS = [
 // needed by the genome filter even when its column is hidden.
 const FETCH_FIELDS = [...new Set([...CORE_FIELDS, ...EXPR_ATTR_FIELDS])];
 
+// Default columns, in display order. The two stress fields are adjacent so the
+// view can merge them into a single "Activated/Repressed by condition" column.
 const DEFAULT_VISIBLE = [
-  'id', 'name', 'system_name', 'biotype',
-  'expr_class__attr_ss', 'expr_organ_level__attr_ss',
-  'expr_tau__attr_f', 'expr_max_tpm__attr_f',
+  'id',
+  'expr_max_tpm__attr_f',
+  'expr_organ_level__attr_ss',
+  'expr_class__attr_ss',
   'expr_activated_by__attr_ss', 'expr_repressed_by__attr_ss'
 ];
 

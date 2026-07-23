@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { connect } from 'redux-bundler-react';
 import { Button, Alert, Spinner } from 'react-bootstrap';
 import { AgGridReact } from 'ag-grid-react';
@@ -9,16 +9,19 @@ import '../exporter/styles.css';
 import {
   organLabel, orderOrgans, extractExprAttrs,
   LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, LEVEL_RANK, MARKER, STRESS,
-  tpmBackground, fmtTpm, EXPR_ATTR_FIELDS,
+  tpmBackground, fmtTpm,
 } from '../exprAttrs/exprAttrCommon';
-import { ATTR_TABLE_LIMITS, OFFERED_GROUPS, CORE_FIELDS } from '../../bundles/attrTable';
+import { ATTR_TABLE_LIMITS } from '../../bundles/attrTable';
 import './styles.css';
 
 const { MAX_GENES } = ATTR_TABLE_LIMITS;
 
-// expr_organ_level expands into one column per organ (the heatmap block); every
-// other offered field maps to exactly one column.
+// expr_organ_level expands into one column per organ (the heatmap block).
 const ORGAN_FIELD = 'expr_organ_level__attr_ss';
+// The two stress fields render as a single merged column.
+const STRESS_UP = 'expr_activated_by__attr_ss';
+const STRESS_DOWN = 'expr_repressed_by__attr_ss';
+const STRESS_COL = 'stress';
 
 const DEFAULT_COL_DEF = {
   resizable: true,
@@ -32,28 +35,28 @@ const WIDTHS = {
   alt_id: 180, synonyms: 160, description: 260, summary: 260,
   expr_class__attr_ss: 150, expr_tau__attr_f: 80, expr_max_tpm__attr_f: 100,
   expr_n_organs_detected__attr_i: 90,
-  expr_activated_by__attr_ss: 190, expr_repressed_by__attr_ss: 190,
   expr_specific_to__attr_ss: 150, expr_enhanced_in__attr_ss: 150, expr_high_in__attr_ss: 150
 };
 
 const joinValues = p => (Array.isArray(p.value) ? p.value.map(v => String(v).replace(/_/g, ' ')).join(', ') : (p.value ?? ''));
 
-// ↑activated / ↓repressed condition chips.
-const chipRenderer = dir => ({ value }) => {
-  const list = Array.isArray(value) ? value : (value ? [value] : []);
-  if (!list.length) return null;
+const StressChip = ({ c, dir }) => (
+  <span style={{
+    fontSize: 10, lineHeight: '16px', padding: '0 4px', borderRadius: 2,
+    marginRight: 3, whiteSpace: 'nowrap', background: STRESS[dir].bg, color: STRESS[dir].fg
+  }}>{(dir === 'up' ? '↑' : '↓') + c}</span>
+);
+
+// Merged ↑activated / ↓repressed renderer; the two directions are shown per the
+// picker (a column exists if either field is selected).
+const stressRenderer = (showUp, showDown) => ({ data }) => {
+  const up = showUp && Array.isArray(data && data[STRESS_UP]) ? data[STRESS_UP] : [];
+  const down = showDown && Array.isArray(data && data[STRESS_DOWN]) ? data[STRESS_DOWN] : [];
+  if (!up.length && !down.length) return null;
   return (
     <span>
-      {list.map((c, i) => (
-        <span
-          key={i}
-          style={{
-            fontSize: 10, lineHeight: '16px', padding: '0 4px', borderRadius: 2,
-            marginRight: 3, whiteSpace: 'nowrap',
-            background: STRESS[dir].bg, color: STRESS[dir].fg
-          }}
-        >{(dir === 'up' ? '↑' : '↓') + c}</span>
-      ))}
+      {up.map((c, i) => <StressChip key={`u${i}`} c={c} dir="up" />)}
+      {down.map((c, i) => <StressChip key={`d${i}`} c={c} dir="down" />)}
     </span>
   );
 };
@@ -74,7 +77,7 @@ const RotatedHeader = props => {
     return () => col.removeEventListener('sortChanged', onSort);
   }, [props.column]);
   const onClick = e => props.progressSort && props.progressSort(e.shiftKey);
-  const arrow = sort === 'asc' ? '→ ' : sort === 'desc' ? '← ' : '';
+  const arrow = sort === 'asc' ? '→ ' : sort === 'desc' ? '← ' : '';
   return (
     <div className="attrtable-rot-header" title={props.displayName} onClick={onClick}>
       <span>{arrow}{props.displayName}</span>
@@ -85,10 +88,13 @@ const RotatedHeader = props => {
 const AttrTableViewCmp = props => {
   const {
     attrTable, fieldCatalog, fieldCatalogByName,
-    doToggleAttrTableField, doBulkSetAttrTableFields, doResetAttrTableFields
+    doToggleAttrTableField, doBulkSetAttrTableFields, doResetAttrTableFields,
+    doAcceptGrameneSuggestion
   } = props;
   const [showColumns, setShowColumns] = useState(false);
   const [fieldQuery, setFieldQuery] = useState('');
+  const [popover, setPopover] = useState(null);
+  const popRef = useRef(null);
 
   const { docs, total, truncated, status, error, visibleFields } = attrTable;
   const visibleSet = useMemo(() => new Set(visibleFields), [visibleFields]);
@@ -114,71 +120,73 @@ const AttrTableViewCmp = props => {
     };
   }, [docs]);
 
-  // Only the Core identifiers + Expression attributes groups are offered, in
-  // catalog order. Falls back to the built-in lists until the catalog loads.
-  const orderedFields = useMemo(() => {
-    const groups = (fieldCatalog && fieldCatalog.groups) || [];
-    const out = [];
-    OFFERED_GROUPS.forEach(gid => {
-      const g = groups.find(x => x.id === gid);
-      if (g && g.fields) out.push(...g.fields);
-    });
-    return out.length ? out : [...CORE_FIELDS, ...EXPR_ATTR_FIELDS];
-  }, [fieldCatalog]);
-
+  // Only the Core identifiers + Expression attributes groups are offered.
   const pickerCatalog = useMemo(() => {
     if (!fieldCatalog || !fieldCatalog.groups) return null;
-    return { ...fieldCatalog, groups: fieldCatalog.groups.filter(g => OFFERED_GROUPS.includes(g.id)) };
+    return { ...fieldCatalog, groups: fieldCatalog.groups.filter(g => ['core', 'exprattrs'].includes(g.id)) };
   }, [fieldCatalog]);
 
+  const labelOf = f => ((fieldCatalogByName && fieldCatalogByName[f] && fieldCatalogByName[f].label) || f);
+
+  // Columns follow the selected-field order (so the default order is honoured),
+  // expanding organ_level into the heatmap block and merging the two stress
+  // fields into one column.
   const columnDefs = useMemo(() => {
-    const labelOf = f => ((fieldCatalogByName && fieldCatalogByName[f] && fieldCatalogByName[f].label) || f);
     const cols = [];
+    let stressDone = false;
 
-    orderedFields.forEach(f => {
-      if (!visibleSet.has(f)) return;
-      const headerName = labelOf(f);
-      const width = WIDTHS[f] || 150;
-
+    visibleFields.forEach(f => {
       if (f === ORGAN_FIELD) {
         organs.forEach((o, i) => {
-          // The last organ keeps a right border (heatmap's outer edge); the rest
-          // drop it so the heatmap reads as one continuous block.
           const last = i === organs.length - 1 ? ' attrtable-organ-last' : '';
           cols.push({
-          // No ':' in colId — ag-grid uses colId in internal CSS selectors, where
-          // a colon is a metacharacter and silently breaks the column.
-          colId: `organ_${o}`,
-          headerName: organLabel(o),
-          headerComponent: RotatedHeader,
-          headerClass: `attrtable-organ-header${last}`,
-          cellClass: `attrtable-organ-cell${last}`,
-          headerTooltip: organLabel(o),
-          width: 22,
-          minWidth: 18,
-          valueGetter: p => (p.data && p.data._organ[o]) || '',
-          valueFormatter: () => '', // colour carries the value
-          tooltipValueGetter: p => {
-            const lvl = p.data && p.data._organ[o];
-            if (!lvl) return `${organLabel(o)}: not assayed`;
-            const sp = p.data._specific.has(o) ? ' · specific' : (p.data._enhanced.has(o) ? ' · enhanced' : '');
-            return `${organLabel(o)}: ${LEVEL_LABEL[lvl] || lvl}${sp}`;
-          },
-          comparator: (a, b) => (LEVEL_RANK[a] ?? -1) - (LEVEL_RANK[b] ?? -1),
-          cellStyle: p => {
-            const style = { background: p.value ? (LEVEL_COLOR[p.value] || 'transparent') : 'transparent' };
-            if (p.data && p.data._specific.has(o)) style.boxShadow = `inset 0 0 0 2px ${MARKER}`;
-            else if (p.data && p.data._enhanced.has(o)) style.boxShadow = `inset 0 0 0 1px ${MARKER}`;
-            return style;
-          }
+            // No ':' in colId — ag-grid uses colId in internal CSS selectors,
+            // where a colon is a metacharacter and silently breaks the column.
+            colId: `organ_${o}`,
+            headerName: organLabel(o),
+            headerComponent: RotatedHeader,
+            headerClass: `attrtable-organ-header${last}`,
+            cellClass: `attrtable-organ-cell${last}`,
+            headerTooltip: organLabel(o),
+            width: 22,
+            minWidth: 18,
+            valueGetter: p => (p.data && p.data._organ[o]) || '',
+            valueFormatter: () => '',
+            tooltipValueGetter: p => {
+              const lvl = p.data && p.data._organ[o];
+              if (!lvl) return `${organLabel(o)}: not assayed`;
+              const sp = p.data._specific.has(o) ? ' · specific' : (p.data._enhanced.has(o) ? ' · enhanced' : '');
+              return `${organLabel(o)}: ${LEVEL_LABEL[lvl] || lvl}${sp}`;
+            },
+            comparator: (a, b) => (LEVEL_RANK[a] ?? -1) - (LEVEL_RANK[b] ?? -1),
+            cellStyle: p => {
+              const style = { background: p.value ? (LEVEL_COLOR[p.value] || 'transparent') : 'transparent' };
+              if (p.data && p.data._specific.has(o)) style.boxShadow = `inset 0 0 0 2px ${MARKER}`;
+              else if (p.data && p.data._enhanced.has(o)) style.boxShadow = `inset 0 0 0 1px ${MARKER}`;
+              return style;
+            }
           });
+        });
+        return;
+      }
+
+      if (f === STRESS_UP || f === STRESS_DOWN) {
+        if (stressDone) return;
+        stressDone = true;
+        cols.push({
+          colId: STRESS_COL,
+          headerName: 'Activated/Repressed by condition',
+          width: 240,
+          sortable: false,
+          valueGetter: () => '',
+          cellRenderer: stressRenderer(visibleSet.has(STRESS_UP), visibleSet.has(STRESS_DOWN))
         });
         return;
       }
 
       if (f === 'expr_max_tpm__attr_f') {
         cols.push({
-          colId: f, field: f, headerName, width, type: 'numericColumn',
+          colId: f, field: f, headerName: labelOf(f), width: WIDTHS[f] || 100, type: 'numericColumn',
           valueFormatter: p => fmtTpm(p.value),
           cellStyle: p => ({ background: tpmBackground(p.value, tpmRange) })
         });
@@ -186,29 +194,88 @@ const AttrTableViewCmp = props => {
       }
       if (f === 'expr_tau__attr_f') {
         cols.push({
-          colId: f, field: f, headerName, width, type: 'numericColumn',
+          colId: f, field: f, headerName: labelOf(f), width: WIDTHS[f] || 80, type: 'numericColumn',
           valueFormatter: p => (Number.isFinite(p.value) ? p.value.toFixed(3) : '')
-        });
-        return;
-      }
-      if (f === 'expr_activated_by__attr_ss' || f === 'expr_repressed_by__attr_ss') {
-        cols.push({
-          colId: f, field: f, headerName, width, sortable: false,
-          valueFormatter: () => '',
-          cellRenderer: chipRenderer(f === 'expr_activated_by__attr_ss' ? 'up' : 'down')
         });
         return;
       }
 
       cols.push({
-        colId: f, field: f, headerName, headerTooltip: f, width,
+        colId: f, field: f, headerName: labelOf(f), headerTooltip: f, width: WIDTHS[f] || 150,
         pinned: (f === 'id' || f === 'name') ? 'left' : undefined,
         valueFormatter: joinValues
       });
     });
 
     return cols;
-  }, [orderedFields, visibleSet, organs, tpmRange, fieldCatalogByName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleFields, visibleSet, organs, tpmRange, fieldCatalogByName]);
+
+  // Build the click-popover for a cell: a title (the column meaning) and one
+  // filterable item per value. Each item carries the fq_field / fq_value the
+  // "add filter" button hands to doAcceptGrameneSuggestion.
+  const buildCellPopover = (colId, data) => {
+    if (!data) return null;
+    const mk = (text, fqField, fqValue, category, name) => ({ text, fqField, fqValue, category, name: name || text });
+
+    if (colId === 'id') {
+      return { title: 'Gene ID', items: [mk(data.id, 'id', data.id, 'Gene', data.id)] };
+    }
+    if (colId === STRESS_COL) {
+      const items = [];
+      (data[STRESS_UP] || []).forEach(c => items.push(mk('↑ ' + c, STRESS_UP, c, 'Activated by', 'activated by ' + c)));
+      (data[STRESS_DOWN] || []).forEach(c => items.push(mk('↓ ' + c, STRESS_DOWN, c, 'Repressed by', 'repressed by ' + c)));
+      return { title: 'Activated/Repressed by condition', items };
+    }
+    if (colId.startsWith('organ_')) {
+      const organ = colId.slice(6);
+      const lvl = data._organ && data._organ[organ];
+      if (!lvl) return { title: 'Expression level by organ', items: [] };
+      const label = `${organLabel(organ)}: ${LEVEL_LABEL[lvl] || lvl}`;
+      return { title: 'Expression level by organ', items: [mk(label, ORGAN_FIELD, `${organ}:${lvl}`, 'Expression', label)] };
+    }
+    if (colId === 'expr_max_tpm__attr_f') {
+      const v = data.expr_max_tpm__attr_f;
+      if (!Number.isFinite(+v)) return { title: labelOf(colId), items: [] };
+      return { title: labelOf(colId), items: [mk(`≥ ${fmtTpm(+v)} TPM`, colId, `[${v} TO *]`, 'Max TPM', `Max TPM ≥ ${fmtTpm(+v)}`)] };
+    }
+    if (colId === 'expr_tau__attr_f') {
+      const v = data.expr_tau__attr_f;
+      if (!Number.isFinite(+v)) return { title: labelOf(colId), items: [] };
+      return { title: labelOf(colId), items: [mk(`≥ ${(+v).toFixed(3)}`, colId, `[${v} TO *]`, 'Tau', `tau ≥ ${(+v).toFixed(3)}`)] };
+    }
+    // Generic (Expression class, and any core / added attribute).
+    const label = labelOf(colId);
+    const raw = data[colId];
+    const vals = Array.isArray(raw) ? raw : (raw != null && raw !== '' ? [raw] : []);
+    return { title: label, items: vals.map(v => mk(String(v).replace(/_/g, ' '), colId, v, label, String(v).replace(/_/g, ' '))) };
+  };
+
+  const onCellClicked = e => {
+    const desc = buildCellPopover(e.column.getColId(), e.data);
+    if (!desc || !desc.items.length) { setPopover(null); return; }
+    const ev = e.event || {};
+    setPopover({ x: ev.clientX || 0, y: ev.clientY || 0, title: desc.title, items: desc.items });
+  };
+
+  const addFilter = it => {
+    doAcceptGrameneSuggestion({ fq_field: it.fqField, fq_value: it.fqValue, name: it.name, category: it.category });
+    setPopover(null);
+  };
+
+  // Close the popover on outside-click or Escape. Registered after the opening
+  // click, so that click can't immediately dismiss it.
+  useEffect(() => {
+    if (!popover) return;
+    const onDown = e => { if (popRef.current && !popRef.current.contains(e.target)) setPopover(null); };
+    const onKey = e => { if (e.key === 'Escape') setPopover(null); };
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [popover]);
 
   const shown = rows.length;
   const loading = status === 'loading';
@@ -286,7 +353,28 @@ const AttrTableViewCmp = props => {
             tooltipShowDelay={300}
             rowHeight={22}
             headerHeight={organShown ? 92 : 28}
+            onCellClicked={onCellClicked}
           />
+        </div>
+      )}
+
+      {popover && (
+        <div
+          ref={popRef}
+          className="attrtable-popover"
+          style={{
+            left: Math.min(popover.x, window.innerWidth - 280),
+            top: Math.min(popover.y, window.innerHeight - 32 - popover.items.length * 30)
+          }}
+        >
+          <div className="attrtable-popover-title">{popover.title}</div>
+          {popover.items.map((it, i) => (
+            <div key={i} className="attrtable-popover-row">
+              <span className="attrtable-popover-val">{it.text}</span>
+              <button type="button" className="btn btn-sm btn-outline-primary attrtable-popover-btn"
+                      onClick={() => addFilter(it)}>add filter</button>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -300,5 +388,6 @@ export default connect(
   'doToggleAttrTableField',
   'doBulkSetAttrTableFields',
   'doResetAttrTableFields',
+  'doAcceptGrameneSuggestion',
   AttrTableViewCmp
 );
