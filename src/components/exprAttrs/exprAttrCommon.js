@@ -37,10 +37,10 @@ export const LEVEL_LABEL = {
 // Rank for sorting an organ column by severity rather than alphabetically.
 export const LEVEL_RANK = LEVEL_ORDER.reduce((m, l, i) => { m[l] = i; return m; }, {});
 
-// Stress chips: activated (induced) = warm, repressed = cool.
+// Stress chips: activated (induced) = cool, repressed = warm.
 export const STRESS = {
-  up: { bg: '#fdecea', fg: '#c0392b' },
-  down: { bg: '#eaf2fb', fg: '#2e6fae' },
+  up: { bg: '#eaf2fb', fg: '#2e6fae' },
+  down: { bg: '#fdecea', fg: '#c0392b' },
 };
 export const MARKER = '#d35400'; // specific-to dot / enhanced-in outline
 
