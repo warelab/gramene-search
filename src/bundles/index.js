@@ -8,10 +8,11 @@ import exporterBundle from './exporter'
 import ontologiesBundle from './ontologies'
 import exprVizBundle from './exprViz'
 import attrTableBundle from './attrTable'
+import facetCountsBundle from './facetCounts'
 import ontologyEnrichmentBundle from './ontologyEnrichment'
 import uiViewStateBundle from './uiViewState'
 import taxTreeViewBundle from './taxTreeView'
 import viewSnapshotBundle from './viewSnapshot'
 import savedViewsBundle from './savedViews'
 
-export default [...apiBundles, docsBundle, filterBundle, viewsBundle, genomesBundle, fieldCatalogBundle, exporterBundle, ontologiesBundle, exprVizBundle, attrTableBundle, ontologyEnrichmentBundle, uiViewStateBundle, taxTreeViewBundle, viewSnapshotBundle, savedViewsBundle];
+export default [...apiBundles, docsBundle, filterBundle, viewsBundle, genomesBundle, fieldCatalogBundle, exporterBundle, ontologiesBundle, exprVizBundle, attrTableBundle, facetCountsBundle, ontologyEnrichmentBundle, uiViewStateBundle, taxTreeViewBundle, viewSnapshotBundle, savedViewsBundle];

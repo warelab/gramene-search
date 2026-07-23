@@ -16,6 +16,7 @@ import ExprVizView from './exprViz/ExprVizView'
 import AttrTableView from './attrTable/AttrTableView'
 import OntologyEnrichment from './results/OntologyEnrichment'
 import TaxDistTbrowse from './results/TaxDistTbrowse'
+import Facets from './facets/FacetCounts'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
@@ -283,4 +284,4 @@ const Views = connect(
   ViewsCmp
 );
 
-export {Status, Filters, Results, Views, Auth};
+export {Status, Filters, Facets, Results, Views, Auth};

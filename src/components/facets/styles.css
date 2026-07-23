@@ -1,0 +1,95 @@
+/* Sidebar "Refine" section: facet-count groups. Lives inside .sidebar-section-body
+ * (pale-yellow), so text/controls are tuned for that background. */
+
+.facet-group {
+    margin-bottom: 3px;
+}
+
+.facet-group-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 2px 2px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: #5a3a1a;
+    user-select: none;
+}
+.facet-group-header:hover {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 3px;
+}
+
+.facet-group-caret {
+    display: inline-flex;
+    font-size: 0.68rem;
+}
+
+.facet-group-title {
+    flex: 1;
+}
+
+/* count of distinct values in the group (not a click target) */
+.facet-group-nvals {
+    color: #8a6d3b;
+    font-weight: 400;
+    font-size: 0.7rem;
+}
+
+.facet-group-body {
+    padding: 0 2px 2px 14px;
+}
+
+.facet-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 0;
+    font-size: 0.8rem;
+}
+
+/* selectable label; ellipsis when a TF-family name is long */
+.facet-val {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #333;
+}
+
+/* the clickable count — adds the field:value filter */
+.facet-count {
+    flex: 0 0 auto;
+    border: none;
+    background: #e7d27a;
+    color: #5a3a1a;
+    border-radius: 3px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+.facet-count:hover {
+    background: #a03e34;
+    color: #fff;
+}
+
+.facet-more {
+    border: none;
+    background: none;
+    color: #a03e34;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 2px 0 2px 0;
+    text-decoration: underline;
+}
+
+.facet-status,
+.facet-empty {
+    font-size: 0.78rem;
+    color: #8a6d3b;
+    font-style: italic;
+    padding: 2px;
+}

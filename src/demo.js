@@ -8,7 +8,7 @@ import { getConfiguredCache } from 'money-clip';
 import { DebounceInput } from 'react-debounce-input'
 import ReactGA from 'react-ga4'
 import { Alert, Navbar, Nav, NavDropdown, Tab, Row, Col } from 'react-bootstrap'
-import { Status, Filters, Results, Views, Auth } from './components/geneSearchUI';
+import { Status, Filters, Facets, Results, Views, Auth } from './components/geneSearchUI';
 import GrameneSuggestions from './components/suggestions';
 import HelpModal from './components/HelpModal';
 import bundles from './bundles';
@@ -338,6 +338,7 @@ const GeneSearchUI = (store) => (
       <div className="col-12 col-md-2 no-padding">
         <Status/>
         <Filters/>
+        <Facets/>
         <Views/>
       </div>
       <div className="col-12 col-md-10 no-padding">
@@ -351,6 +352,7 @@ const SearchViewsCmp = props => (
       <div className={props.configuration.id === 'sorghum' ? 'sorghumbase-sidebar' : 'gramene-sidebar'}>
         <Status/>
         <Filters/>
+        <Facets/>
         {props.configuration.showViews && <Views/>}
         <Auth/>
       </div>
