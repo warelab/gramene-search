@@ -229,12 +229,13 @@ const ResultsCmp = props => {
         const divRef = useRef(null);
         useEffect(() => {
           if (v.shouldScroll) {
-            const navBarHeight=0;
-            const scrollPosition = divRef.current.offsetTop - navBarHeight;
-            window.scrollTo({
-              top: scrollPosition,
-              behavior: 'smooth'
-            })
+            // scrollIntoView scrolls whichever ancestor is scrollable — the
+            // window on most layouts, or the results pane when the sidebar and
+            // results scroll independently (e.g. the sorghumbase app shell).
+            // window.scrollTo would be a no-op in that pane-scroll case.
+            if (divRef.current) {
+              divRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
             props.doCancelShouldScroll();
           }
         }, [v.shouldScroll]);
