@@ -1,4 +1,4 @@
-// Shared vocabulary and helpers for the sorghum_v11 per-gene expression
+// Shared vocabulary and helpers for the sorghum_v10b per-gene expression
 // attributes (`expr_*__attr_*`). Used by both the Homology tbrowse Expression
 // zone (results/details/exprAttrsZone.js) and the Attribute table view
 // (attrTable/AttrTableView.js) so organ ordering and the ordinal level colors
