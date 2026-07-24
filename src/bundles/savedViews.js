@@ -95,7 +95,7 @@ const savedViews = {
           },
           body: JSON.stringify({...meta, state: snapshot})
         });
-        if (!res.ok) throw new Error(`Save failed (${res.status})`);
+        if (!res.ok) throw savedViewsError('Save', res.status);
       }
 
       const shareUrl = buildShareUrl(hash);
@@ -127,7 +127,7 @@ const savedViews = {
         const res = await fetch(`${api}/saved_views?hash=${encodeURIComponent(hash)}`, {headers});
         if (res.status === 401) throw new Error('Sign in to load this private view.');
         if (res.status === 404) throw new Error('Saved view not found (it may have been deleted).');
-        if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
+        if (!res.ok) throw savedViewsError('Fetch', res.status);
         row = await res.json();
       }
       const out = {
@@ -167,7 +167,7 @@ const savedViews = {
         }
         const url = `${api}/saved_views?site=${encodeURIComponent(site)}&isPublic=${scope === 'public'}`;
         const res = await fetch(url, {headers});
-        if (!res.ok) throw new Error(`List failed (${res.status})`);
+        if (!res.ok) throw savedViewsError('List', res.status);
         rows = await res.json();
       }
       dispatch({type: 'SAVED_VIEW_LIST_RECEIVED', payload: {kind: scope, rows}});
@@ -196,7 +196,7 @@ const savedViews = {
       headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
       body: JSON.stringify(updates)
     });
-    if (!res.ok) throw new Error(`Update failed (${res.status})`);
+    if (!res.ok) throw savedViewsError('Update', res.status);
     return res.json();
   },
 
@@ -212,7 +212,7 @@ const savedViews = {
       method: 'DELETE',
       headers: {Authorization: `Bearer ${token}`}
     });
-    if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+    if (!res.ok) throw savedViewsError('Delete', res.status);
     return res.json();
   },
 
@@ -228,6 +228,14 @@ const savedViews = {
 };
 
 // ── helpers ─────────────────────────────────────────────────────────────
+
+// A 405 on any saved_views call means the API route isn't deployed on this
+// backend — the request falls through to the read-only /{collection} handler.
+// Surface that as a clear, non-alarming message rather than a raw status code.
+function savedViewsError(action, status) {
+  if (status === 405) return new Error('Saved views are not available on this server yet.');
+  return new Error(`${action} failed (${status})`);
+}
 
 // Test/dev: either set the runtime-only flag (`window.__SAVED_VIEWS_MOCK__ = true`,
 // cleared on reload), or persist via localStorage (`localStorage.setItem(
