@@ -451,6 +451,16 @@ grameneFilters.reactGrameneFilters = createSelector(
   'selectUrlObject',
   (queryObject, filters, genomes, myUrl) => {
     if (filters.status === 'init') {
+      // A shared-view link (?view=<hash>) is restored asynchronously by
+      // bootViewFromUrl once the snapshot (and, for private views, the auth
+      // token) has loaded. Do nothing here: clearing filters + running an
+      // unfiltered search would race the restore and leave the restored filter
+      // in the tree but never applied to the search (the stale unfiltered
+      // result stays put). Staying 'init' means the first — and only — search
+      // is the one the snapshot triggers, with the filter in place.
+      if (queryObject.hasOwnProperty('view')) {
+        return;
+      }
       if (queryObject.filters) {
         const newFilters = JSON.parse(queryObject.filters);
         let actions = [
