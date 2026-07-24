@@ -229,12 +229,26 @@ const ResultsCmp = props => {
         const divRef = useRef(null);
         useEffect(() => {
           if (v.shouldScroll) {
-            // scrollIntoView scrolls whichever ancestor is scrollable — the
-            // window on most layouts, or the results pane when the sidebar and
-            // results scroll independently (e.g. the sorghumbase app shell).
-            // window.scrollTo would be a no-op in that pane-scroll case.
-            if (divRef.current) {
-              divRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const el = divRef.current;
+            if (el) {
+              // Scroll ONLY the results' own scroll container to this view. The
+              // sidebar and results scroll independently in the sorghumbase app
+              // shell, and el.scrollIntoView can walk every scrollable ancestor
+              // (nudging the sidebar too), so instead find the results pane and
+              // scroll just that. Fall back to the window when the results
+              // aren't in a dedicated scroll pane (other layouts / mobile).
+              let pane = el.parentElement;
+              while (pane) {
+                const oy = window.getComputedStyle(pane).overflowY;
+                if ((oy === 'auto' || oy === 'scroll') && pane.scrollHeight > pane.clientHeight) break;
+                pane = pane.parentElement;
+              }
+              if (pane) {
+                const top = el.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
+                pane.scrollTo({ top, behavior: 'smooth' });
+              } else {
+                window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' });
+              }
             }
             props.doCancelShouldScroll();
           }
