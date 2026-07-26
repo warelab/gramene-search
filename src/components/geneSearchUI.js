@@ -254,7 +254,10 @@ const ResultsCmp = props => {
           }
         }, [v.shouldScroll]);
         return (
-          <div key={idx} ref={divRef}>
+          // data-tour-view lets a host app address one view's section of the
+          // results column without relying on its position or header text —
+          // e.g. to anchor a product tour, or mount extra content into a view.
+          <div key={idx} ref={divRef} data-tour-view={v.id}>
             {v.show === 'on' && <div style={{borderTopWidth:'medium'}} className='gramene-view-header'>{v.name}</div>}
             {v.show === 'on' && React.createElement(inventory[v.id], p)}
           </div>
