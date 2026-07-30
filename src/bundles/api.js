@@ -119,7 +119,8 @@ const grameneTaxonomy = createAsyncResourceBundle({
   staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/taxonomy?subset=gramene&rows=-1`)
-      .then(res => res.json())
+      .then(res => okJson(res, 'taxonomy'))
+      .then(rows => nonEmptyList(rows, 'taxonomy'))
       .then(taxNodes => {
         let taxonomy = _.keyBy(taxNodes, '_id');
         taxNodes.forEach(t => {
@@ -145,6 +146,25 @@ grameneTaxonomy.reactGrameneTaxonomy = createSelector(
     }
   }
 );
+// A proxy hiccup can answer with a non-2xx status, or with 200 and an empty
+// list, and `res.json()` happily parses both. createAsyncResourceBundle would
+// then record a *success* with empty data and stamp lastSuccess, so with
+// staleAfter of 24h the client keeps believing it has genomes/taxonomy for a
+// whole day. Downstream that surfaces as "No genome found for {}" and a hard
+// "Bin count mismatch!" from gramene-bins-client. Throwing instead lets the
+// bundle record an error and retry.
+function okJson(res, what) {
+  if (!res.ok) throw new Error(`${what} failed (${res.status})`);
+  return res.json();
+}
+
+function nonEmptyList(rows, what) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(`${what} returned no rows`);
+  }
+  return rows;
+}
+
 const grameneMaps = createAsyncResourceBundle({
   name: 'grameneMaps',
   actionBaseType: 'GRAMENE_MAPS',
@@ -152,7 +172,8 @@ const grameneMaps = createAsyncResourceBundle({
   staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
     return fetch(`${store.selectGrameneAPI()}/maps?rows=-1`)
-      .then(res => res.json())
+      .then(res => okJson(res, 'maps'))
+      .then(rows => nonEmptyList(rows, 'maps'))
       .then(maps => {
         maps.forEach(m => {
           m.regionLength = {};
@@ -467,7 +488,11 @@ const grameneTaxDist = {
         && grameneSearch.facet_counts
         && grameneSearch.facet_counts.facet_fields
         && grameneSearch.facet_counts.facet_fields.fixed_1000__bin;
-      if (binFacet && grameneTaxonomy && grameneMaps) {
+      // Object.keys guards matter here: an empty {} is truthy, and building the
+      // bin mapper from one throws "Bin count mismatch!" and takes the page down.
+      if (binFacet
+        && grameneTaxonomy && Object.keys(grameneTaxonomy).length
+        && grameneMaps && Object.keys(grameneMaps).length) {
         _.forIn(grameneMaps, (map, tid) => {
           if (grameneTaxonomy[tid]) grameneTaxonomy[tid].name = map.display_name;
         });
