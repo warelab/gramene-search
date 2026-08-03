@@ -92,8 +92,14 @@ const Detail = props => {
     }
   }, [props.expressionStudies]);
 
+  // Which Expression Atlas instance the embedded widget should query. The
+  // widget falls back to its own default when `atlasUrl` is absent, so sites
+  // that don't configure one are unaffected — only pass it when set.
+  const atlasUrl = (props.configuration && props.configuration.atlasUrl) || null;
+  const atlasParam = atlasUrl ? `&atlasUrl=${encodeURIComponent(atlasUrl)}` : '';
+
   let paralogs_url;
-  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}`;
+  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}${atlasParam}`;
   let paralogs = [];
   const haveParalogs = props.grameneParalogs && props.grameneParalogs[gene._id];
   if (haveParalogs) {
@@ -108,7 +114,7 @@ const Detail = props => {
   //   paralogs = gene.homology.homologous_genes.within_species_paralog;
   // }
   if (paralogs.length > 0 && atlasExperiment) {
-    paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}`;
+    paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}${atlasParam}`;
   }
   return <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
     {paralogs_url &&
@@ -145,6 +151,7 @@ const Detail = props => {
 };
 
 export default connect(
+  'selectConfiguration',
   'selectGrameneParalogs',
   'selectExpressionStudies',
   'selectUiViewState',
