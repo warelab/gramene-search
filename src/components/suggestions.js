@@ -24,19 +24,34 @@ function logAction(sugg) {
     label: sugg.name
   })
 }
+// The species label under a suggestion. Returns '' rather than throwing when the
+// taxonomy can't explain a taxon: this runs during render, so anything thrown here
+// takes down the whole suggestions panel and the search box looks broken.
+//
+// That is not hypothetical. `grameneTaxonomy` is persisted with a 24h staleAfter, so
+// after a data release adds genomes — v11 added 4558118/4558119/4558120 — every
+// browser still holding the previous release's taxonomy has suggestions referencing
+// taxa it has never heard of. Broad queries ("kinase", "sb") hit all three.
 function getLowestCommonAncestorName(tids, taxonomy) {
+  if (!Array.isArray(tids) || !taxonomy) return '';
   let lca;
   tids.forEach(tid => {
+    const node = taxonomy[tid];
+    if (!node || !Array.isArray(node.ancestors)) return; // unknown taxon: ignore it
     if (!lca) {
-      lca = [...taxonomy[tid].ancestors];
+      lca = [...node.ancestors];
     } else {
-      let ancestors = new Set(taxonomy[tid].ancestors);
-      while (!ancestors.has(lca[0])) {
+      let ancestors = new Set(node.ancestors);
+      // `lca.length &&` matters: with no ancestor in common this shifted an empty
+      // array forever, since ancestors.has(undefined) is never true.
+      while (lca.length && !ancestors.has(lca[0])) {
         lca.shift();
       }
     }
   });
-  return taxonomy[lca[0]].short_name;
+  if (!lca || !lca.length) return '';
+  const root = taxonomy[lca[0]];
+  return root ? root.short_name : '';
 }
 
 const TryPan = (props) => {
