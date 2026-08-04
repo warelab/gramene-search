@@ -246,6 +246,7 @@ const TaxDistTbrowse = (props) => {
           showHeader={true}
           rowHeight={14}
           fontSize={10}
+          densityControls={true}
           autoHeight={true}
           defaultOpenSections={{ search: true, zones: true }}
           headerActions={headerActions}

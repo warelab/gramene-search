@@ -442,6 +442,7 @@ class Homology extends React.Component {
             nodeOfInterest={this.gene._id}
             viewState={effectiveVS}
             onViewStateChange={onViewStateChange}
+            densityControls={true}
             defaultOpenSections={{ zones: true, search: true }}
             zoneStatus={zoneStatus}
           />
