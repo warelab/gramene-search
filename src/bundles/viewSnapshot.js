@@ -47,12 +47,12 @@ const SCHEMA_VERSION = 1;
 // status flags from the root, etc.) is ephemeral UI and not meaningful in a
 // shared view.
 const FILTER_NODE_KEEP = [
-  'leftIdx', 'rightIdx', 'operation', 'negate',
+  'leftIdx', 'rightIdx', 'operation', 'negate', 'expand',
   'fq_field', 'fq_value', 'name', 'category',
   'warning'
 ];
 const FILTER_ROOT_KEEP = [
-  'operation', 'negate', 'leftIdx', 'rightIdx',
+  'operation', 'negate', 'expand', 'leftIdx', 'rightIdx',
   'children', 'searchOffset', 'rows'
 ];
 

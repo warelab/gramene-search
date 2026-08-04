@@ -17,6 +17,7 @@ import AttrTableView from './attrTable/AttrTableView'
 import OntologyEnrichment from './results/OntologyEnrichment'
 import TaxDistTbrowse from './results/TaxDistTbrowse'
 import Facets from './facets/FacetCounts'
+import { EXPANSIONS, expansionType, expansionLabel, safeClassName } from '../bundles/filters'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
@@ -116,7 +117,12 @@ function logAction(action) {
 const Filter = ({node,moveCopyMode,showMarked,actions}) => {
   let classes = 'gramene-filter gramene-filter';
   if (node.operation) {
-    classes = `${classes}-${node.operation}`
+    classes = `${classes}-${safeClassName(node.operation)}`
+  }
+  // An expansion decorates whatever node it sits on, leaf or group — same as negate.
+  const expType = expansionType(node);
+  if (expType) {
+    classes = `${classes} gramene-filter-EXPAND gramene-filter-EXPAND-${safeClassName(expType)}`
   }
   if (node.negate) {
     classes = `${classes} gramene-filter-NOT`
@@ -134,6 +140,28 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
     if (node.hasOwnProperty('operation')) {
       menuItems.push(<li key={key++} onClick={()=>{logAction(`Change to ${node.operation}`); actions.changeOperation(node)}}>convert to <i>{node.operation === 'AND' ? 'OR' : 'AND'}</i></li>);
     }
+    // A node carries at most one expansion, so the types are radios rather than
+    // separate commands. Any node can carry one, leaf or group — attaching it to a
+    // group means "expand whatever this group matches".
+    menuItems.push(
+      <li key={key++} className='gramene-filter-menu-label'>expand filter(s)</li>
+    );
+    Object.keys(EXPANSIONS).forEach(type => {
+      const checked = expType === type;
+      menuItems.push(
+        <li key={key++} className='gramene-filter-menu-radio'
+            onClick={()=>{
+              // Re-picking the active type clears it — the only way to remove an
+              // expansion from the root, which has no `delete`.
+              if (checked) { logAction(`Remove expansion`); actions.removeExpansion(node); }
+              else { logAction(`Expand by ${type}`); actions.expand(node, type); }
+            }}>
+          <input type='radio' readOnly checked={checked} onChange={()=>{}}
+                 name={`gramene-expand-${node.leftIdx}`}/>
+          {EXPANSIONS[type].label}
+        </li>
+      );
+    });
     if (node.leftIdx > 0) {
       menuItems.push(<li key={key++} onClick={()=>{logAction(`Delete filter`); actions.deleteNode(node)}}>delete</li>);
       menuItems.push(<li key={key++} onClick={()=>{logAction(`Move filter`); actions.markTargets(node,'move')}}>move{node.isSource && ' select destination'}</li>);
@@ -154,10 +182,17 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
       <OverlayTrigger placement="auto" overlay={popover}><span style={{float:'right', color:'red', cursor:'pointer'}}><IoAlertCircle/></span></OverlayTrigger>
     )
   }
+  // Shown above the node's own label, since the expansion applies to whatever that
+  // node resolves to rather than replacing it.
+  const expBadge = expType
+    ? <span className='gramene-filter-expansion'
+            onClick={()=>actions.toggleMenu(node)}>{expansionLabel(node)}</span>
+    : null;
   if (node.operation) {
     children = node.children.map((child,idx) => <Filter key={idx} moveCopyMode={moveCopyMode} node={child} showMarked={showMarked} actions={actions}/>);
     content = (
       <div>
+        {expBadge}
         <span className='gramene-filter-operation'
               onClick={()=>actions.toggleMenu(node)}>{node.operation}</span>
         {warning}
@@ -165,8 +200,13 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
     );
   }
   else {
-    content = <span className='gramene-filter-text'
-                    onClick={()=>actions.toggleMenu(node)}>{node.category} |&nbsp;{node.name}</span>;
+    content = (
+      <>
+        {expBadge}
+        <span className='gramene-filter-text'
+              onClick={()=>actions.toggleMenu(node)}>{node.category} |&nbsp;{node.name}</span>
+      </>
+    );
   }
   return (
     <div key={node.leftIdx} className={classes} onClick={(e)=>handleClick(e,moveCopyMode, showMarked,node,actions)}>
@@ -180,6 +220,8 @@ const FiltersCmp = props => {
     negate: props.doNegateGrameneFilter,
     deleteNode: props.doDeleteGrameneFilter,
     changeOperation: props.doChangeGrameneFilterOperation,
+    expand: props.doExpandGrameneFilter,
+    removeExpansion: props.doRemoveGrameneExpansion,
     selectTarget: props.doMoveOrCopyGrameneFilter,
     markTargets: props.doMarkGrameneFilterTargets,
     unmarkTargets: props.doUnmarkGrameneFilterTargets,
@@ -212,6 +254,8 @@ const Filters = connect(
   'doNegateGrameneFilter',
   'doDeleteGrameneFilter',
   'doChangeGrameneFilterOperation',
+  'doExpandGrameneFilter',
+  'doRemoveGrameneExpansion',
   'doMoveOrCopyGrameneFilter',
   'doMarkGrameneFilterTargets',
   'doUnmarkGrameneFilterTargets',

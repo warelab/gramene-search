@@ -63,6 +63,18 @@
 .gramene-filter-OR {
     background-color: #c5eeb9;
 }
+/* An expansion decorates a node rather than being one, so it tints whatever node
+   carries it — leaf or group — the way .gramene-filter-NOT adds a border. */
+.gramene-filter-EXPAND {
+    background-color: #c3dcf5;
+}
+.gramene-filter-expansion {
+    display: block;
+    text-align: center;
+    font-style: italic;
+    font-size: 0.8rem;
+    color: #1c4f80;
+}
 .gramene-filter-NOT {
     border-left-color: #ff5354;
     border-left-style: inset;
@@ -89,6 +101,25 @@
 }
 .gramene-filter-menu li:hover {
     background-color: #feff96;
+}
+/* Group heading for the expansion radios — a label, not a command. */
+.gramene-filter-menu li.gramene-filter-menu-label {
+    cursor: default;
+    font-weight: bold;
+    padding-bottom: 2px;
+}
+.gramene-filter-menu li.gramene-filter-menu-label:hover {
+    background-color: transparent;
+}
+.gramene-filter-menu li.gramene-filter-menu-radio {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 25px;
+}
+.gramene-filter-menu li.gramene-filter-menu-radio input {
+    margin-right: 6px;
+    vertical-align: middle;
+    cursor: pointer;
 }
 
 .gramene-view-header {

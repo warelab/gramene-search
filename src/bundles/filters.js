@@ -30,6 +30,73 @@ function markSubtree(node, source, invert) {
   }
 }
 
+// "Expansions" grow the result set along a biological relationship instead of
+// combining filters: the node's own result is the seed, and it resolves to that seed
+// plus everything reachable from it (returnRoot=true).
+//
+// `expand` is added to the allowlists in bundles/viewSnapshot.js so it survives a
+// saved view. That does not disturb existing share hashes — cleanFilterNode copies
+// only keys that are present, and canonicalize skips undefined, so a node without an
+// expansion serialises exactly as it did before.
+export const EXPANSIONS = {
+  orthologs: {
+    label: 'orthologs',
+    // Edge fields: a seed gene's homology__all_orthologs values are the ids of its
+    // orthologs. Same field already queried directly in bundles/api.js.
+    from: 'homology__all_orthologs',
+    to: 'id'
+  },
+  paralogs: {
+    label: 'paralogs',
+    // Within-species, so this stays inside the seed's own genome — a much smaller
+    // expansion than orthologs (11 vs 70 for msd2).
+    from: 'homology__within_species_paralog',
+    to: 'id'
+  }
+};
+
+// An expansion is a *property* of a node — `node.expand = 'orthologs'` — in exactly
+// the way `node.negate` is, not a node of its own. The node combines its children
+// with its own AND/OR as usual and the expansion then applies to that result, so the
+// tree shape never changes. That keeps the insert actions, move/copy and delete
+// working untouched, makes "remove the expansion" a field delete, and means where
+// you attach it is what determines its scope.
+export function expansionType(node) {
+  const type = node && node.expand;
+  return (typeof type === 'string' && type) ? type : null;
+}
+
+// Node tokens are rendered into CSS class names, and a hand-edited ?filters= payload
+// can put anything there.
+export function safeClassName(token) {
+  return String(token).replace(/[^A-Za-z0-9_-]/g, '-');
+}
+
+// Escape an already-emitted subquery for embedding in a quoted `_query_` value.
+// Backslash FIRST, then quote — the order matters, or the backslashes added for the
+// quotes get doubled again.
+//
+// Apply exactly ONCE per level of nesting. Because getQuery is recursive and each
+// expansion node escapes its child's already-emitted string, nesting composes on its
+// own: a phrase quote is \" one level down and \\\" two levels down. Do not try to
+// pre-escape leaves or track depth explicitly — that breaks the composition.
+//
+// Escaping the backslash is not cosmetic. getQuery emits `\:` for colon-bearing
+// values (see the idWithColon/isQuery branches below); leaving those single-escaped
+// inside the quoted value lets Solr's inner parser un-escape the colon, and the query
+// silently degenerates to the entire index (verified: 5,407,132 rows instead of
+// 789,630, HTTP 200, no error).
+export function escapeForQuery(subquery) {
+  return String(subquery).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+export function expansionLabel(node) {
+  const type = expansionType(node);
+  if (!type) return null;
+  const spec = EXPANSIONS[type];
+  return `EXPAND: ${spec ? spec.label : type}`;
+}
+
 function reindexTree(node, idx) {
   node.leftIdx = idx;
   idx++;
@@ -166,11 +233,34 @@ const grameneFilters = {
               searchOffset: 0
             });
             let node = findNodeWithLeftIdx(newState, payload.leftIdx);
-            node.operation = node.operation === 'AND' ? 'OR' : 'AND';
+            // Set an explicit operation when one is supplied; otherwise keep the
+            // historical AND<->OR flip for callers that just pass the node.
+            node.operation = payload.newOperation
+              ? payload.newOperation
+              : (node.operation === 'AND' ? 'OR' : 'AND');
             markSubtree(newState, node, false);
             return newState;
           }
           break;
+        }
+        case 'GRAMENE_FILTER_EXPANSION_SET': {
+          // Setting or clearing an expansion is just a field on the node — the tree
+          // shape is untouched, so there is nothing to reindex and no special case
+          // for the root. `payload.expand` of null/undefined removes it.
+          newState = Object.assign({}, state, {
+            status: 'search',
+            showMarked: true,
+            searchOffset: 0
+          });
+          let node = findNodeWithLeftIdx(newState, payload.leftIdx);
+          if (!node) break;
+          // Leave showMenu alone, as GRAMENE_FILTER_NEGATED does. The radios are a
+          // setting rather than a command, so the menu stays open and the selection
+          // updates in place — you can switch type or clear without reopening it.
+          if (payload.expand) node.expand = payload.expand;
+          else delete node.expand;
+          markSubtree(newState, node, false);
+          return newState;
         }
         case 'GRAMENE_FILTER_MOVED': {
           newState = Object.assign({}, state, {
@@ -307,6 +397,26 @@ const grameneFilters = {
       ]
     })
   },
+  // Expand a node (leaf or group) along a relationship, e.g. "orthologs of this".
+  doExpandGrameneFilter: (filter, type) => ({dispatch}) => {
+    dispatch({
+      type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_TAXONOMY_CLEARED'},
+        {type: 'GRAMENE_FILTER_EXPANSION_SET', payload: {leftIdx: filter.leftIdx, expand: type}}
+      ]
+    })
+  },
+  // Clear a node's expansion, leaving the node and its filters in place.
+  doRemoveGrameneExpansion: filter => ({dispatch}) => {
+    dispatch({
+      type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_TAXONOMY_CLEARED'},
+        {type: 'GRAMENE_FILTER_EXPANSION_SET', payload: {leftIdx: filter.leftIdx, expand: null}}
+      ]
+    })
+  },
   doMoveOrCopyGrameneFilter: (target) => ({dispatch, getState}) => {
     const state = getState();
     if (state.grameneFilters.moveCopyMode) {
@@ -386,25 +496,50 @@ const grameneFilters = {
     const isQuery = new RegExp(/\([a-zA-Z0-9_]+:[a-zA-Z0-9_]+\s/);
     const isRegionQuery = new RegExp(/^\(map:/);
     const idWithColon = new RegExp(/^[a-zA-Z0-9_]+:[a-zA-Z0-9_]+$/);
+    // The node's own clause, before negation and before any expansion.
+    function ownQuery(node) {
+      if (node.hasOwnProperty('children')) {
+        // Only AND and OR are valid infix operators. Anything else — a token from a
+        // newer client arriving via ?filters= or a saved view — would otherwise be
+        // interpolated raw and produce a Solr 400, which surfaces as blank results
+        // across every view rather than as an error.
+        const op = (node.operation === 'AND' || node.operation === 'OR') ? node.operation : 'OR';
+        const kids = Array.isArray(node.children) ? node.children : [];
+        return `(${kids.map(c => getQuery(c)).sort().join(` ${op} `)})`;
+      }
+      // this node is a suggestion
+      if (node.fq_field === 'location' && isRegionQuery.test(node.fq_value))
+        return `${node.fq_value}`
+      if (isQuery.test(node.fq_value))
+        return `${node.fq_value.replace(/:/g,'\\:')}`;
+      if (hasSpaces.test(node.fq_value))
+        return `${node.fq_field}:"${node.fq_value}"`;
+      else if (idWithColon.test(node.fq_value))
+        return `${node.fq_field}:${node.fq_value.replace(/:/g,'\\:')}`;
+      else
+        return `${node.fq_field}:${node.fq_value}`
+    }
     function getQuery(node) {
       const negate = node.negate ? 'NOT ' : '';
-      if (node.hasOwnProperty('children')) {
-        // do some recursion
-        return `${negate}(${node.children.map(c => getQuery(c)).sort().join(` ${node.operation} `)})`
-      }
-      else {
-        // this node is a suggestion
-        if (node.fq_field === 'location' && isRegionQuery.test(node.fq_value))
-          return `${negate}${node.fq_value}`
-        if (isQuery.test(node.fq_value))
-          return `${negate}${node.fq_value.replace(/:/g,'\\:')}`;
-        if (hasSpaces.test(node.fq_value))
-          return `${negate}${node.fq_field}:"${node.fq_value}"`;
-        else if (idWithColon.test(node.fq_value))
-          return `${negate}${node.fq_field}:${node.fq_value.replace(/:/g,'\\:')}`;
-        else
-          return `${negate}${node.fq_field}:${node.fq_value}`
-      }
+      const clause = ownQuery(node);
+      const expType = expansionType(node);
+      // No expansion on this node: unchanged from before.
+      if (!expType) return `${negate}${clause}`;
+      const spec = EXPANSIONS[expType];
+      // Unknown expansion type — e.g. a link shared from a newer client. Degrade to
+      // the un-expanded clause rather than emitting something broken.
+      if (!spec) return `${negate}${clause}`;
+      // An expansion of nothing must match nothing; '*:*' here would turn an empty
+      // group into "every gene in the index".
+      if (!clause || clause === '()') return `${negate}(*:* AND NOT *:*)`;
+      // The braces MUST stay inside a quoted `_query_` value. A bare `{!graph ...}`
+      // in `q` is unreliable and fails *silently* — observed returning 0 rows in
+      // some shapes and millions in others, always HTTP 200, depending on the seed
+      // and the endpoint in front of Solr. Don't factor `graph` out to module scope
+      // where it could be used somewhere that isn't wrapped this way.
+      const graph = `{!graph from=${spec.from} to=${spec.to} maxDepth=1 returnRoot=true}`;
+      // Negation applies to the expanded set: "NOT an ortholog of msd2".
+      return `${negate}(_query_:"${graph}${escapeForQuery(clause)}")`;
     }
     if (state.grameneFilters.rightIdx === 1) {
       return '*:*';
