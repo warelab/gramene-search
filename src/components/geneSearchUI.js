@@ -144,7 +144,7 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
     // separate commands. Any node can carry one, leaf or group — attaching it to a
     // group means "expand whatever this group matches".
     menuItems.push(
-      <li key={key++} className='gramene-filter-menu-label'>expand filter(s)</li>
+      <li key={key++} className='gramene-filter-menu-label'>expand search</li>
     );
     Object.keys(EXPANSIONS).forEach(type => {
       const checked = expType === type;

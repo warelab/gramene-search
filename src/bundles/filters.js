@@ -52,6 +52,17 @@ export const EXPANSIONS = {
     // expansion than orthologs (11 vs 70 for msd2).
     from: 'homology__within_species_paralog',
     to: 'id'
+  },
+  neighborhood: {
+    label: 'neighborhood (±10)',
+    // Same edge pair TBrowse walks for its neighborhood zone (see
+    // components/results/details/Homology.js). Unlike the homology fields these are
+    // numeric: a gene's compara_neighbors_10 lists the compara_idx values of the 10
+    // genes either side, matched against compara_idx_multi on the target. TBrowse
+    // omits returnRoot, which Solr defaults to true — the same as every expansion
+    // here — so a seed gene expands to 21: itself plus 20 neighbours.
+    from: 'compara_neighbors_10',
+    to: 'compara_idx_multi'
   }
 };
 
