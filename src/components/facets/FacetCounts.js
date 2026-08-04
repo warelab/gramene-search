@@ -27,7 +27,6 @@ const FacetGroup = ({ group, values, onAdd }) => {
       </div>
       {open && (
         <div className="facet-group-body">
-          {values.length === 0 && <div className="facet-empty">none in this result set</div>}
           {shown.map(({ value, count }) => {
             const label = labelFor(group, value);
             return (
@@ -92,9 +91,13 @@ const FacetsCmp = (props) => {
               <div className="facet-status">no categories for this result set</div>
             )}
             {hasData &&
-              FACET_GROUPS.map((g) => (
-                <FacetGroup key={g.field} group={g} values={groups[g.field] || []} onAdd={onAdd} />
-              ))}
+              FACET_GROUPS.map((g) => {
+                // A field with nothing in this result set is dropped rather than
+                // rendered as an empty group — an all-zero heading is noise.
+                const values = groups[g.field] || [];
+                if (values.length === 0) return null;
+                return <FacetGroup key={g.field} group={g} values={values} onAdd={onAdd} />;
+              })}
           </div>
         )}
       </div>

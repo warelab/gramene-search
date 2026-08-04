@@ -136,6 +136,9 @@ const facetCounts = {
           const vals = [];
           for (let i = 0; i < arr.length; i += 2) {
             if (hidden && hidden.has(arr[i])) continue;
+            // facet.mincount=1 already excludes empty buckets; belt and braces so
+            // a zero can never reach the sidebar if that param is ever relaxed.
+            if (!(arr[i + 1] > 0)) continue;
             vals.push({ value: arr[i], count: arr[i + 1] });
           }
           groups[f] = vals;
