@@ -269,10 +269,6 @@ class Gene extends React.Component {
     const panSite = this.props.config.panSite;
     const searchResult = this.props.searchResult;
     const taxName = this.props.taxName;
-    // let orthologs='';
-    // if (this.props.orthologs && this.props.orthologs.hasOwnProperty(searchResult.id)) {
-    //   orthologs = this.props.orthologs[searchResult.id].join(', ');
-    // }
     const numWordsInDescription = searchResult.description.split(' ').length;
     return (
       <div className="result-gene">
@@ -381,8 +377,6 @@ const GeneList = props => {
               taxName={props.grameneTaxonomy[g.taxon_id].name}
               geneDocs={props.grameneGenes}
               requestGene={props.doRequestGrameneGene}
-              requestOrthologs={props.doRequestOrthologs}
-              orthologs={props.grameneOrthologs}
               taxLut={props.grameneTaxonomy}
               expandedDetail={props.grameneSearch.response.numFound === 1 && g.can_show.homology ? 'homology' : null}
         />
@@ -398,10 +392,8 @@ export default connect(
   'selectGrameneSearch',
   'selectGrameneTaxonomy',
   'selectGrameneGenes',
-  'selectGrameneOrthologs',
   'selectGrameneSearchOffset',
   'selectGrameneSearchRows',
   'doRequestGrameneGene',
-  'doRequestOrthologs',
   'doRequestResultsPage',
   GeneList);

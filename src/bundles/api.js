@@ -194,6 +194,52 @@ grameneMaps.reactGrameneMaps = createSelector(
   }
 );
 
+/**
+ * The site's reference genome, derived from /maps rather than configured per site.
+ *
+ * `is_anchor` marks the reference genome of a species group and `anchor_taxon_id`
+ * is that group's bare species id. Note the two are deliberately different scales:
+ * an anchor's own taxon_id is genome-level (4558006) and never equals its
+ * anchor_taxon_id (4558), so the anchor is found by group, not by matching ids.
+ *
+ * A deployment is whichever group it carries the most genomes for — sorghum_v11
+ * has 120 of 128 genomes under 4558, whose anchor is 4558006 (Sb bicolor BTx623
+ * v3). Deriving it this way keeps every site correct across releases; the value
+ * that used to be configured had drifted to 4558001, a non-anchor wild relative
+ * (Sb verticilliflorum 353).
+ *
+ * Returns null in two cases callers must tolerate: before /maps has loaded, and
+ * on a release whose /maps carries no anchor fields at all — gramene main is like
+ * that today (114 genomes, not one with is_anchor), so that deployment simply has
+ * no reference genome rather than a wrong one.
+ *
+ * Verified across deployments: sorghum 4558006 (Sb bicolor BTx623 v3),
+ * oryza 39947013 and maize 4577003 (both Nipponbare / B73 v5). The genome-level
+ * id differs per release, which is the reason to resolve it rather than pin it.
+ */
+grameneMaps.selectTargetTaxonId = createSelector(
+  'selectGrameneMaps',
+  (grameneMaps) => {
+    if (!grameneMaps) return null;
+    const genomes = Object.values(grameneMaps);
+    if (!genomes.length) return null;
+    const perGroup = {};
+    genomes.forEach(g => {
+      if (!g || g.anchor_taxon_id === undefined || g.anchor_taxon_id === null) return;
+      const k = String(g.anchor_taxon_id);
+      perGroup[k] = (perGroup[k] || 0) + 1;
+    });
+    let group = null;
+    let best = -1;
+    Object.keys(perGroup).forEach(k => {
+      if (perGroup[k] > best) { best = perGroup[k]; group = k; }
+    });
+    if (group === null) return null;
+    const anchor = genomes.find(g => g && g.is_anchor && String(g.anchor_taxon_id) === group);
+    return anchor ? anchor.taxon_id : null;
+  }
+);
+
 const expressionStudies = createAsyncResourceBundle( {
   name: 'expressionStudies',
   actionBaseType: 'EXPRESSION_STUDIES',
@@ -509,47 +555,6 @@ const grameneTaxDist = {
   )
 };
 
-// this query will give the sorghum orthologs of AT1G01260
-// want to provide these on non-sorghum genes if available
-// http://data.gramene.org/search?q=homology__all_orthologs:AT1G01260&fq=taxon_id:4558&fl=id
-const grameneOrthologs = {
-  name: 'grameneOrthologs',
-  getReducer: () => {
-    const initialState = {};
-    return (state = initialState, {type, payload}) => {
-      let newState;
-      switch (type) {
-        case 'GRAMENE_ORTHOLOGS_REQUESTED':
-          if (!state.hasOwnProperty(payload)) {
-            newState = Object.assign({}, state);
-            newState[payload] = [];
-            return newState;
-          }
-          break;
-        case 'GRAMENE_ORTHOLOGS_RECEIVED':
-          return Object.assign({}, state, payload);
-      }
-      return state;
-    }
-  },
-  doRequestOrthologs: geneId => ({dispatch, store}) => {
-    const orthologs = store.selectGrameneOrthologs();
-    if (!orthologs.hasOwnProperty(geneId)) {
-      dispatch({type: 'GRAMENE_ORTHOLOGS_REQUESTED', payload: geneId});
-      const API = store.selectGrameneAPI();
-      const taxonId = store.selectTargetTaxonId();
-      fetch(`${API}/search?q=homology__all_orthologs:${geneId}&fq=taxon_id:${taxonId}&fl=id`)
-        .then(res => res.json())
-        .then(res => {
-          let newOrthologs = {};
-          newOrthologs[geneId] = res.response.docs.map(d => d.id);
-          dispatch({type: 'GRAMENE_ORTHOLOGS_RECEIVED', payload: newOrthologs})
-        })
-    }
-  },
-  selectGrameneOrthologs: state => state.grameneOrthologs
-};
-
 const grameneParalogs = {
   name: 'grameneParalogs',
   getReducer: () => {
@@ -643,4 +648,4 @@ const grameneParalogs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneGeneAttribs, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneOrthologs, grameneParalogs, grameneGermplasm, expressionSamples, expressionStudies];
+export default [grameneSuggestions, grameneSearch, grameneGeneAttribs, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneParalogs, grameneGermplasm, expressionSamples, expressionStudies];

@@ -54,7 +54,6 @@ const panSites = [
     ensemblRest: 'https://data.gramene.org/ensembl69',
     grameneData: 'https://data.gramene.org/v69',
     ga: 'G-ZTEQBFCRXZ',
-    targetTaxonId: 3702,
     alertText: 'Main site',
     showViews: true,
     details: {
@@ -98,7 +97,6 @@ const panSites = [
     ensemblSite: 'https://maize-pangenome-ensembl.gramene.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
     grameneData: 'https://data.gramene.org/maize_v5',
-    targetTaxonId: 4577,
     ga: "G-Y7ZYG1R8QT",
     showViews: true,
     noGRIN: true,
@@ -148,7 +146,6 @@ const panSites = [
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
     grameneData: 'https://data.sorghumbase.org/sorghum_v10b',
     ga: 'G-L5KXDCCZ16',
-    targetTaxonId: 4558001,
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
     partialCompara: true,
@@ -209,7 +206,6 @@ const panSites = [
       3702:'arabidopsis',
       4558:'sorghum'
     },
-    targetTaxonId: 29760020,
     alertText: 'Grapevine site',
     details: {
       sequences: true,
@@ -248,7 +244,6 @@ const panSites = [
     ensemblURL: 'https://oryza-ensembl.gramene.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
     grameneData: 'https://data.gramene.org/oryza_v9',
-    targetTaxonId: 3702,
     alertText: 'Rice site',
     showViews: true,
     details: {
@@ -320,7 +315,6 @@ const config = {
   selectGrameneAPI: state => state.config.grameneData,
   selectGrameneSwaggerURL: state => state.config.grameneSwagger || (state.config.grameneData + '/swagger'),
   selectEnsemblAPI: state => state.config.ensemblRest,
-  selectTargetTaxonId: state => state.config.targetTaxonId,
   selectCuration: state => state.config.curation,
   selectConfiguration: state => state.config
 };
