@@ -8,7 +8,7 @@ import { FieldTree } from '../exporter/FieldTree';
 import '../exporter/styles.css';
 import {
   organLabel, orderOrgans, extractExprAttrs,
-  LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, LEVEL_RANK, MARKER, STRESS,
+  LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, LEVEL_RANK, STRESS,
   tpmBackground, fmtTpm,
 } from '../exprAttrs/exprAttrCommon';
 import { ATTR_TABLE_LIMITS } from '../../bundles/attrTable';
@@ -159,12 +159,11 @@ const AttrTableViewCmp = props => {
               return `${organLabel(o)}: ${LEVEL_LABEL[lvl] || lvl}${sp}`;
             },
             comparator: (a, b) => (LEVEL_RANK[a] ?? -1) - (LEVEL_RANK[b] ?? -1),
-            cellStyle: p => {
-              const style = { background: p.value ? (LEVEL_COLOR[p.value] || 'transparent') : 'transparent' };
-              if (p.data && p.data._specific.has(o)) style.boxShadow = `inset 0 0 0 2px ${MARKER}`;
-              else if (p.data && p.data._enhanced.has(o)) style.boxShadow = `inset 0 0 0 1px ${MARKER}`;
-              return style;
-            }
+            // Specific / enhanced are reported in the tooltip above rather than
+            // with an outline, so the grid reads purely as expression level.
+            cellStyle: p => ({
+              background: p.value ? (LEVEL_COLOR[p.value] || 'transparent') : 'transparent'
+            })
           });
         });
         return;

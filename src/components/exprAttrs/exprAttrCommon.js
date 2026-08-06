@@ -42,7 +42,6 @@ export const STRESS = {
   up: { bg: '#eaf2fb', fg: '#2e6fae' },
   down: { bg: '#fdecea', fg: '#c0392b' },
 };
-export const MARKER = '#d35400'; // specific-to dot / enhanced-in outline
 
 /** Parse `["root:low","shoot:medium"]` into `{root:'low', shoot:'medium'}`. */
 export function parseOrganLevels(tokens) {

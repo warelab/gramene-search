@@ -1,7 +1,7 @@
 // Host-defined tbrowse zone for the Homology gene tree, redesigned to compare
 // expression across a gene family. Three parts, aligned to the tree leaves:
 //   1. a gene × organ heatmap of ordinal expression levels (expr_organ_level),
-//      with markers on each gene's tissue-specific / -enhanced organs;
+//      tissue-specific / -enhanced organs are noted in cell tooltips;
 //   2. a Max TPM column (expr_max_tpm), log-scaled magnitude;
 //   3. a Stress column of ↑activated / ↓repressed condition chips
 //      (expr_activated_by / expr_repressed_by).
@@ -14,7 +14,7 @@ import { EditableZoneName } from 'tbrowse';
 import {
   abbrOrgan as abbr, organLabel,
   LEVEL_ORDER, LEVEL_COLOR, LEVEL_LABEL,
-  STRESS, MARKER,
+  STRESS,
   extractExprAttrs, orderOrgans, tpmFraction, fmtTpm, fmtClass,
 } from '../../exprAttrs/exprAttrCommon';
 
@@ -128,22 +128,15 @@ const OrganCell = ({ organ, gene }) => {
     ? `${organLabel(organ)}: ${LEVEL_LABEL[level] || level}${specific ? ' · specific' : enhanced ? ' · enhanced' : ''}`
     : `${organLabel(organ)}: not assayed`;
   const style = {
-    position: 'relative',
     width: ORGAN_CELL_W,
     height: '100%',
     boxSizing: 'border-box',
     background: level ? (LEVEL_COLOR[level] || 'transparent') : 'transparent',
     borderRight: gridBorder,
   };
-  // enhanced-in: thin outline; specific-to (stronger): corner dot.
-  if (enhanced && !specific) style.boxShadow = `inset 0 0 0 1px ${MARKER}`;
-  return (
-    <div title={title} style={style}>
-      {specific && (
-        <span style={{ position: 'absolute', top: 1, right: 1, width: 4, height: 4, borderRadius: '50%', background: MARKER }} />
-      )}
-    </div>
-  );
+  // Tissue-specific / -enhanced organs are reported in the cell's tooltip rather
+  // than with a marker, so the grid reads purely as expression level.
+  return <div title={title} style={style} />;
 };
 
 const StressCell = ({ gene, width }) => {
