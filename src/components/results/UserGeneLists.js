@@ -3,8 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {Table, Form, Button, ButtonGroup, Alert, Spinner, Container, Row, Col, Modal} from 'react-bootstrap';
 import { getFirebaseApp } from "../utils";
 import {getAuth, onAuthStateChanged} from "firebase/auth";
-
-const MAX_GENE_IDS = 1000; // Define the maximum number of gene IDs allowed
+import GeneListResolver from './GeneListResolver';
+import { validateIds, hydrateGenes, saveGeneList, MAX_GENE_IDS } from './geneListApi';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -453,20 +453,53 @@ const GeneListDisplayComponent = props => {
 
 const GeneListComponent = props => {
   const [geneList, setGeneList] = useState('');
-  const [listHash, setListHash] = useState(null);
-  const [validationError, setValidationError] = useState([]);
   const [listName, setListName] = useState('');
   const [listIsPublic, setListIsPublic] = useState(false);
-  const [validatedList, setValidatedList] = useState([]);
+  // The three-bucket validate response, the user's narrowing decisions, and the
+  // hydrated gene docs used to label candidates.
+  const [validation, setValidation] = useState(null);
+  const [choices, setChoices] = useState({});
+  const [meta, setMeta] = useState({});
   const [errorMessage, setErrorMessage] = useState('');
-  const [loading, setLoading] = useState(false); // New loading state
-  const [user, setUser] = useState({});
+  const [notice, setNotice] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // null, not {}: the initial value is read to decide whether Save is enabled, and
+  // an empty object is truthy, which used to offer Save to a logged-out visitor.
+  const [user, setUser] = useState(null);
   const auth = props.auth;
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsubscribe();
   }, [auth]);
+
+  // The single source of truth for what gets saved. An ambiguous input the user
+  // never touched contributes ALL of its matches, so nothing is silently dropped;
+  // narrowing is a choice, not a requirement.
+  // `choices[i] === undefined` means untouched -> keep all. `choices[i] === []`
+  // means the user explicitly dropped the row, so this must NOT be `|| a.matches`:
+  // an empty array is falsy, and that would silently re-add everything they just
+  // removed.
+  const keptFor = (i, a) => (choices[i] === undefined ? a.matches : choices[i]);
+
+  const idsToSave = useMemo(() => {
+    if (!validation) return [];
+    const out = validation.resolved.map(r => r.id);
+    validation.ambiguous.forEach((a, i) => out.push(...keptFor(i, a)));
+    // Mandatory, not tidiness: the same gene reaches this list twice routinely —
+    // two inputs can resolve to one id, and a resolved id can also appear among
+    // another input's candidates. Duplicates would inflate n_genes and change the
+    // server's content hash, breaking the save endpoint's idempotency.
+    return [...new Set(out)];
+  }, [validation, choices]);
+
+  // How much of the total came from conflicts, for the summary line — with
+  // keep-all-by-default a single identifier can contribute 15 genes.
+  const fromConflicts = useMemo(() => {
+    if (!validation) return 0;
+    return validation.ambiguous.reduce((n, a, i) => n + keptFor(i, a).length, 0);
+  }, [validation, choices]);
 
   // Function to handle gene list input
   const handleGeneListChange = (event) => {
@@ -487,77 +520,72 @@ const GeneListComponent = props => {
 
   // Function to submit gene list for validation
   const handleSubmit = async () => {
-    const geneArray = geneList.split('\n').filter(Boolean); // Convert the gene list into an array and filter out empty values
+    // The server only drops blanks and duplicates; splitting and trimming is ours
+    // to do. Accept commas, tabs and semicolons as well as newlines.
+    const geneArray = [...new Set(
+      geneList.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean)
+    )];
 
+    if (geneArray.length === 0) {
+      setErrorMessage('Paste at least one gene identifier.');
+      return;
+    }
     if (geneArray.length > MAX_GENE_IDS) {
-      setErrorMessage(`You have exceeded the maximum limit of ${MAX_GENE_IDS} gene IDs.`);
+      setErrorMessage(`That is ${geneArray.length.toLocaleString()} identifiers; the limit is ${MAX_GENE_IDS.toLocaleString()}.`);
       return;
     }
 
-    setErrorMessage(''); // Reset error message if validation passes
-    setLoading(true); // Set loading state to true to show progress
-
+    setErrorMessage('');
+    setNotice('');
+    setLoading(true);
     try {
-      const response = await fetch(`${props.api}/gene_lists/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(geneArray),
-      });
-
-      const result = await response.json();
-
-      if (result.hash) {
-        setListHash(result.hash);
-        setValidatedList(result.ids);
-        setValidationError(result.missing);
+      const result = await validateIds(props.api, geneArray);
+      setValidation(result);
+      setChoices({});
+      // Candidates are only choosable if the user can see what they are, so pull
+      // species/description for every candidate id. Best-effort and non-blocking:
+      // the resolver renders bare ids until this lands.
+      const candidateIds = result.ambiguous.reduce((acc, a) => acc.concat(a.matches), []);
+      if (candidateIds.length) {
+        hydrateGenes(props.api, candidateIds).then(setMeta).catch(() => {});
       } else {
-        // Handle errors from validation
-        alert('Error during validation.');
+        setMeta({});
       }
     } catch (error) {
-      alert('There was an error with the validation service.',error);
+      setValidation(null);
+      setErrorMessage(error.message || 'There was an error with the validation service.');
     } finally {
-      setLoading(false); // Set loading to false when the request is complete
+      setLoading(false);
     }
   };
 
   // Function to save the validated gene list
   const handleSaveList = async () => {
-    const queryParams = {
-      label: listName,
-      hash: listHash,
-      site: props.site,
-      n_genes: validatedList.length,
-      isPublic: listIsPublic
-    };
-    const queryString = new URLSearchParams(queryParams).toString();
-
-    const token = await user.getIdToken();
+    setErrorMessage('');
+    setNotice('');
+    setSaving(true);
     try {
-      const response = await fetch(`${props.api}/gene_lists?${queryString}`, {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+      // Inside the try: getIdToken() rejects when the session has expired, and
+      // that used to escape as an unhandled rejection with no UI feedback.
+      const token = await user.getIdToken();
+      const result = await saveGeneList(props.api, token, {
+        label: listName,
+        site: props.site,
+        isPublic: listIsPublic,
+        ids: idsToSave
       });
-      if (!response.ok) {
-        throw new Error('Failed to save list');
-      }
-      const result = await response.json();
-      console.log(result);
       setGeneList('');
-      setListHash(null);
-      setValidatedList([]);
-      setValidationError([]);
+      setValidation(null);
+      setChoices({});
+      setMeta({});
       setListName('');
       setListIsPublic(false);
+      setNotice(`Saved “${listName}” — ${(result.n_genes || idsToSave.length).toLocaleString()} genes.`);
       if (props.onListSaved) props.onListSaved();
-
     } catch (error) {
-      console.error("There was an problem with fetch", error)
+      setErrorMessage(error.message || 'Failed to save the gene list.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -578,10 +606,15 @@ const GeneListComponent = props => {
           />
         </Form.Group>
 
-        {/* Display error if gene list exceeds limit */}
+        {/* Validation / save failures, reported here rather than via alert() */}
         {errorMessage && (
-          <Alert variant="danger">
+          <Alert variant="danger" dismissible onClose={() => setErrorMessage('')}>
             {errorMessage}
+          </Alert>
+        )}
+        {notice && (
+          <Alert variant="success" dismissible onClose={() => setNotice('')}>
+            {notice}
           </Alert>
         )}
 
@@ -602,32 +635,40 @@ const GeneListComponent = props => {
       )}
 
 
-      {/* Display validation summary */}
-      {!loading && listHash && (
-        <div className="validation-summary mt-3 p-3 border rounded bg-light">
-          <div>
-            <span className="text-success">
-              <strong>{validatedList.length}</strong> valid
-            </span>
-            {validationError.length > 0 && (
-              <div className="text-danger mt-1">
-                <strong>{validationError.length}</strong> not found
-              </div>
-            )}
+      {/* The three buckets, with the conflict picker */}
+      {!loading && validation && (
+        <>
+          <GeneListResolver
+            validation={validation}
+            choices={choices}
+            meta={meta}
+            onChange={setChoices}
+          />
+          <div className="glr-summary">
+            <span className="glr-summary-total">{idsToSave.length.toLocaleString()}</span>
+            {' '}gene{idsToSave.length === 1 ? '' : 's'} will be saved
+            {/* Deliberately not stated as a sum. The buckets overlap — a gene can
+                be both a unique match for one identifier and a candidate of
+                another — so "a + b" would not equal the total and subtracting to
+                make it balance reads as if genes went missing. */}
+            <div className="glr-summary-detail">
+              {validation.resolved.length.toLocaleString()} identifier
+              {validation.resolved.length === 1 ? '' : 's'} matched exactly one gene
+              {validation.ambiguous.length > 0 && <>
+                {'; '}{validation.ambiguous.length.toLocaleString()} conflicting
+                identifier{validation.ambiguous.length === 1 ? '' : 's'} contributing
+                {' '}{fromConflicts.toLocaleString()} candidate{fromConflicts === 1 ? '' : 's'}
+                {Object.keys(choices).length > 0 &&
+                  ` (${Object.keys(choices).length.toLocaleString()} narrowed)`}
+              </>}
+              {'. '}Genes matched more than once are counted once.
+            </div>
           </div>
-          {validationError.length > 0 && (
-            <details className="mt-2">
-              <summary style={{cursor: 'pointer'}}>Show unrecognized IDs</summary>
-              <pre className="small mt-2 mb-0" style={{maxHeight: 150, overflow: 'auto'}}>
-                {validationError.join('\n')}
-              </pre>
-            </details>
-          )}
-        </div>
+        </>
       )}
 
       {/* Input for saving validated gene list */}
-      {!loading && validatedList.length > 0 && (
+      {!loading && idsToSave.length > 0 && (
         <div className="save-list mt-4">
           <Form.Group controlId="listName">
             <Form.Label>Save Validated Gene List</Form.Label>
@@ -646,8 +687,8 @@ const GeneListComponent = props => {
             />
           </Form.Group>
           {user ?
-            <Button variant="primary" onClick={handleSaveList}>
-              Save Gene List
+            <Button variant="primary" onClick={handleSaveList} disabled={saving || !listName.trim()}>
+              {saving ? 'Saving…' : 'Save Gene List'}
             </Button>
             : <Button variant="secondary" disabled>Login Required</Button> }
         </div>

@@ -1,0 +1,216 @@
+/* Gene-list identifier resolver. Bucket chrome follows facets/styles.css so the
+   three buckets read the same way as the Refine sidebar's facet groups. */
+
+.glr {
+    margin-top: 0.75rem;
+}
+
+.glr-bucket {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.glr-bucket-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+    background: #f8f9fa;
+    border-radius: 4px 4px 0 0;
+}
+
+.glr-bucket-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.glr-bucket-count {
+    font-size: 0.75rem;
+    color: #666;
+    background: #fff;
+    padding: 0 0.4rem;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Pushed right, and clicks inside must not toggle the bucket (see bulk()). */
+.glr-bucket-actions {
+    margin-left: auto;
+}
+
+.glr-bucket-body {
+    padding: 0.5rem;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+/* Tone is carried by the header edge only — enough to distinguish the three
+   buckets at a glance without colouring the whole panel. */
+.glr-bucket-warn .glr-bucket-header { border-left: 4px solid #f0ad4e; }
+.glr-bucket-ok   .glr-bucket-header { border-left: 4px solid #5cb85c; }
+.glr-bucket-bad  .glr-bucket-header { border-left: 4px solid #d9534f; }
+
+.glr-hint {
+    font-size: 0.8rem;
+    color: #555;
+    margin-bottom: 0.5rem;
+}
+
+.glr-search {
+    margin-bottom: 0.5rem;
+}
+
+.glr-row {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+    border-top: 1px solid #f0f0f0;
+}
+
+.glr-input {
+    flex: 0 0 190px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.glr-input-count {
+    margin-left: 0.35rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.glr-candidates {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.glr-candidate {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    opacity: 0.55;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.glr-candidate-kept {
+    opacity: 1;
+    background: #eef6ff;
+}
+
+.glr-candidate-id {
+    font-family: monospace;
+    flex: 0 0 auto;
+}
+
+.glr-candidate-species {
+    font-style: italic;
+    color: #446;
+    flex: 0 0 auto;
+}
+
+/* Descriptions vary wildly in length; keep rows one line tall. */
+.glr-candidate-desc {
+    color: #777;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.glr-only {
+    border: none;
+    background: none;
+    color: #a03e34;
+    text-decoration: underline;
+    font-size: 0.75rem;
+    padding: 0 2px;
+    flex: 0 0 auto;
+}
+
+.glr-more {
+    border: none;
+    background: none;
+    color: #a03e34;
+    text-decoration: underline;
+    font-size: 0.8rem;
+    padding: 4px 0 0 0;
+}
+
+.glr-resolved-row {
+    display: flex;
+    gap: 0.4rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+    padding: 1px 0;
+}
+
+.glr-arrow { color: #999; }
+.glr-resolved-id { color: #446; }
+
+.glr-unknown {
+    font-size: 0.8rem;
+    max-height: 200px;
+    overflow: auto;
+    margin-bottom: 0;
+}
+
+/* The count of what will actually be saved. Deliberately prominent: with
+   include-all-by-default a single ambiguous id can add 15 genes. */
+.glr-summary {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #cfe3f7;
+    background: #eef6ff;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.glr-summary-total {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.glr-summary-detail {
+    color: #555;
+    font-size: 0.8rem;
+}
+
+/* Per-genome bulk actions. A plain "prefer sorghum" is useless on this index —
+   ~94 of its genomes are sorghum accessions, so a conflict can be sorghum on both
+   sides. Only genomes that would actually narrow a row are offered. */
+.glr-genomes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.glr-genomes-label { margin: 0 0.2rem 0 0; }
+
+.glr-genome-btn { font-size: 0.75rem; padding: 0.1rem 0.4rem; }
+
+.glr-genome-count { margin-left: 0.3rem; font-weight: normal; }
+
+.glr-row-toggle {
+    border: none;
+    background: none;
+    padding: 0 2px 0 0;
+    color: #666;
+}
+
+.glr-row-bulk { margin-top: 2px; }
+
+.glr-collapsed { font-size: 0.8rem; color: #777; }
+
+.glr-muted { color: #bbb; }
