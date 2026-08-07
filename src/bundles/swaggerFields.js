@@ -257,10 +257,29 @@ function buildExperimentTitleIndex(expressionStudies) {
   return index;
 }
 
+// Label for each species group, used by the expression and differential-expression
+// field pickers.
+//
+// A group can hold many genomes — sorghum_v11 has 120 under 4558 — so which one
+// supplies the label matters. This took the first it encountered, and since
+// grameneMaps is keyed by taxon_id, Object.values walks integer-like keys in
+// ascending numeric order: 4558001 (Sb verticilliflorum 353, a wild relative) beat
+// the anchor 4558006 (Sb bicolor BTx623 v3). Searching msd2 then returned a BTx623
+// gene while the picker was labelled with a different genome entirely. Every other
+// group here holds exactly one genome, which is why only sorghum showed it.
+//
+// Prefer the group's anchor, falling back to first-seen for releases that carry no
+// anchor flags at all (gramene main today).
 function buildSpeciesNameIndex(grameneMaps) {
   const idx = {};
   if (!grameneMaps) return idx;
-  for (const m of Object.values(grameneMaps)) {
+  const genomes = Object.values(grameneMaps);
+  for (const m of genomes) {
+    if (m && m.anchor_taxon_id && m.is_anchor) {
+      idx[m.anchor_taxon_id] = m.display_name || String(m.anchor_taxon_id);
+    }
+  }
+  for (const m of genomes) {
     if (m && m.anchor_taxon_id && !idx[m.anchor_taxon_id]) {
       idx[m.anchor_taxon_id] = m.display_name || String(m.anchor_taxon_id);
     }
