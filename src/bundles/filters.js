@@ -30,6 +30,12 @@ function markSubtree(node, source, invert) {
   }
 }
 
+// Marks the OR group that collects genomic intervals, so a second interval joins
+// the existing group instead of starting a new one. `category` is used because it
+// is one of the node keys viewSnapshot preserves, so the grouping survives a saved
+// view; losing it would only mean a new group, never a corrupt tree.
+export const INTERVAL_GROUP = 'Genomic intervals';
+
 // "Expansions" grow the result set along a biological relationship instead of
 // combining filters: the node's own result is the seed, and it resolves to that seed
 // plus everything reachable from it (returnRoot=true).
@@ -254,6 +260,55 @@ const grameneFilters = {
           }
           break;
         }
+        case 'GRAMENE_FILTER_INTERVAL_ADDED': {
+          // Intervals accumulate into a single OR group, because ANDing two
+          // disjoint intervals matches nothing — no gene sits in both. The group
+          // is tagged with `category`, one of the keys viewSnapshot keeps, so a
+          // restored view merges into it instead of starting a second group; were
+          // that tag ever lost the worst case is an extra group, never a corrupt
+          // tree.
+          newState = Object.assign({}, state, {
+            status: 'search',
+            showMarked: true,
+            searchOffset: 0
+          });
+          const {map, mapLabel, region, start, end} = payload;
+          // One leaf per interval, not four. getQuery has a raw-passthrough branch
+          // for a `location` leaf whose value starts with "(map:" — every other
+          // branch would escape the colons — so the whole clause rides in one node
+          // and the Filters panel shows one readable row per interval.
+          //
+          // Overlap, not containment: start <= interval end AND end >= interval
+          // start, so a gene that merely crosses the boundary still matches.
+          const intervalNode = {
+            fq_field: 'location',
+            fq_value: `(map:${map} AND region:${region}`
+              + ` AND start:[* TO ${end}] AND end:[${start} TO *])`,
+            name: `${mapLabel} ${region}:${start.toLocaleString()}-${end.toLocaleString()}`,
+            category: 'Genomic interval',
+            negate: false,
+            showMenu: false
+          };
+          let group = (newState.children || []).find(
+            c => c && c.category === INTERVAL_GROUP && Array.isArray(c.children)
+          );
+          if (group) {
+            group.children.push(intervalNode);
+          } else {
+            newState.children.push({
+              operation: 'OR',
+              category: INTERVAL_GROUP,
+              negate: false,
+              showMenu: false,
+              children: [intervalNode]
+            });
+          }
+          // Inserting a nested subtree invalidates the hand-computed indices the
+          // append actions rely on, so renumber the whole tree.
+          reindexTree(newState, 0);
+          markSubtree(newState, newState, false);
+          return newState;
+        }
         case 'GRAMENE_FILTER_EXPANSION_SET': {
           // Setting or clearing an expansion is just a field on the node — the tree
           // shape is untouched, so there is nothing to reindex and no special case
@@ -470,6 +525,17 @@ const grameneFilters = {
       type: 'BATCH_ACTIONS', actions: [
         {type: 'GRAMENE_SEARCH_CLEARED'},
         {type: 'GRAMENE_FILTER_SET_ADDED', payload: {operation: 'AND', filters: terms}}
+      ]
+    })
+  },
+  // Add one genomic interval. Accumulates into a single OR group; see the
+  // GRAMENE_FILTER_INTERVAL_ADDED reducer for why they cannot be ANDed.
+  doAddGrameneInterval: interval => ({dispatch}) => {
+    dispatch({
+      type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_TAXONOMY_CLEARED'},
+        {type: 'GRAMENE_FILTER_INTERVAL_ADDED', payload: interval}
       ]
     })
   },

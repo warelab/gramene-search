@@ -18,6 +18,7 @@ import OntologyEnrichment from './results/OntologyEnrichment'
 import TaxDistTbrowse from './results/TaxDistTbrowse'
 import Facets from './facets/FacetCounts'
 import { EXPANSIONS, expansionType, expansionLabel, safeClassName } from '../bundles/filters'
+import GenomicIntervalForm from './GenomicIntervalForm'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
@@ -227,6 +228,11 @@ const FiltersCmp = props => {
     unmarkTargets: props.doUnmarkGrameneFilterTargets,
     toggleMenu: props.doToggleGrameneFilterMenu
   };
+  const intervalForm = (
+    <GenomicIntervalForm grameneMaps={props.grameneMaps}
+                         targetTaxonId={props.targetTaxonId}
+                         onAdd={props.doAddGrameneInterval}/>
+  );
   const containerClass = props.configuration.id === 'sorghum' ? 'sorghumbase-filter-container': 'gramene-filter-container';
   if (props.grameneFilters.rightIdx > 1) {
     return <div className={containerClass}>
@@ -236,6 +242,7 @@ const FiltersCmp = props => {
                      moveCopyMode={props.grameneFilters.moveCopyMode}
                      showMarked={props.grameneFilters.showMarked}
                      actions={actions}/>
+        {intervalForm}
       </CollapsibleSection>
     </div>
   }
@@ -243,6 +250,7 @@ const FiltersCmp = props => {
     return <div className={containerClass}>
       <CollapsibleSection title="Filters">
         <div className='gramene-filter gramene-filter-AND'>No filters defined</div>
+        {intervalForm}
       </CollapsibleSection>
     </div>
   }
@@ -260,6 +268,9 @@ const Filters = connect(
   'doMarkGrameneFilterTargets',
   'doUnmarkGrameneFilterTargets',
   'doToggleGrameneFilterMenu',
+  'selectGrameneMaps',
+  'selectTargetTaxonId',
+  'doAddGrameneInterval',
   'doClearGrameneFilters',
   FiltersCmp
 );
