@@ -17,8 +17,9 @@ import AttrTableView from './attrTable/AttrTableView'
 import OntologyEnrichment from './results/OntologyEnrichment'
 import TaxDistTbrowse from './results/TaxDistTbrowse'
 import Facets from './facets/FacetCounts'
-import { EXPANSIONS, expansionType, expansionLabel, safeClassName } from '../bundles/filters'
+import { EXPANSIONS, expansionType, expansionLabel, safeClassName, editorKindFor } from '../bundles/filters'
 import GenomicIntervalForm from './GenomicIntervalForm'
+import FilterEditor from './FilterEditor'
 import Auth from './Auth'
 import ReactGA from 'react-ga4'
 import './styles.css';
@@ -116,6 +117,7 @@ function logAction(action) {
   })
 }
 const Filter = ({node,moveCopyMode,showMarked,actions}) => {
+  const [editing, setEditing] = useState(false);
   let classes = 'gramene-filter gramene-filter';
   if (node.operation) {
     classes = `${classes}-${safeClassName(node.operation)}`
@@ -163,6 +165,9 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
         </li>
       );
     });
+    if (editorKindFor(node)) {
+      menuItems.push(<li key={key++} onClick={()=>{logAction(`Edit filter`); actions.toggleMenu(node); setEditing(true)}}>edit</li>);
+    }
     if (node.leftIdx > 0) {
       menuItems.push(<li key={key++} onClick={()=>{logAction(`Delete filter`); actions.deleteNode(node)}}>delete</li>);
       menuItems.push(<li key={key++} onClick={()=>{logAction(`Move filter`); actions.markTargets(node,'move')}}>move{node.isSource && ' select destination'}</li>);
@@ -209,9 +214,16 @@ const Filter = ({node,moveCopyMode,showMarked,actions}) => {
       </>
     );
   }
+  const editor = editing ? (
+    <FilterEditor node={node}
+                  grameneMaps={actions.grameneMaps}
+                  targetTaxonId={actions.targetTaxonId}
+                  onCancel={()=>setEditing(false)}
+                  onSave={(fq_value, name)=>{ setEditing(false); actions.editNode(node, fq_value, name); }}/>
+  ) : null;
   return (
     <div key={node.leftIdx} className={classes} onClick={(e)=>handleClick(e,moveCopyMode, showMarked,node,actions)}>
-      {content}{menu}{children}
+      {content}{menu}{editor}{children}
     </div>
   )
 };
@@ -226,7 +238,12 @@ const FiltersCmp = props => {
     selectTarget: props.doMoveOrCopyGrameneFilter,
     markTargets: props.doMarkGrameneFilterTargets,
     unmarkTargets: props.doUnmarkGrameneFilterTargets,
-    toggleMenu: props.doToggleGrameneFilterMenu
+    toggleMenu: props.doToggleGrameneFilterMenu,
+    editNode: props.doEditGrameneFilter,
+    // Carried alongside the actions so every nested Filter can reach them without
+    // threading two more props through the recursion.
+    grameneMaps: props.grameneMaps,
+    targetTaxonId: props.targetTaxonId
   };
   const intervalForm = (
     <GenomicIntervalForm grameneMaps={props.grameneMaps}
@@ -271,6 +288,7 @@ const Filters = connect(
   'selectGrameneMaps',
   'selectTargetTaxonId',
   'doAddGrameneInterval',
+  'doEditGrameneFilter',
   'doClearGrameneFilters',
   FiltersCmp
 );

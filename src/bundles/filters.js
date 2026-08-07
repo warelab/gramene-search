@@ -36,6 +36,50 @@ function markSubtree(node, source, invert) {
 // view; losing it would only mean a new group, never a corrupt tree.
 export const INTERVAL_GROUP = 'Genomic intervals';
 
+// A genomic interval rides in ONE leaf: getQuery has a raw-passthrough branch for a
+// `location` value beginning "(map:", and every other branch would escape the colons.
+// Building and reading that value lives here so the reducer and the edit form can
+// never drift apart.
+export function formatIntervalValue({map, region, start, end}) {
+  return `(map:${map} AND region:${region}`
+    + ` AND start:[* TO ${end}] AND end:[${start} TO *])`;
+}
+
+export function intervalName({mapLabel, map, region, start, end}) {
+  return `${mapLabel || map} ${region}:${Number(start).toLocaleString()}-${Number(end).toLocaleString()}`;
+}
+
+// Note the field order is inverted relative to the interval: `start` carries the
+// interval's END and `end` carries its START, because the pair is an overlap test.
+const INTERVAL_RE =
+  /^\(map:(\S+) AND region:(\S+) AND start:\[\* TO (\d+)\] AND end:\[(\d+) TO \*\]\)$/;
+
+export function parseIntervalValue(fqValue) {
+  const m = INTERVAL_RE.exec(String(fqValue || ''));
+  if (!m) return null;
+  return { map: m[1], region: m[2], end: Number(m[3]), start: Number(m[4]) };
+}
+
+/** `[lo TO hi]`, as produced by the expression brush and the Location tab. */
+const RANGE_RE = /^\[\s*(\S+)\s+TO\s+(\S+)\s*\]$/;
+
+export function parseRangeValue(fqValue) {
+  const m = RANGE_RE.exec(String(fqValue || ''));
+  return m ? { lo: m[1], hi: m[2] } : null;
+}
+
+export function formatRangeValue(lo, hi) {
+  return `[${lo} TO ${hi}]`;
+}
+
+/** Which editor a leaf needs. Groups have no parameters, so they get none. */
+export function editorKindFor(node) {
+  if (!node || node.hasOwnProperty('children')) return null;
+  if (parseIntervalValue(node.fq_value)) return 'interval';
+  if (parseRangeValue(node.fq_value)) return 'range';
+  return 'value';
+}
+
 // "Expansions" grow the result set along a biological relationship instead of
 // combining filters: the node's own result is the seed, and it resolves to that seed
 // plus everything reachable from it (returnRoot=true).
@@ -282,9 +326,8 @@ const grameneFilters = {
           // start, so a gene that merely crosses the boundary still matches.
           const intervalNode = {
             fq_field: 'location',
-            fq_value: `(map:${map} AND region:${region}`
-              + ` AND start:[* TO ${end}] AND end:[${start} TO *])`,
-            name: `${mapLabel} ${region}:${start.toLocaleString()}-${end.toLocaleString()}`,
+            fq_value: formatIntervalValue({map, region, start, end}),
+            name: intervalName({mapLabel, map, region, start, end}),
             category: 'Genomic interval',
             negate: false,
             showMenu: false
@@ -307,6 +350,23 @@ const grameneFilters = {
           // append actions rely on, so renumber the whole tree.
           reindexTree(newState, 0);
           markSubtree(newState, newState, false);
+          return newState;
+        }
+        case 'GRAMENE_FILTER_EDITED': {
+          // Edits only rewrite a leaf's value and label. The node keeps its place,
+          // its negate flag and any expansion, and the tree shape is untouched — so
+          // unlike an insert there is nothing to reindex.
+          newState = Object.assign({}, state, {
+            status: 'search',
+            showMarked: true,
+            searchOffset: 0
+          });
+          const node = findNodeWithLeftIdx(newState, payload.leftIdx);
+          if (!node || node.hasOwnProperty('children')) break;
+          node.fq_value = payload.fq_value;
+          if (payload.name !== undefined) node.name = payload.name;
+          node.showMenu = false;
+          markSubtree(newState, node, false);
           return newState;
         }
         case 'GRAMENE_FILTER_EXPANSION_SET': {
@@ -536,6 +596,16 @@ const grameneFilters = {
         {type: 'GRAMENE_SEARCH_CLEARED'},
         {type: 'GRAMENE_TAXONOMY_CLEARED'},
         {type: 'GRAMENE_FILTER_INTERVAL_ADDED', payload: interval}
+      ]
+    })
+  },
+  // Replace one leaf's value in place, keeping its position in the tree.
+  doEditGrameneFilter: (filter, fq_value, name) => ({dispatch}) => {
+    dispatch({
+      type: 'BATCH_ACTIONS', actions: [
+        {type: 'GRAMENE_SEARCH_CLEARED'},
+        {type: 'GRAMENE_TAXONOMY_CLEARED'},
+        {type: 'GRAMENE_FILTER_EDITED', payload: {leftIdx: filter.leftIdx, fq_value, name}}
       ]
     })
   },

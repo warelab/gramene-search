@@ -32,20 +32,35 @@ export function chromosomesOf(genome) {
     .filter(r => !UNPLACED.test(String(r.name)));
 }
 
-const GenomicIntervalForm = ({ grameneMaps, targetTaxonId, onAdd }) => {
-  const [open, setOpen] = useState(false);
+/**
+ * The interval fields themselves, without any surrounding chrome, so the same
+ * form serves both "add a new interval" and "edit an existing one".
+ *
+ * `initial` pre-populates it — {map, region, start, end} as parsed off a filter.
+ */
+export const IntervalFields = ({ grameneMaps, targetTaxonId, initial, submitLabel, onSubmit, onCancel }) => {
   const [taxonId, setTaxonId] = useState('');
-  const [region, setRegion] = useState('');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
+  const [region, setRegion] = useState(initial ? String(initial.region) : '');
+  const [start, setStart] = useState(initial ? String(initial.start) : '');
+  const [end, setEnd] = useState(initial ? String(initial.end) : '');
 
   const { reference, anchors, rest } = useMemo(
     () => buildGenomeOptions(grameneMaps, targetTaxonId),
     [grameneMaps, targetTaxonId]
   );
 
-  // Default to the site's reference genome once maps have loaded.
-  const effectiveTaxon = taxonId || (reference[0] && String(reference[0].taxon_id)) || '';
+  // An edit starts on the filter's own genome; a new interval starts on the
+  // site's reference. `initial.map` is an assembly accession, so find its genome.
+  const initialTaxon = useMemo(() => {
+    if (!initial) return '';
+    const hit = Object.values(grameneMaps || {}).find(m => m && m._id === initial.map);
+    return hit ? String(hit.taxon_id) : '';
+  }, [initial, grameneMaps]);
+
+  const effectiveTaxon = taxonId
+    || initialTaxon
+    || (reference[0] && String(reference[0].taxon_id))
+    || '';
   const genome = effectiveTaxon ? (grameneMaps || {})[effectiveTaxon] : null;
   const chromosomes = useMemo(() => chromosomesOf(genome), [genome]);
   const effectiveRegion = region || (chromosomes[0] && chromosomes[0].name) || '';
@@ -57,8 +72,7 @@ const GenomicIntervalForm = ({ grameneMaps, targetTaxonId, onAdd }) => {
   // Validated against the assembly's own region lengths, so the message can name
   // the actual limit rather than just refusing.
   const error = (() => {
-    if (!genome) return null;
-    if (s === null || e === null) return null;
+    if (!genome || s === null || e === null) return null;
     if (!Number.isFinite(s) || !Number.isFinite(e)) return 'Positions must be numbers.';
     if (s < 1 || e < 1) return 'Positions start at 1.';
     if (s > e) return 'Start must not be greater than end.';
@@ -72,15 +86,14 @@ const GenomicIntervalForm = ({ grameneMaps, targetTaxonId, onAdd }) => {
 
   const submit = () => {
     if (!ready) return;
-    onAdd({
+    onSubmit({
       map: genome._id,
       mapLabel: genome.display_name || genome._id,
       region: effectiveRegion,
       start: s,
       end: e
     });
-    setStart('');
-    setEnd('');
+    if (!initial) { setStart(''); setEnd(''); }
   };
 
   const genomeOption = (m) => (
@@ -88,44 +101,59 @@ const GenomicIntervalForm = ({ grameneMaps, targetTaxonId, onAdd }) => {
   );
 
   return (
+    <div className="gramene-interval-form">
+      <Form.Select size="sm" className="mb-1" value={effectiveTaxon}
+                   onChange={(ev) => { setTaxonId(ev.target.value); setRegion(''); }}>
+        {reference.map(genomeOption)}
+        {anchors.length > 0 && <optgroup label="Reference genomes">{anchors.map(genomeOption)}</optgroup>}
+        {rest.length > 0 && <optgroup label="Other genomes">{rest.map(genomeOption)}</optgroup>}
+      </Form.Select>
+
+      <Form.Select size="sm" className="mb-1" value={effectiveRegion}
+                   onChange={(ev) => setRegion(ev.target.value)}>
+        {chromosomes.map(c => (
+          <option key={c.name} value={c.name}>
+            {c.name}{c.length ? ` (${Math.round(c.length / 1e6)} Mb)` : ''}
+          </option>
+        ))}
+      </Form.Select>
+
+      <div className="gramene-interval-range">
+        <Form.Control size="sm" type="number" min="1" placeholder="start"
+                      value={start} onChange={(ev) => setStart(ev.target.value)} />
+        <span className="gramene-interval-dash">–</span>
+        <Form.Control size="sm" type="number" min="1" placeholder="end"
+                      value={end} onChange={(ev) => setEnd(ev.target.value)}
+                      onKeyDown={(ev) => { if (ev.key === 'Enter') submit(); }} />
+      </div>
+
+      {error && <div className="gramene-interval-error">{error}</div>}
+
+      <div className="gramene-interval-actions">
+        <Button size="sm" variant="primary" className="gramene-interval-submit"
+                disabled={!ready} onClick={submit}>
+          {submitLabel || 'Add interval'}
+        </Button>
+        {onCancel && (
+          <Button size="sm" variant="link" className="gramene-interval-cancel" onClick={onCancel}>
+            cancel
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** The collapsible "Add genomic interval" entry at the foot of the Filters panel. */
+const GenomicIntervalForm = ({ grameneMaps, targetTaxonId, onAdd }) => {
+  const [open, setOpen] = useState(false);
+  return (
     <div className="gramene-interval">
       <div className="gramene-interval-toggle" onClick={() => setOpen(!open)}>
         {open ? <BsChevronDown /> : <BsChevronRight />} Add genomic interval
       </div>
       {open && (
-        <div className="gramene-interval-form">
-          <Form.Select size="sm" className="mb-1" value={effectiveTaxon}
-                       onChange={(ev) => { setTaxonId(ev.target.value); setRegion(''); }}>
-            {reference.map(genomeOption)}
-            {anchors.length > 0 && <optgroup label="Reference genomes">{anchors.map(genomeOption)}</optgroup>}
-            {rest.length > 0 && <optgroup label="Other genomes">{rest.map(genomeOption)}</optgroup>}
-          </Form.Select>
-
-          <Form.Select size="sm" className="mb-1" value={effectiveRegion}
-                       onChange={(ev) => setRegion(ev.target.value)}>
-            {chromosomes.map(c => (
-              <option key={c.name} value={c.name}>
-                {c.name}{c.length ? ` (${Math.round(c.length / 1e6)} Mb)` : ''}
-              </option>
-            ))}
-          </Form.Select>
-
-          <div className="gramene-interval-range">
-            <Form.Control size="sm" type="number" min="1" placeholder="start"
-                          value={start} onChange={(ev) => setStart(ev.target.value)} />
-            <span className="gramene-interval-dash">–</span>
-            <Form.Control size="sm" type="number" min="1" placeholder="end"
-                          value={end} onChange={(ev) => setEnd(ev.target.value)}
-                          onKeyDown={(ev) => { if (ev.key === 'Enter') submit(); }} />
-          </div>
-
-          {error && <div className="gramene-interval-error">{error}</div>}
-
-          <Button size="sm" variant="primary" className="gramene-interval-submit"
-                  disabled={!ready} onClick={submit}>
-            Add interval
-          </Button>
-        </div>
+        <IntervalFields grameneMaps={grameneMaps} targetTaxonId={targetTaxonId} onSubmit={onAdd} />
       )}
     </div>
   );
