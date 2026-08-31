@@ -5,10 +5,24 @@ import { getConfiguredCache } from 'money-clip';
 // and stable enough to keep around across sessions, so we bulk-load it
 // once with `?rows=-1` and reuse it instead of issuing per-id requests.
 // Scoped to the subsite so per-site pathway corpora don't collide.
-const pathwayCache = getConfiguredCache({
-  version: 1,
-  name: `gramene_pathways_${process.env.SUBSITE || 'default'}`
-});
+//
+// The corpus is release-specific: each pathway doc carries its hierarchy in
+// per-genome `lineage_<taxon_id>` fields, and taxon ids change between data
+// releases (sorghum_v10b's 4558001 became sorghum_v11's 4558006). Serving a
+// previous release's docs therefore yields no lineage at all for the current
+// genomes, which used to leave the pathways tab building diagram ids like
+// `R-SBI-undefined`. Versioning the cache by the API URL makes money-clip
+// drop and refetch the corpus whenever the site moves to a new release.
+let pathwayCache = null;
+const getPathwayCache = api => {
+  if (!pathwayCache) {
+    pathwayCache = getConfiguredCache({
+      version: `1:${api}`,
+      name: `gramene_pathways_${process.env.SUBSITE || 'default'}`
+    });
+  }
+  return pathwayCache;
+};
 
 let pathwaysBulkPromise = null;
 
@@ -223,13 +237,15 @@ const grameneDocs = {
   doRequestGramenePathways: _ids => ({dispatch, store}) => {
     if (pathwaysBulkPromise) return pathwaysBulkPromise;
 
-    pathwaysBulkPromise = pathwayCache.get('all')
+    const api = store.selectGrameneAPI();
+    const cache = getPathwayCache(api);
+    pathwaysBulkPromise = cache.get('all')
       .then(cached => {
         if (cached) {
           dispatch({type: 'GRAMENE_PATHWAYS_RECEIVED', payload: cached});
           return;
         }
-        return fetch(`${store.selectGrameneAPI()}/pathways?rows=-1`)
+        return fetch(`${api}/pathways?rows=-1`)
           .then(res => res.json())
           .then(res => {
             const pathways = {};
@@ -237,7 +253,7 @@ const grameneDocs = {
               if (p && p._id != null) pathways[p._id] = p;
             });
             dispatch({type: 'GRAMENE_PATHWAYS_RECEIVED', payload: pathways});
-            pathwayCache.set('all', pathways).catch(e => console.warn('Failed to cache pathways', e));
+            cache.set('all', pathways).catch(e => console.warn('Failed to cache pathways', e));
           });
       })
       .catch(err => {

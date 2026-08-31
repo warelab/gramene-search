@@ -165,6 +165,7 @@ class Pathways extends React.Component {
   }
 
   stableId(dbId) {
+    if (dbId === undefined || dbId === null) return null;
     let prefix = this.taxonomy.indices.id[this.gene.taxon_id].model.reactomePrefix || 'OSA';
     return `R-${prefix}-${dbId}`;
   }
@@ -180,7 +181,7 @@ class Pathways extends React.Component {
     // If pathway docs are already cached, build the hierarchy now so the
     // initial render selects a default node (componentDidUpdate would
     // otherwise never run if no redux change follows the mount).
-    if (!this.state.hierarchy && this.pathwayIds) {
+    if (!this.state.hierarchy && !this.state.hierarchyEmpty && this.pathwayIds) {
       const haveDocs = this.pathwayIds.filter(id => this.props.gramenePathways.hasOwnProperty(id));
       if (haveDocs.length === this.pathwayIds.length) {
         const docs = this.pathwayIds.map(id => this.props.gramenePathways[id]);
@@ -199,7 +200,7 @@ class Pathways extends React.Component {
       }
       this.loadNodes(path);
     }
-    if (!this.state.hierarchy && this.pathwayIds) {
+    if (!this.state.hierarchy && !this.state.hierarchyEmpty && this.pathwayIds) {
       const haveDocs = this.pathwayIds.filter(id => this.props.gramenePathways.hasOwnProperty(id));
       if (haveDocs.length === this.pathwayIds.length) {
         const docs = this.pathwayIds.map(id => this.props.gramenePathways[id]);
@@ -266,7 +267,15 @@ class Pathways extends React.Component {
       }
     });
     const nested = new FlatToNested({ children: 'nodes' }).convert(nodes);
-    this.setState({ hierarchy: [nested], selectedNode: undefined });
+    // An empty node list, or lineages whose top ancestor isn't itself one of
+    // the gene's pathways, make flat-to-nested return a root with no id. Walking
+    // that root would ask Plant Reactome for `R-<prefix>-undefined`, so treat it
+    // as "nothing to show" instead.
+    if (nested.id === undefined && !nested.nodes) {
+      this.setState({ hierarchy: undefined, hierarchyEmpty: true, selectedNode: undefined });
+      return;
+    }
+    this.setState({ hierarchy: [nested], hierarchyEmpty: false, selectedNode: undefined });
   }
 
   possiblyLoadNodes(node) {
@@ -304,7 +313,7 @@ class Pathways extends React.Component {
       nodeRef = nodeRef.nodes[0];
       lineage.unshift(nodeRef);
     }
-    if (lineage[0].id !== 2894885) {
+    if (lineage[0].id !== undefined && lineage[0].id !== 2894885) {
       let pathway = this.stableId(lineage[0].id);
       let reaction = undefined;
       if (lineage[0].type === "Reaction") {
@@ -343,6 +352,11 @@ class Pathways extends React.Component {
         initialActiveKey={path.join('/')}
         initialOpenNodes={allPaths}
       />;
+    }
+    if (this.state.hierarchyEmpty) {
+      return <div className="pathways-tree-empty">
+        No pathway hierarchy is available for {this.gene.system_name || 'this genome'}.
+      </div>;
     }
     return <Spinner/>;
   }

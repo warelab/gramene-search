@@ -126,3 +126,10 @@
 .tree-view-node-checkbox {}
 .tree-view-node-children {}
 
+
+.pathways-tree-empty {
+    padding: 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    color: #666;
+}
