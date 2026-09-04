@@ -9,6 +9,22 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import "./VEP.css";
 import { study_info } from '../../../vepStudyInfo';
 
+// Grid row height. Overrides the ag-theme-quartz default (42px) via the
+// `rowHeight` prop, and drives the container height calc below so the two
+// can't drift apart.
+const ROW_HEIGHT = 36;
+// Header allowance in the container height calc (quartz header ≈ 49px).
+const HEADER_HEIGHT_ALLOWANCE = 50;
+// Compact "Search" button so it sits comfortably inside a ROW_HEIGHT row —
+// react-bootstrap's `size="sm"` alone is ~31px, which crowds a 36px row.
+// Bump padding/fontSize here if the button should be taller.
+const SEARCH_BUTTON_STYLE = {
+  whiteSpace: 'nowrap',
+  lineHeight: 1.4,
+  padding: '1px 8px',
+  fontSize: 12,
+};
+
 const ggURL = {
   xIRRI: 'https://gringlobal.irri.org/gringlobal/accessiondetail?id=',
   IRRI: 'https://www.irri.org/genesys-rice#/a/',
@@ -239,7 +255,11 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
           currentURL.searchParams.set('fq_value', accession.germplasm.ens_id);
           currentURL.searchParams.set('name', accession.germplasm.ens_id);
 
-          return <Button size='sm' href={currentURL.toString()}>Search</Button>
+          return (
+            <Button size='sm' style={SEARCH_BUTTON_STYLE} href={currentURL.toString()}>
+              Search
+            </Button>
+          )
 
         }
         return null;
@@ -259,7 +279,8 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
   };
 
   const nVisible = getVisibleRowData().length;
-  const tableHeight = 50 + Math.min(nVisible, 10) * 42;
+  const tableHeight =
+    HEADER_HEIGHT_ALLOWANCE + Math.min(nVisible, 10) * ROW_HEIGHT;
   return (
     <div style={{ overflowX: "auto", width: "100%", maxWidth: "1200px" }}>
       <div
@@ -270,8 +291,20 @@ const GridWithGroups = ({groups,gene_id,doGrin}) => {
           rowData={getVisibleRowData()}
           columnDefs={columnDefs}
           getRowNodeId={(data) => data.id}
-          animateRows={true}
+          rowHeight={ROW_HEIGHT}
           defaultColDef={defaultColDef}
+          // ag-grid sets `user-select: none` on cells by default, which is why
+          // accession / consequence text couldn't be selected and copied.
+          // `enableCellTextSelection` restores native selection; `ensureDomOrder`
+          // keeps DOM order matching visual order so a multi-row copy comes out
+          // as displayed rather than scrambled by row virtualization/sorting.
+          //
+          // NB: ag-grid's isAnimateRows() returns false whenever ensureDomOrder
+          // is set, so `animateRows` was removed rather than left as dead config.
+          // Correct copy order matters more here than row-slide animation; drop
+          // `ensureDomOrder` and restore `animateRows={true}` to trade back.
+          enableCellTextSelection={true}
+          ensureDomOrder={true}
         />
       </div>
     </div>
