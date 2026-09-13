@@ -19,6 +19,15 @@
 //     ('gene'|'paralogs'|'eFP'), atlasExperiment (selected GXA experiment id),
 //     barStudy (selected eFP/BAR study). Driven in controlled mode from this so a
 //     saved view restores the chosen sub-tab and study.
+//   - primers: the Primers detail's PrimerDesignerState (gramene-primers), a
+//     serializable {v: 1, mode, transcriptId, flankUp, flankDown, region,
+//     target, included, excluded, junctionSpanning, avoidRepeats, preset,
+//     params, designed, selectedRank, checkedRanks, check: {checks, genomes,
+//     params, jobId, submitted}, view}. Replaced wholesale on every change and
+//     driven in controlled mode, so a saved view re-runs the design and
+//     re-attaches to the check job. A pasted `sequence` is kept here so it
+//     survives a detail-tab switch; viewSnapshot drops it from saved views.
+//     Design responses and check results are never stored.
 //
 // What does NOT live here:
 //   - derived/computed state like `details` (per-render config from
@@ -134,6 +143,11 @@ const uiViewState = {
         // (e.g. { activeTab }, { atlasExperiment }, { barStudy })
         return setExpression(state, payload.geneId, payload.patch);
 
+      case 'UI_PRIMERS_SET':
+        // payload: { geneId, state }  -- replaces the primers slice with the
+        // full PrimerDesignerState emitted by <PrimerDesigner> (not merged)
+        return setGene(state, payload.geneId, { primers: payload.state });
+
       case 'UI_VIEW_STATE_REPLACED':
         // payload: { byGene }  -- used by the snapshot loader in a later phase
         return { byGene: payload.byGene || {} };
@@ -165,6 +179,9 @@ const uiViewState = {
   },
   doSetExpressionState: ({ geneId, patch }) => ({ dispatch }) => {
     dispatch({ type: 'UI_EXPRESSION_SET', payload: { geneId, patch } });
+  },
+  doSetPrimersState: ({ geneId, state }) => ({ dispatch }) => {
+    dispatch({ type: 'UI_PRIMERS_SET', payload: { geneId, state } });
   },
   doReplaceUiViewState: byGene => ({ dispatch }) => {
     dispatch({ type: 'UI_VIEW_STATE_REPLACED', payload: { byGene } });

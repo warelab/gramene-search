@@ -32,7 +32,9 @@
 //       fullscreen: boolean,
 //       homology: { viewer, height, tbrowse: <ViewState> } | undefined,
 //       sequences: { tab, tid, upstream, downstream } | undefined,
-//       expression: { activeTab, atlasExperiment, barStudy } | undefined
+//       expression: { activeTab, atlasExperiment, barStudy } | undefined,
+//       primers: <gramene-primers PrimerDesignerState, {v: 1, ...}, without
+//                 the pasted `sequence`> | undefined
 //     }, ...
 //   ]
 // }
@@ -91,7 +93,18 @@ const isMeaningfulGene = (entry) => {
   )) return true;
   if (entry.sequences && Object.keys(entry.sequences).length) return true;
   if (entry.expression && Object.keys(entry.expression).length) return true;
+  if (entry.primers && Object.keys(entry.primers).length) return true;
   return false;
+};
+
+// The Primers slice keeps a pasted sequence in memory (so it survives a detail
+// tab switch), but a saved view must not carry it: it can be long and is the
+// user's own data. A restored sequence-mode design then waits for a new paste
+// (gramene-primers does not re-run a design whose inputs are incomplete).
+const snapshotPrimers = (primers) => {
+  if (!primers || !Object.keys(primers).length) return undefined;
+  const {sequence, ...rest} = primers;
+  return rest;
 };
 
 const viewSnapshot = {
@@ -150,7 +163,8 @@ const viewSnapshot = {
           fullscreen: !!e.fullscreen,
           homology: e.homology ? {...e.homology} : {},
           sequences: e.sequences ? {...e.sequences} : {},
-          expression: e.expression ? {...e.expression} : {}
+          expression: e.expression ? {...e.expression} : {},
+          primers: e.primers ? {...e.primers} : {}
         };
       }
     }
@@ -233,7 +247,8 @@ function buildSnapshot(state) {
         fullscreen: !!e.fullscreen,
         homology: e.homology && Object.keys(e.homology).length ? {...e.homology} : undefined,
         sequences: e.sequences && Object.keys(e.sequences).length ? {...e.sequences} : undefined,
-        expression: e.expression && Object.keys(e.expression).length ? {...e.expression} : undefined
+        expression: e.expression && Object.keys(e.expression).length ? {...e.expression} : undefined,
+        primers: snapshotPrimers(e.primers)
       }));
   } else {
     snap.expandedDetails = [];

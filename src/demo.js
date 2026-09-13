@@ -161,6 +161,10 @@ const panSites = [
     },
     details: {
       sequences: true,
+      // Primers tab (gramene-primers), shown only when PRIMERS_API points it at
+      // a swagger that serves /primers, e.g. http://localhost:50111/sorghum_v11
+      // (the default grameneData API does not serve /primers yet).
+      primers: process.env.PRIMERS_API ? { apiBase: process.env.PRIMERS_API } : false,
       VEP: true,
       location: true,
       expression: true,
