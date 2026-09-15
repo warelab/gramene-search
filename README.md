@@ -34,12 +34,12 @@ of saved views; design responses and check results are not saved either.
 Gene links in check results open in a new tab, so the design and a running check stay put.
 Styles are injected at runtime, so no CSS import is needed.
 
-<code>gramene-primers</code> is a dependency (<code>^0.1.0</code>). To try unreleased gramene-primers changes,
+<code>gramene-primers</code> is a dependency (<code>^0.1.1</code>). To try unreleased gramene-primers changes,
 install a packed tarball over it (not <code>npm link</code> or <code>file:</code>, which load a second React);
 the next <code>npm install</code> puts the registry version back.
 ```bash
-cd ../gramene-primers && npm run pack:local       # gramene-primers-0.1.0.tgz
-cd ../gramene-search && npm install --no-save ../gramene-primers/gramene-primers-0.1.0.tgz && rm -rf .parcel-cache
+cd ../gramene-primers && npm run pack:local       # gramene-primers-0.1.1.tgz
+cd ../gramene-search && npm install --no-save ../gramene-primers/gramene-primers-0.1.1.tgz && rm -rf .parcel-cache
 ```
 Run the sorghum demo against a swagger that serves <code>/primers</code>:
 ```bash

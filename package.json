@@ -52,7 +52,7 @@
     "gramene-dbxrefs": "^3.0.15",
     "gramene-genetree-vis": "^4.2.11",
     "gramene-mdview": "^2.0.8",
-    "gramene-primers": "^0.1.0",
+    "gramene-primers": "^0.1.1",
     "gramene-search-vis": "^4.2.5",
     "gramene-taxonomy-with-genomes": "^3.0.10",
     "gramene-trees-client": "^2.6.1",
