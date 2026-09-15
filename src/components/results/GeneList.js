@@ -10,6 +10,7 @@ import VEP from "./details/VEP"
 import Xrefs from "./details/Xrefs"
 import Publications from "./details/Publications"
 import Sequences from "./details/Sequences"
+import Primers from "./details/Primers"
 import {suggestionToFilters} from "../utils";
 import {FullscreenContainer} from './details/generic'
 import {GrFormPrevious, GrFormNextLink, GrFormNext, GrHpe} from 'react-icons/gr'
@@ -20,6 +21,7 @@ let external = <small title="This link opens a page from an external site"> <i c
 
 let inventory = {
   sequences: Sequences,
+  primers: Primers,
   location: Location,
   expression: Expression,
   homology: Homology,
@@ -146,6 +148,12 @@ const allDetails = [
     id: 'sequences',
     label: 'Sequences',
     popup: 'Gene/cDNA/protein fasta',
+    available: true
+  },
+  {
+    id: 'primers',
+    label: 'Primers',
+    popup: 'Design PCR/qPCR primers; check specificity and pan-genome coverage',
     available: true
   },
   {
@@ -308,13 +316,7 @@ class Gene extends React.Component {
                   {d.label}
                   {isExpanded && (
                     <BsArrowsFullscreen
-                      style={{
-                        position: 'absolute',
-                        right: 8,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        cursor: 'pointer',
-                      }}
+                      className="gene-detail-tab-fullscreen"
                       title="View full screen"
                       onClick={(e) => {
                         e.stopPropagation();
