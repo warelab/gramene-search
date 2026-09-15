@@ -316,13 +316,7 @@ class Gene extends React.Component {
                   {d.label}
                   {isExpanded && (
                     <BsArrowsFullscreen
-                      style={{
-                        position: 'absolute',
-                        right: 8,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        cursor: 'pointer',
-                      }}
+                      className="gene-detail-tab-fullscreen"
                       title="View full screen"
                       onClick={(e) => {
                         e.stopPropagation();
