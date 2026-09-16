@@ -19,7 +19,7 @@ import { PrimerDesigner } from 'gramene-primers'
 // leaves it out of saved views. Styles are injected at runtime by the
 // component; no CSS import is needed.
 
-const MODES = ['gene', 'transcript', 'region', 'sequence']
+const MODES = ['gene', 'transcript', 'region', 'sequence', 'genotyping']
 
 const geneHref = id => `?idList=${encodeURIComponent(id)}`
 // Plain left clicks on gene links in check results open a new tab, so the
@@ -29,7 +29,7 @@ const openGene = id => window.open(geneHref(id), '_blank', 'noopener')
 const Primers = props => {
   const geneId = props.searchResult.id
   const gene = props.geneDocs[geneId] // Gene.ensureGene() guarantees it is loaded
-  const conf = props.config.details.primers // true | { apiBase?, pangenome? }
+  const conf = props.config.details.primers // true | { apiBase?, pangenome?, genotyping? }
   const apiBase =
     (conf && typeof conf === 'object' && conf.apiBase) || props.grameneAPI
   const byGene =
@@ -59,7 +59,10 @@ const Primers = props => {
       // the designer uncontrolled until its first change is stored
       state={saved && Object.keys(saved).length ? saved : undefined}
       onStateChange={onStateChange}
-      features={{ pangenome: !(conf && conf.pangenome === false) }}
+      features={{
+        pangenome: !(conf && conf.pangenome === false),
+        genotyping: !(conf && conf.genotyping === false)
+      }}
       geneHref={geneHref}
       onGeneClick={openGene}
       geneLabel={gene.name || gene._id}
