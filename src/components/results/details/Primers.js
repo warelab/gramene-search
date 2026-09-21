@@ -3,6 +3,7 @@ import { connect } from 'redux-bundler-react'
 import { PrimerDesigner } from 'gramene-primers'
 import { makeGenesInRegion } from './genesInRegion'
 import { makeSequenceForRegion } from './sequenceForRegion'
+import { makeAlleleFrequencies } from './alleleFrequencies'
 
 // Primers detail: PCR/qPCR primer design, genome specificity and pan-genome
 // coverage checks (gramene-primers <PrimerDesigner>, backed by the
@@ -39,6 +40,7 @@ const Primers = props => {
   const ensemblRest = props.config && props.config.ensemblRest
   const genesInRegion = useMemo(() => makeGenesInRegion(ensemblRest), [ensemblRest])
   const sequenceForRegion = useMemo(() => makeSequenceForRegion(ensemblRest), [ensemblRest])
+  const alleleFrequencies = useMemo(() => makeAlleleFrequencies(ensemblRest), [ensemblRest])
   const byGene =
     props.uiViewState &&
     props.uiViewState.byGene &&
@@ -63,6 +65,7 @@ const Primers = props => {
       modes={MODES}
       genesInRegion={genesInRegion}
       sequenceForRegion={sequenceForRegion}
+      alleleFrequencies={alleleFrequencies}
       defaultMode="gene"
       // an empty slice (never visited, or a snapshot without primers) leaves
       // the designer uncontrolled until its first change is stored
