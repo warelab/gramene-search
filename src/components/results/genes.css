@@ -428,6 +428,12 @@ table.xrefs td:nth-child(3) {
     position: relative;
     top: 5px;
 }
+/* The JGI Studies tab has no logo: keep it as tall as the tabs that have one. */
+.jgi::before {
+    content: '';
+    display: inline-block;
+    height: 30px;
+}
 .gene-search-pic-sugg {
     width: 100%;
     height: 200px;

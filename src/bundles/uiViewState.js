@@ -16,9 +16,12 @@
 //     controlled mode from this so a saved view restores the chosen sub-tab and
 //     isoform.
 //   - expression: the Expression detail's internal state — activeTab
-//     ('gene'|'paralogs'|'eFP'), atlasExperiment (selected GXA experiment id),
-//     barStudy (selected eFP/BAR study). Driven in controlled mode from this so a
-//     saved view restores the chosen sub-tab and study.
+//     ('gene' (EBI Studies)|'jgi'|'paralogs'|'eFP'), atlasExperiment (selected
+//     GXA experiment id for Paralogs), jgiExperiment (selected JGI study id),
+//     jgiAxes ({[jgiExperiment]: {rowFactor, columnFactor}}, the factor grid's
+//     axes per JGI study), barStudy (selected eFP/BAR study). Driven in
+//     controlled mode from this so a saved view restores the chosen sub-tab,
+//     studies and grid axes.
 //   - primers: the Primers detail's PrimerDesignerState (gramene-primers), a
 //     serializable {v: 1, mode, transcriptId, flankUp, flankDown, region,
 //     target, included, excluded, junctionSpanning, avoidRepeats, preset,
@@ -140,7 +143,8 @@ const uiViewState = {
 
       case 'UI_EXPRESSION_SET':
         // payload: { geneId, patch }  -- merges into the expression slice
-        // (e.g. { activeTab }, { atlasExperiment }, { barStudy })
+        // (e.g. { activeTab }, { atlasExperiment }, { jgiExperiment },
+        // { jgiAxes } (the whole per-study map), { barStudy })
         return setExpression(state, payload.geneId, payload.patch);
 
       case 'UI_PRIMERS_SET':
