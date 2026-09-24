@@ -76,6 +76,7 @@ const jgiStudyLabel = e => (e.description ? `${e.name || e._id}: ${e.description
 // API names a JGI row by the study's accession, by its name, or — for a study
 // split by a second factor — '<study name> - <value>'.
 const isJgiStudy = e => e.source === 'JGI';
+const isDifferential = e => /differential/i.test(e.type || '');
 const makeIsJgiRow = jgiStudies => {
   const accessions = new Set(jgiStudies.map(e => e._id));
   const names = jgiStudies.map(e => e.name).filter(Boolean);
@@ -109,6 +110,17 @@ const Detail = props => {
 
   const studies = props.expressionStudies && props.expressionStudies[Math.floor(gene.taxon_id / 1000)];
   const inGxa = props.searchResult.expressed_in_gxa_attr_ss;
+  // The studies the gene is expressed in, which decide the JGI Studies tab and
+  // the default sub-tab. The search results leave expressed_in_gxa_attr_ss out,
+  // so unless the host's results carry it, it is asked for per gene: undefined
+  // until it is in, null if the request failed.
+  const geneStudiesEntry = props.grameneGeneStudies && props.grameneGeneStudies[geneId];
+  const geneStudyIds = Array.isArray(inGxa)
+    ? inGxa
+    : geneStudiesEntry && !geneStudiesEntry.pending ? geneStudiesEntry.studies : undefined;
+  useEffect(() => {
+    if (!Array.isArray(inGxa)) props.doRequestGeneStudies(geneId);
+  }, [geneId, Array.isArray(inGxa)]);
   const experiments = useMemo(() => {
     if (!studies) return [];
     const inGxaSet = inGxa && new Set(inGxa);
@@ -140,14 +152,28 @@ const Detail = props => {
   const paralogsQuery = useMemo(() => ({gene: paralogQuery}), [paralogQuery]);
   const knownExperiment = experiments.some(e => e._id === atlasExperiment);
 
-  // The Paralogs selector keeps offering every study; the JGI Studies tab lists
-  // the gene's JGI studies. The EBI Studies rows are filtered on every JGI study
-  // of the taxon, in case the gene's expressed_in_gxa_attr_ss is incomplete. The
-  // filter is keyed on the studies' ids and names so that its identity (and the
-  // heatmap's filtering) only changes when they do.
-  const jgiStudies = useMemo(() => experiments.filter(isJgiStudy)
-    .sort((a, b) => (jgiStudyLabel(a) < jgiStudyLabel(b) ? -1 : 1)), [experiments]);
+  // The Paralogs selector keeps offering every study (as before: the search
+  // results' expressed_in_gxa_attr_ss, which they do not carry, would narrow
+  // it); the JGI Studies tab lists the JGI studies the gene is expressed in
+  // (every JGI study of the taxon if that cannot be looked up). The EBI Studies
+  // rows are filtered on every JGI study of the taxon, in case the gene's list
+  // is incomplete. The filter is keyed on the studies' ids and names so that its
+  // identity (and the heatmap's filtering) only changes when they do.
   const allJgiStudies = studies ? studies.filter(isJgiStudy) : [];
+  const jgiStudies = useMemo(() => {
+    if (!studies || geneStudyIds === undefined) return [];
+    const mine = geneStudyIds && new Set(geneStudyIds);
+    return studies.filter(e => isJgiStudy(e) && (!mine || mine.has(e._id)))
+      .sort((a, b) => (jgiStudyLabel(a) < jgiStudyLabel(b) ? -1 : 1));
+  }, [studies, geneStudyIds]);
+  // Whether the EBI Studies heatmap has anything to show: a study the gene is
+  // expressed in that is neither a JGI study nor a differential one (that tab
+  // draws baseline experiments).
+  const hasEbiBaseline = useMemo(() => {
+    if (!geneStudyIds || !studies) return true;
+    const notEbiBaseline = new Set(studies.filter(e => isJgiStudy(e) || isDifferential(e)).map(e => e._id));
+    return geneStudyIds.some(id => !notEbiBaseline.has(id));
+  }, [studies, geneStudyIds]);
   const allJgiKey = JSON.stringify(allJgiStudies.map(e => [e._id, e.name]));
   const filterRows = useMemo(() => {
     if (allJgiStudies.length === 0) return undefined;
@@ -157,14 +183,19 @@ const Detail = props => {
   // The EBI Studies heatmap waits for the studies list, which names the JGI
   // studies its filter drops: drawn before the list is in (a first visit; the
   // list is persisted), it would show the JGI rows and then redraw without
-  // them. If the list cannot be fetched, the heatmap is drawn unfiltered.
-  const studiesSettled = !!props.expressionStudies || !!props.expressionStudiesLastError;
+  // them. If the list cannot be fetched, the heatmap is drawn unfiltered. It
+  // also waits for the gene's studies, which pick the default sub-tab.
+  const studiesSettled = (!!props.expressionStudies || !!props.expressionStudiesLastError)
+    && geneStudyIds !== undefined;
 
-  // A saved JGI Studies tab falls back to EBI Studies once the studies are in
-  // and the gene has none.
-  const activeTab = expr.activeTab === 'jgi' && props.expressionStudies && jgiStudies.length === 0
+  // With no saved sub-tab, a gene expressed in JGI studies only opens on JGI
+  // Studies (its EBI Studies heatmap would be all below cutoff). A saved JGI
+  // Studies tab falls back to EBI Studies once the studies are in and the gene
+  // has none; until then the tab shows that it is loading.
+  const defaultTab = studiesSettled && jgiStudies.length > 0 && !hasEbiBaseline ? 'jgi' : 'gene';
+  const activeTab = expr.activeTab === 'jgi' && studiesSettled && jgiStudies.length === 0
     ? 'gene'
-    : expr.activeTab || 'gene';
+    : expr.activeTab || defaultTab;
   const jgiExperiment = expr.jgiExperiment || (jgiStudies.length > 0 ? jgiStudies[0]._id : null);
   const knownJgiExperiment = jgiStudies.some(e => e._id === jgiExperiment);
   const jgiAxes = expr.jgiAxes || {};
@@ -208,6 +239,11 @@ const Detail = props => {
                                 filterRows={filterRows}/>
       }
     </Tab>
+    {jgiStudies.length === 0 && activeTab === "jgi" &&
+      <Tab tabClassName="jgi" eventKey="jgi" title="JGI Studies" key="jgi">
+        <div className="text-muted small" role="status">Loading expression studies…</div>
+      </Tab>
+    }
     {jgiStudies.length > 0 &&
       <Tab tabClassName="jgi" eventKey="jgi" title="JGI Studies" key="jgi">
         <Form.Select className="mb-2"
@@ -245,11 +281,13 @@ const Detail = props => {
 export default connect(
   'selectConfiguration',
   'selectGrameneParalogs',
+  'selectGrameneGeneStudies',
   'selectExpressionStudies',
   'selectExpressionStudiesShouldUpdate',
   'selectExpressionStudiesLastError',
   'selectUiViewState',
   'doRequestParalogs',
+  'doRequestGeneStudies',
   'doFetchExpressionStudies',
   'doSetExpressionState',
   Detail

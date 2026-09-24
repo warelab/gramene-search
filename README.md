@@ -56,29 +56,36 @@ EBI's atlas-heatmap (the anatomogram comes from
 iframe to <code>dev.gramene.org/static/atlasWidget.html</code>.
 
 - **Paralogs**: an <code>ExpressionAtlasHeatmap</code> of the gene's within-species paralogs in the experiment
-  picked in the selector, which lists every study of the gene (EBI and JGI).
+  picked in the selector, which lists every study of the species (EBI and JGI; only the gene's studies when
+  the host's search results carry <code>expressed_in_gxa_attr_ss</code>).
 - **EBI Studies** (formerly "All Studies"; its saved-view key is still <code>'gene'</code>): an
   <code>ExpressionAtlasHeatmap</code> of the gene across the Expression Atlas studies. The JGI studies are left
   out: its <code>filterRows</code> drops every row of a study whose <code>source</code> is <code>'JGI'</code> in the
   site's <code>/experiments</code> list, i.e. rows whose id is the study's accession, or whose id or name is the
   study's name or starts with <code>'&lt;study name&gt; - '</code> (a study split by a second factor). The heatmap
-  waits for that list (a first visit only, since the list is persisted), so the JGI rows never flash up; if
-  the list cannot be fetched it is drawn unfiltered.
+  waits for that list (a first visit only, since the list is persisted), so the JGI rows never flash up, and for
+  the studies the gene is expressed in (see below); if the list cannot be fetched it is drawn unfiltered.
 - **JGI Studies** (shown when the gene is expressed in a JGI study, e.g. the Mullet lab's
-  <code>JGI-SB-1</code>..<code>4</code> in sorghum_v11): a selector of the gene's JGI studies and an
-  <code>ExpressionFactorGrid</code> of the gene in the chosen study. The grid puts the study's factors on its
-  rows and columns (organism part on the columns when it varies). With two varying factors a button swaps
-  them; with more, <em>Rows</em> and <em>Columns</em> selectors pick them and the factors left over are folded
-  into the rows; a study with one varying factor is drawn as a single row. A cell that holds several
-  samples (groups with the same factor values that differ by sample id) is split into one band per sample,
-  and hovering or focusing a band shows its factor values, sample id, replicates and TPM.
+  <code>JGI-SB-1</code>..<code>4</code> in sorghum_v11): a selector of the JGI studies the gene is expressed in
+  and an <code>ExpressionFactorGrid</code> of the gene in the chosen study. A gene that is expressed in JGI
+  studies but in no EBI baseline study opens on this sub-tab (its EBI Studies heatmap would be all below
+  cutoff), unless a sub-tab was chosen or saved. The grid puts the study's factors on its rows and columns
+  (organism part on the columns when it varies). With two varying factors a button swaps them; with more,
+  <em>Rows</em> and <em>Columns</em> selectors pick them and the factors left over are folded into the rows; a
+  study with one varying factor is drawn as a single row. A cell that holds several samples (groups with the
+  same factor values that differ by sample id) is split into one band per sample, and hovering or focusing a
+  band shows its factor values, sample id, replicates and TPM.
 - **eFP Browser** (where BAR has the species): the eFP image for the chosen study.
 
 Details:
 - <code>atlasUrl</code> in the site configuration names the gramene-swagger <code>/gxa/</code> instance to query,
   e.g. <code>'https://data.sorghumbase.org/sorghum_v11/gxa/'</code>. Unset, the tab queries
   <code>https://data.sorghumbase.org/auth_testing/gxa/</code>, the old widget's default. The study lists come
-  from <code>&lt;grameneData&gt;/experiments</code>, filtered by the gene's <code>expressed_in_gxa_attr_ss</code>.
+  from <code>&lt;grameneData&gt;/experiments</code>. The studies a gene is expressed in are its
+  <code>expressed_in_gxa_attr_ss</code>, which the search results do not carry, so the tab looks them up per
+  gene (<code>&lt;grameneData&gt;/search?q=id:"&lt;id&gt;"&amp;fl=id,expressed_in_gxa_attr_ss</code>, the
+  <code>grameneGeneStudies</code> bundle). If that lookup fails, JGI Studies offers every JGI study of the
+  species.
 - EBI Studies and JGI Studies send the gene's <code>atlas_id</code> (or its id).
 - Links open in a new tab. <code>resolveUrl</code> in <code>Expression.js</code> points row, experiment,
   "more information", Expression Atlas and download links at EBI, because gramene-swagger returns

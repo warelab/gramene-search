@@ -593,6 +593,46 @@ const grameneParalogs = {
   selectGrameneParalogs: state => state.grameneParalogs
 };
 
+// The GXA studies each gene is expressed in (Solr's expressed_in_gxa_attr_ss,
+// e.g. ['E-MTAB-3839', 'JGI-SB-2']), keyed by gene id. The search results do
+// not carry the field (it is not among /search's default fields), so the
+// Expression tab asks for it gene by gene. Each entry is {pending: true} while
+// the request is out, then {studies: [...]} ([] for a gene expressed in no
+// study), or {studies: null} when the request failed (asked again next time).
+const grameneGeneStudies = {
+  name: 'grameneGeneStudies',
+  getReducer: () => (state = {}, {type, payload}) => {
+    switch (type) {
+      case 'GRAMENE_GENE_STUDIES_REQUESTED':
+        return {...state, [payload]: {pending: true}};
+      case 'GRAMENE_GENE_STUDIES_RECEIVED':
+        return {...state, [payload.geneId]: {studies: payload.studies}};
+      case 'GRAMENE_GENE_STUDIES_FAILED':
+        return {...state, [payload]: {studies: null}};
+      default:
+        return state;
+    }
+  },
+  doRequestGeneStudies: geneId => ({dispatch, store}) => {
+    const known = store.selectGrameneGeneStudies()[geneId];
+    if (known && (known.pending || known.studies)) return;
+    dispatch({type: 'GRAMENE_GENE_STUDIES_REQUESTED', payload: geneId});
+    const q = encodeURIComponent(`id:"${geneId}"`);
+    fetch(`${store.selectGrameneAPI()}/search?q=${q}&fl=id,expressed_in_gxa_attr_ss&rows=1`)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(res => {
+        const doc = res.response.docs.find(d => d.id === geneId);
+        const studies = (doc && doc.expressed_in_gxa_attr_ss) || [];
+        dispatch({type: 'GRAMENE_GENE_STUDIES_RECEIVED', payload: {geneId, studies}});
+      })
+      .catch(() => dispatch({type: 'GRAMENE_GENE_STUDIES_FAILED', payload: geneId}));
+  },
+  selectGrameneGeneStudies: state => state.grameneGeneStudies
+};
+
 // function selectFacetIDs(store, field) {
 //   const path = `grameneGenes.data.facet_counts.facet_fields.${field}`;
 //   if (_.has(store,path)) {
@@ -648,4 +688,4 @@ const grameneParalogs = {
 // });
 
 
-export default [grameneSuggestions, grameneSearch, grameneGeneAttribs, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneParalogs, grameneGermplasm, expressionSamples, expressionStudies];
+export default [grameneSuggestions, grameneSearch, grameneGeneAttribs, grameneMaps, grameneTaxonomy, grameneTaxDist, grameneParalogs, grameneGeneStudies, grameneGermplasm, expressionSamples, expressionStudies];
