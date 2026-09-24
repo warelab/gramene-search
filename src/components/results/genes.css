@@ -428,11 +428,17 @@ table.xrefs td:nth-child(3) {
     position: relative;
     top: 5px;
 }
-/* The JGI Studies tab has no logo: keep it as tall as the tabs that have one. */
+/* The JGI helix (jgi.doe.gov/logos-and-templates), 30px tall like the other tabs' logos; the image is
+   twice that for sharp high-density screens. */
 .jgi::before {
     content: '';
     display: inline-block;
+    width: 17px;
     height: 30px;
+    margin-right: 5px;
+    background: url("../../static/images/jgi-logo.png") no-repeat center / contain;
+    position: relative;
+    top: 5px;
 }
 .gene-search-pic-sugg {
     width: 100%;
