@@ -145,6 +145,9 @@ const panSites = [
     ensemblSite: 'https://ensembl.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
     grameneData: 'https://data.sorghumbase.org/sorghum_v10b',
+    // Expression tab heatmaps query this gramene-swagger /gxa/ instance, e.g.
+    // ATLAS_URL=https://data.sorghumbase.org/sorghum_v11/gxa/ (unset: the auth_testing default).
+    atlasUrl: process.env.ATLAS_URL,
     ga: 'G-L5KXDCCZ16',
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,

@@ -1,55 +1,76 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import {connect} from "redux-bundler-react";
-import {Tabs, Tab, Form, Row, Col} from 'react-bootstrap';
+import {Tabs, Tab, Form} from 'react-bootstrap';
+import {ExpressionAtlasHeatmap} from 'gramene-atlas-heatmap';
 import BAR, {haveBAR} from "./BAR";
 
-function DynamicIframe(props) {
-  // Create a ref for the iframe element
-  const iframeRef = useRef(null);
-  const [iframeHeight, setIframeHeight] = useState(500); // Default height
+// "All Studies" and "Paralogs" draw Expression Atlas heatmaps in the page with
+// gramene-atlas-heatmap (warelab's React 18 fork of EBI's atlas-heatmap; the
+// anatomogram comes from gramene-anatomogram). configuration.atlasUrl names the
+// gramene-swagger /gxa/ instance to query; sites that leave it unset get the
+// instance the old dev.gramene.org iframe widget fell back to.
+const DEFAULT_ATLAS_URL = 'https://data.sorghumbase.org/auth_testing/gxa/';
+const EBI_GXA = 'https://www.ebi.ac.uk/gxa/';
 
-  useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data.type === 'heightChange') {
-        setIframeHeight(event.data.height + 44);
-      }
-    };
+const genesOf = query => (query && query.gene ? query.gene.split(' ') : []);
+const editSearch = (url, edit) => {
+  try {
+    const u = new URL(url);
+    edit(u.searchParams);
+    return u.href;
+  } catch (e) {
+    return undefined;
+  }
+};
+// gramene-swagger echoes geneQuery back as [null,...], returns relative row uris
+// (genes/<id>) that only some instances redirect to EBI, and atlasUrl itself is
+// not a browsable page, so point the heatmap's links at EBI's Expression Atlas.
+// undefined keeps the heatmap's own URL.
+const resolveUrl = (kind, url, context) => {
+  const genes = genesOf(context.query);
+  const withGenes = params => params.set('geneQuery', JSON.stringify(genes.map(value => ({value}))));
+  switch (kind) {
+    case 'row': {
+      const uri = context.row && context.row.uri;
+      return uri && !/^https?:/i.test(uri) ? new URL(uri, EBI_GXA).href : undefined;
+    }
+    case 'atlas':
+      return EBI_GXA;
+    case 'experiment':
+      return editSearch(url, withGenes);
+    case 'moreInformation':
+      return context.experiment
+        ? editSearch(url, withGenes)
+        : `${EBI_GXA}genes/${encodeURIComponent(genes[0])}`;
+    case 'download':
+      return editSearch(url, params => params.delete('geneQuery'));
+    default:
+      return undefined;
+  }
+};
 
-    window.addEventListener("message", handleMessage);
+const HEATMAP_OPTIONS = {
+  showAnatomogram: true,
+  isWidget: true,
+  showControlMenu: true,
+  linkTarget: '_blank',
+  resolveUrl
+};
 
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  return (
-    <iframe
-      ref={iframeRef}
-      src={props.url}
-      title="Dynamic Iframe"
-      style={{ width: '100%', height: `${iframeHeight}px`, border: 'none' }}
-    />
-  );
-}
+const studyLabel = e => `${e.type}:${e.description || e._id}`;
 
 const Detail = props => {
   const geneId = props.searchResult.id;
   const gene = props.geneDocs[geneId];
   // User-selected view state (active sub-tab, chosen GXA experiment, chosen eFP
   // study) lives in the uiViewState bundle keyed by geneId, so the shareable-
-  // views snapshot can round-trip it. Fetched data + the dev-only Local API
-  // toggle stay in local state. Defaults match the old local-state initials.
+  // views snapshot can round-trip it.
   const expr = (props.uiViewState && props.uiViewState.byGene[geneId]
     && props.uiViewState.byGene[geneId].expression) || {};
   const activeTab = expr.activeTab || 'gene';
   const atlasExperiment = expr.atlasExperiment || null;
-  const setActiveTab = (k) => props.doSetExpressionState({geneId, patch: {activeTab: k}});
-  const setAtlasExperiment = (v) => props.doSetExpressionState({geneId, patch: {atlasExperiment: v}});
-  const [atlasExperimentList, setAtlasExperimentList] = useState([]);
-  const [atlasFacets, setAtlasFacets] = useState(null);
-  const [isLocal, setIsLocal] = useState(false);
+  const setExpression = patch => props.doSetExpressionState({geneId, patch});
 
-  const handleLocalAPIChange = (event) => {
-    setIsLocal(event.target.checked);
-  };
   // The expressionStudies resource is otherwise fetched only when a top-level
   // expression view (exprViz/expression/export) is on — but this per-gene
   // Expression detail also needs it (the Paralogs sub-tab's experiment list and
@@ -60,91 +81,77 @@ const Detail = props => {
       props.doFetchExpressionStudies();
     }
   }, [props.expressionStudies]);
-  useEffect(() => {
-    if (!props.expressionStudies) return;
-    const tid = Math.floor(gene.taxon_id / 1000);
-    if (props.expressionStudies[tid]) {
-      let facets={Differential: {}, Baseline: {}};
-      let eList = props.expressionStudies[tid].sort((a,b) => {
-        const a_name = `${a.type}:${a.description || a._id}`;
-        const b_name = `${b.type}:${b.description || b._id}`;
-        return a_name < b_name ? -1 : 1;
-      });
-      if (props.searchResult.hasOwnProperty('expressed_in_gxa_attr_ss')) {
-        const in_gxa = new Set(props.searchResult.expressed_in_gxa_attr_ss);
-        eList = eList.filter(e => in_gxa.has(e._id))
-      }
-      eList.forEach(e => {e.factors.forEach(factor => facets[e.type][factor] = 1);});
-      setAtlasExperimentList(eList);
-      setAtlasFacets(facets);
-      // Only pick a default experiment when the user (or a restored snapshot)
-      // hasn't already chosen one — otherwise we'd clobber a saved selection
-      // the moment the studies list loads.
-      if (!atlasExperiment) {
-        let refExp = eList.filter(e => e.isRef);
-        if (refExp.length === 1) {
-          setAtlasExperiment(refExp[0]._id);
-        } else {
-          // no reference experiment - choose first
-          setAtlasExperiment(eList[0]._id);
-        }
-      }
-    }
-  }, [props.expressionStudies]);
 
-  // Which Expression Atlas instance the embedded widget should query. The
-  // widget falls back to its own default when `atlasUrl` is absent, so sites
-  // that don't configure one are unaffected — only pass it when set.
-  const atlasUrl = (props.configuration && props.configuration.atlasUrl) || null;
-  const atlasParam = atlasUrl ? `&atlasUrl=${encodeURIComponent(atlasUrl)}` : '';
+  const studies = props.expressionStudies && props.expressionStudies[Math.floor(gene.taxon_id / 1000)];
+  const inGxa = props.searchResult.expressed_in_gxa_attr_ss;
+  const experiments = useMemo(() => {
+    if (!studies) return [];
+    const inGxaSet = inGxa && new Set(inGxa);
+    // copy before sorting: the studies array belongs to the expressionStudies bundle
+    const list = inGxaSet ? studies.filter(e => inGxaSet.has(e._id)) : studies.slice();
+    return list.sort((a, b) => (studyLabel(a) < studyLabel(b) ? -1 : 1));
+  }, [studies, inGxa]);
 
-  let paralogs_url;
-  let gene_url = `https://dev.gramene.org/static/atlasWidget.html?genes=${gene.atlas_id || gene._id}&localAPI=${isLocal}${atlasParam}`;
-  let paralogs = [];
-  const haveParalogs = props.grameneParalogs && props.grameneParalogs[gene._id];
-  if (haveParalogs) {
-    paralogs = props.grameneParalogs[gene._id];
-  }
+  // Only pick a default experiment when the user (or a restored snapshot)
+  // hasn't already chosen one — otherwise we'd clobber a saved selection
+  // the moment the studies list loads.
   useEffect(() => {
-    if (!haveParalogs && gene.homology) {
+    if (atlasExperiment || experiments.length === 0) return;
+    const refExp = experiments.filter(e => e.isRef);
+    setExpression({atlasExperiment: (refExp.length === 1 ? refExp[0] : experiments[0])._id});
+  }, [experiments, atlasExperiment]);
+
+  const paralogs = props.grameneParalogs && props.grameneParalogs[gene._id];
+  useEffect(() => {
+    if (!paralogs && gene.homology) {
       props.doRequestParalogs(gene._id, gene.homology.supertree, gene.taxon_id);
     }
-  }, [gene._id, haveParalogs]);
-  // if (gene.homology && gene.homology.homologous_genes && gene.homology.homologous_genes.within_species_paralog) {
-  //   paralogs = gene.homology.homologous_genes.within_species_paralog;
-  // }
-  if (paralogs.length > 0 && atlasExperiment) {
-    paralogs_url= `https://dev.gramene.org/static/atlasWidget.html?genes=${paralogs.join(' ')}&experiment=${atlasExperiment}&localAPI=${isLocal}${atlasParam}`;
-  }
-  return <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
-    {paralogs_url &&
-      <Tab tabClassName="gxa" eventKey="paralogs" title={`Paralogs`} key="gxaparalogs">
-        <Form.Select aria-label='experiment selector'
-                     placeholder='Select experiment'
-                     value={atlasExperiment || ''}
-                     onChange={(e) => setAtlasExperiment(e.target.value)}>
-          { atlasExperimentList.map((e,idx) =>
-            <option key={idx} value={e._id}>{e.type}: {e.description || e._id}</option>
+  }, [gene._id, !!paralogs]);
+
+  const atlasUrl = (props.configuration && props.configuration.atlasUrl) || DEFAULT_ATLAS_URL;
+  const geneQuery = gene.atlas_id || gene._id;
+  const paralogQuery = paralogs && paralogs.length > 0 ? paralogs.join(' ') : null;
+  const allStudiesQuery = useMemo(() => ({gene: geneQuery}), [geneQuery]);
+  const paralogsQuery = useMemo(() => ({gene: paralogQuery}), [paralogQuery]);
+  const knownExperiment = experiments.some(e => e._id === atlasExperiment);
+
+  // Only the active sub-tab's heatmap is mounted; the keys give each query its
+  // own fetch, zoom and filters.
+  return <Tabs activeKey={activeTab} onSelect={(k) => setExpression({activeTab: k})}>
+    {paralogQuery && atlasExperiment &&
+      <Tab tabClassName="gxa" eventKey="paralogs" title="Paralogs" key="gxaparalogs">
+        <Form.Select className="mb-2"
+                     aria-label="experiment selector"
+                     value={atlasExperiment}
+                     onChange={(e) => setExpression({atlasExperiment: e.target.value})}>
+          {!knownExperiment && <option value={atlasExperiment}>{atlasExperiment}</option>}
+          {experiments.map(e =>
+            <option key={e._id} value={e._id}>{e.type}: {e.description || e._id}</option>
           )}
         </Form.Select>
-        {activeTab === "paralogs" && <DynamicIframe url={paralogs_url}/> }
+        {activeTab === "paralogs" &&
+          <ExpressionAtlasHeatmap key={`${atlasUrl} ${atlasExperiment} ${paralogQuery}`}
+                                  {...HEATMAP_OPTIONS}
+                                  atlasUrl={atlasUrl}
+                                  query={paralogsQuery}
+                                  experiment={atlasExperiment}/>
+        }
       </Tab>
     }
     <Tab tabClassName="gxa" eventKey="gene" title="All Studies" key="gxa">
-      {/*<Form.Check*/}
-      {/*  type="switch"*/}
-      {/*  id="localAPI"*/}
-      {/*  label="Local API"*/}
-      {/*  checked={isLocal}*/}
-      {/*  onChange={handleLocalAPIChange}*/}
-      {/*/>*/}
-      {activeTab === "gene" && <DynamicIframe url={gene_url}/> }
+      {activeTab === "gene" &&
+        <ExpressionAtlasHeatmap key={`${atlasUrl} all ${geneQuery}`}
+                                {...HEATMAP_OPTIONS}
+                                atlasUrl={atlasUrl}
+                                query={allStudiesQuery}
+                                experiment={false}/>
+      }
     </Tab>
     {haveBAR(gene) &&
       <Tab tabClassName="eFP" eventKey="eFP" title="eFP Browser" key="bar">
         <BAR gene={gene}
              study={expr.barStudy}
-             onStudyChange={v => props.doSetExpressionState({geneId, patch: {barStudy: v}})}/>
+             onStudyChange={v => setExpression({barStudy: v})}/>
       </Tab>
     }
   </Tabs>
@@ -158,7 +165,5 @@ export default connect(
   'doRequestParalogs',
   'doFetchExpressionStudies',
   'doSetExpressionState',
-  //'doRequestParalogExpression',
   Detail
 );
-
