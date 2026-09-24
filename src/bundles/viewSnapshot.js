@@ -32,7 +32,9 @@
 //       fullscreen: boolean,
 //       homology: { viewer, height, tbrowse: <ViewState> } | undefined,
 //       sequences: { tab, tid, upstream, downstream } | undefined,
-//       expression: { activeTab, atlasExperiment, barStudy } | undefined,
+//       expression: { activeTab, atlasExperiment, jgiExperiment,
+//                     jgiAxes: { [jgiExperiment]: { rowFactor, columnFactor } },
+//                     barStudy } | undefined,
 //       primers: <gramene-primers PrimerDesignerState, {v: 1, ...}, without
 //                 the pasted `sequence`> | undefined
 //     }, ...

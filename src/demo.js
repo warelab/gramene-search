@@ -31,10 +31,13 @@ const subsite = process.env.SUBSITE;
 // Scope the IndexedDB store to the subsite so caches from `npm run start-main`
 // don't leak into `npm run start-sorghum` (and vice versa). money-clip uses
 // the default keyval store when `name` is unset, which is shared across sites.
+// A GRAMENE_DATA override (see the sorghum entry) gets its own store too, so a
+// persisted studies list from another release is not reused.
+const dataOverride = process.env.GRAMENE_DATA ? `_${process.env.GRAMENE_DATA}` : '';
 const cache = getConfiguredCache({
   maxAge: 24 * 60 * 60 * 1000,
   version: 1,
-  name: `gramene_cache_${subsite || 'default'}`
+  name: `gramene_cache_${subsite || 'default'}${dataOverride}`
 });
 
 const subsitelut = {
@@ -144,7 +147,9 @@ const panSites = [
     ensemblURL: 'https://ensembl.sorghumbase.org',
     ensemblSite: 'https://ensembl.sorghumbase.org',
     ensemblRest: 'https://data.gramene.org/pansite-ensembl-108',
-    grameneData: 'https://data.sorghumbase.org/sorghum_v10b',
+    // GRAMENE_DATA=https://data.sorghumbase.org/sorghum_v11 runs the demo against
+    // another release, e.g. one with the JGI expression studies (JGI-SB-1..4).
+    grameneData: process.env.GRAMENE_DATA || 'https://data.sorghumbase.org/sorghum_v10b',
     // Expression tab heatmaps query this gramene-swagger /gxa/ instance, e.g.
     // ATLAS_URL=https://data.sorghumbase.org/sorghum_v11/gxa/ (unset: the auth_testing default).
     atlasUrl: process.env.ATLAS_URL,
