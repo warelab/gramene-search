@@ -61,7 +61,9 @@ iframe to <code>dev.gramene.org/static/atlasWidget.html</code>.
   <code>ExpressionAtlasHeatmap</code> of the gene across the Expression Atlas studies. The JGI studies are left
   out: its <code>filterRows</code> drops every row of a study whose <code>source</code> is <code>'JGI'</code> in the
   site's <code>/experiments</code> list, i.e. rows whose id is the study's accession, or whose id or name is the
-  study's name or starts with <code>'&lt;study name&gt; - '</code> (a study split by a second factor).
+  study's name or starts with <code>'&lt;study name&gt; - '</code> (a study split by a second factor). The heatmap
+  waits for that list (a first visit only, since the list is persisted), so the JGI rows never flash up; if
+  the list cannot be fetched it is drawn unfiltered.
 - **JGI Studies** (shown when the gene is expressed in a JGI study, e.g. the Mullet lab's
   <code>JGI-SB-1</code>..<code>4</code> in sorghum_v11): a selector of the gene's JGI studies and an
   <code>ExpressionFactorGrid</code> of the gene in the chosen study. The grid puts the study's factors on its

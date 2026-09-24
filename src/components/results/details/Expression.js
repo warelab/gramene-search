@@ -154,6 +154,11 @@ const Detail = props => {
     const isJgiRow = makeIsJgiRow(allJgiStudies);
     return row => !isJgiRow(row);
   }, [allJgiKey]);
+  // The EBI Studies heatmap waits for the studies list, which names the JGI
+  // studies its filter drops: drawn before the list is in (a first visit; the
+  // list is persisted), it would show the JGI rows and then redraw without
+  // them. If the list cannot be fetched, the heatmap is drawn unfiltered.
+  const studiesSettled = !!props.expressionStudies || !!props.expressionStudiesLastError;
 
   // A saved JGI Studies tab falls back to EBI Studies once the studies are in
   // and the gene has none.
@@ -191,7 +196,10 @@ const Detail = props => {
       </Tab>
     }
     <Tab tabClassName="gxa" eventKey="gene" title="EBI Studies" key="gxa">
-      {activeTab === "gene" &&
+      {activeTab === "gene" && !studiesSettled &&
+        <div className="text-muted small" role="status">Loading expression studies…</div>
+      }
+      {activeTab === "gene" && studiesSettled &&
         <ExpressionAtlasHeatmap key={`${atlasUrl} all ${geneQuery}`}
                                 {...HEATMAP_OPTIONS}
                                 atlasUrl={atlasUrl}
@@ -239,6 +247,7 @@ export default connect(
   'selectGrameneParalogs',
   'selectExpressionStudies',
   'selectExpressionStudiesShouldUpdate',
+  'selectExpressionStudiesLastError',
   'selectUiViewState',
   'doRequestParalogs',
   'doFetchExpressionStudies',
