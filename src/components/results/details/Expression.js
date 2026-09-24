@@ -74,13 +74,14 @@ const Detail = props => {
   // The expressionStudies resource is otherwise fetched only when a top-level
   // expression view (exprViz/expression/export) is on — but this per-gene
   // Expression detail also needs it (the Paralogs sub-tab's experiment list and
-  // the atlasExperiment selection both derive from it). Self-fetch on mount so
-  // opening the detail populates the studies even when no such view is enabled.
+  // the atlasExperiment selection both derive from it). Fetch it here when it is
+  // missing or stale: it is persisted, and a browser that cached the list before
+  // studies were added to the release would otherwise keep offering the old list.
   useEffect(() => {
-    if (!props.expressionStudies && props.doFetchExpressionStudies) {
+    if (props.expressionStudiesShouldUpdate && props.doFetchExpressionStudies) {
       props.doFetchExpressionStudies();
     }
-  }, [props.expressionStudies]);
+  }, [props.expressionStudiesShouldUpdate]);
 
   const studies = props.expressionStudies && props.expressionStudies[Math.floor(gene.taxon_id / 1000)];
   const inGxa = props.searchResult.expressed_in_gxa_attr_ss;
@@ -161,6 +162,7 @@ export default connect(
   'selectConfiguration',
   'selectGrameneParalogs',
   'selectExpressionStudies',
+  'selectExpressionStudiesShouldUpdate',
   'selectUiViewState',
   'doRequestParalogs',
   'doFetchExpressionStudies',
