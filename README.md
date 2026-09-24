@@ -47,3 +47,38 @@ PRIMERS_API=https://data.sorghumbase.org/sorghum_v11a SUBSITE=sorghum npx parcel
 ```
 In the sorghum demo (<code>src/demo.js</code>) the tab is shown only when <code>PRIMERS_API</code> is set;
 it becomes <code>details.primers.apiBase</code>.
+
+## Expression tab
+The Expression gene-detail tab's "All Studies" and "Paralogs" sub-tabs draw Expression Atlas heatmaps
+(with the anatomogram) in the page using <code>ExpressionAtlasHeatmap</code> from
+<a href="https://github.com/warelab/atlas-heatmap">gramene-atlas-heatmap</a>, warelab's React 18 fork of
+EBI's atlas-heatmap; the anatomogram comes from
+<a href="https://github.com/warelab/anatomogram">gramene-anatomogram</a>. They replace the old
+iframe to <code>dev.gramene.org/static/atlasWidget.html</code>.
+
+- <code>atlasUrl</code> in the site configuration names the gramene-swagger <code>/gxa/</code> instance to query,
+  e.g. <code>'https://data.sorghumbase.org/sorghum_v11/gxa/'</code>. Unset, the tab queries
+  <code>https://data.sorghumbase.org/auth_testing/gxa/</code>, the old widget's default.
+- All Studies sends the gene's <code>atlas_id</code> (or its id); Paralogs sends the within-species paralogs
+  for the experiment picked in the selector.
+- Links open in a new tab. <code>resolveUrl</code> in <code>Expression.js</code> points row, experiment,
+  "more information", Expression Atlas and download links at EBI, because gramene-swagger returns
+  relative gene links and an empty <code>geneQuery</code>.
+- The chosen sub-tab and experiment are kept in <code>uiViewState.byGene[geneId].expression</code> and saved
+  with shared views.
+- Styles are injected at runtime; Bootstrap 5 CSS and react-bootstrap 2 come from the host.
+
+<code>gramene-atlas-heatmap</code> is a dependency (<code>^6.0.0</code>) and brings in
+<code>gramene-anatomogram</code>. To try unreleased fork changes, install packed tarballs of both packages over
+the registry versions (not <code>npm link</code> or <code>file:</code>, which load a second React); the next
+<code>npm install</code> puts the registry versions back.
+```bash
+cd ../anatomogram && npm run pack:local      # gramene-anatomogram-3.0.0.tgz
+cd ../atlas-heatmap && npm run pack:local    # gramene-atlas-heatmap-6.0.0.tgz
+cd ../gramene-search && npm install --no-save ../anatomogram/gramene-anatomogram-3.0.0.tgz \
+  ../atlas-heatmap/gramene-atlas-heatmap-6.0.0.tgz && rm -rf .parcel-cache*
+```
+Run the sorghum demo against another atlas instance:
+```bash
+ATLAS_URL=https://data.sorghumbase.org/sorghum_v11/gxa/ SUBSITE=sorghum npx parcel src/sorghum.html --port 1235
+```
