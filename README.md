@@ -81,8 +81,11 @@ iframe to <code>dev.gramene.org/static/atlasWidget.html</code>.
 the grid's toolbar. It opens a dialog that asks for a **file name** (prefilled, focused and selected) and a
 **format**: *Tab-delimited text (.tsv)*, selected each time the dialog opens, or *JSON (.json)*. *Download* (or
 Enter) saves the data the widget shows under that name, with the format's extension added unless the name already
-has it; *Cancel* saves nothing. The name is sanitised (path separators, <code>: * ? " &lt; &gt; |</code> and control
-characters are removed) and *Download* is disabled while it is blank.
+has it, once however often it is clicked; *Cancel* saves nothing. The name is sanitised so that the browser saves the
+file under exactly the name the dialog shows (path separators, <code>: * ? " &lt; &gt; |</code>, control and invisible
+format characters and a leading <code>~</code> are removed, and it is cut to 200 bytes) and *Download* is disabled
+while it is blank. When the heatmap shows no data ("No data match your filtering criteria…"), the dialog says there is
+nothing to download and saves nothing.
 
 | Sub-tab | Suggested file name | Saved |
 | --- | --- | --- |
@@ -93,9 +96,11 @@ characters are removed) and *Download* is disabled while it is blank.
 <code>&lt;gene&gt;</code> is the id the tab queries (the gene's <code>atlas_id</code>, or its id). The TSV of a heatmap
 starts with <code>#</code> comment lines (page URL, time, query or experiment, unit), then a header line of column
 labels and a line per row; the grid's TSV is a plain table. The JSON has the same data with ids, units and
-<code>null</code> for no data (see gramene-atlas-heatmap's README, *Downloads*). For an EBI experiment the dialog of a
-Paralogs heatmap also links to the *Full experiment data on Expression Atlas* (EBI's download, formerly the
-"All data" menu item); JGI studies have no such download, so it is left out for them.
+<code>null</code> for no data, and credits the data to their source: <code>Expression Atlas</code> for EBI studies,
+<code>phytozome-next.jgi.doe.gov</code> for a JGI study drawn in Paralogs (see gramene-atlas-heatmap's README,
+*Downloads*). For an EBI experiment the dialog of a Paralogs heatmap also links to the *Full experiment data on
+Expression Atlas* (EBI's download, formerly the "All data" menu item); JGI studies have no such download, so it is
+left out for them.
 
 Details:
 - <code>atlasUrl</code> in the site configuration names the gramene-swagger <code>/gxa/</code> instance to query,
