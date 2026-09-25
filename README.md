@@ -77,6 +77,31 @@ iframe to <code>dev.gramene.org/static/atlasWidget.html</code>.
   band shows its factor values, sample id, replicates and TPM.
 - **eFP Browser** (where BAR has the species): the eFP image for the chosen study.
 
+**Download.** Paralogs and EBI Studies have a *Download* button among the heatmap's controls, and JGI Studies one in
+the grid's toolbar. It opens a dialog that asks for a **file name** (prefilled, focused and selected) and a
+**format**: *Tab-delimited text (.tsv)*, selected each time the dialog opens, or *JSON (.json)*. *Download* (or
+Enter) saves the data the widget shows under that name, with the format's extension added unless the name already
+has it, once however often it is clicked; *Cancel* saves nothing. The name is sanitised so that the browser saves the
+file under exactly the name the dialog shows (path separators, <code>: * ? " &lt; &gt; |</code>, control and invisible
+format characters and a leading <code>~</code> are removed, and it is cut to 200 bytes) and *Download* is disabled
+while it is blank. When the heatmap shows no data ("No data match your filtering criteria…"), the dialog says there is
+nothing to download and saves nothing.
+
+| Sub-tab | Suggested file name | Saved |
+| --- | --- | --- |
+| Paralogs | <code>&lt;gene&gt;-paralogs-&lt;experiment&gt;</code> | the heatmap's rows (the paralogs) and columns as shown: after its filters and ordering, and only the columns in view while zoomed in |
+| EBI Studies | <code>&lt;gene&gt;-ebi-studies</code> | the same, one row per study (the JGI rows are left out, as on the page) |
+| JGI Studies | <code>&lt;gene&gt;-&lt;JGI accession&gt;</code> | every sample of the study for the gene, one per line, whatever the grid's axes: gene, study, the study's factors, sample id, replicates and TPM |
+
+<code>&lt;gene&gt;</code> is the id the tab queries (the gene's <code>atlas_id</code>, or its id). The TSV of a heatmap
+starts with <code>#</code> comment lines (page URL, time, query or experiment, unit), then a header line of column
+labels and a line per row; the grid's TSV is a plain table. The JSON has the same data with ids, units and
+<code>null</code> for no data, and credits the data to their source: <code>Expression Atlas</code> for EBI studies,
+<code>phytozome-next.jgi.doe.gov</code> for a JGI study drawn in Paralogs (see gramene-atlas-heatmap's README,
+*Downloads*). For an EBI experiment the dialog of a Paralogs heatmap also links to the *Full experiment data on
+Expression Atlas* (EBI's download, formerly the "All data" menu item); JGI studies have no such download, so it is
+left out for them.
+
 Details:
 - <code>atlasUrl</code> in the site configuration names the gramene-swagger <code>/gxa/</code> instance to query,
   e.g. <code>'https://data.sorghumbase.org/sorghum_v11/gxa/'</code>. Unset, the tab queries
@@ -89,21 +114,25 @@ Details:
 - EBI Studies and JGI Studies send the gene's <code>atlas_id</code> (or its id).
 - Links open in a new tab. <code>resolveUrl</code> in <code>Expression.js</code> points row, experiment,
   "more information", Expression Atlas and download links at EBI, because gramene-swagger returns
-  relative gene links and an empty <code>geneQuery</code>; JGI studies keep their Phytozome links.
+  relative gene links and an empty <code>geneQuery</code>; JGI studies keep their Phytozome links. For
+  <code>'download'</code> it returns <code>null</code> when the experiment is a JGI study (a <code>source: 'JGI'</code>
+  study of the species, or a download URL at <code>jgi.doe.gov</code>, whose payload names Phytozome's genome page as
+  its download), which drops the dialog's full data link.
 - The chosen sub-tab, Paralogs experiment, JGI study and the grid's axes per JGI study
   (<code>jgiExperiment</code>, <code>jgiAxes</code>) are kept in <code>uiViewState.byGene[geneId].expression</code> and
   saved with shared views.
 - Styles are injected at runtime; Bootstrap 5 CSS and react-bootstrap 2 come from the host.
 
-<code>gramene-atlas-heatmap</code> is a dependency (<code>^6.2.0</code>, which adds <code>filterRows</code> and
-<code>ExpressionFactorGrid</code>) and brings in <code>gramene-anatomogram</code>. To try unreleased fork changes,
+<code>gramene-atlas-heatmap</code> is a dependency (<code>^6.3.0</code>: 6.2.0 added <code>filterRows</code> and
+<code>ExpressionFactorGrid</code>, 6.3.0 the Download dialog and <code>downloadFileName</code>) and brings in
+<code>gramene-anatomogram</code>. To try unreleased fork changes,
 install packed tarballs of both packages over the registry versions (not <code>npm link</code> or
 <code>file:</code>, which load a second React); the next <code>npm install</code> puts the registry versions back.
 ```bash
 cd ../anatomogram && npm run pack:local      # gramene-anatomogram-3.0.0.tgz
-cd ../atlas-heatmap && npm run pack:local    # gramene-atlas-heatmap-6.2.0.tgz
+cd ../atlas-heatmap && npm run pack:local    # gramene-atlas-heatmap-6.3.0.tgz
 cd ../gramene-search && npm install --no-save ../anatomogram/gramene-anatomogram-3.0.0.tgz \
-  ../atlas-heatmap/gramene-atlas-heatmap-6.2.0.tgz && rm -rf .parcel-cache*
+  ../atlas-heatmap/gramene-atlas-heatmap-6.3.0.tgz && rm -rf .parcel-cache*
 ```
 Run the sorghum demo against another atlas instance (<code>ATLAS_URL</code>) and data release
 (<code>GRAMENE_DATA</code>, default <code>https://data.sorghumbase.org/sorghum_v10b</code>); sorghum_v11 has the

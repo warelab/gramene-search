@@ -35,8 +35,12 @@ const editSearch = (url, edit) => {
 // (genes/<id>) that only some instances redirect to EBI, and atlasUrl itself is
 // not a browsable page, so point the heatmap's links at EBI's Expression Atlas.
 // JGI studies link to Phytozome, which takes no geneQuery. undefined keeps the
-// heatmap's own URL.
-const resolveUrl = (kind, url, context) => {
+// heatmap's own URL, null drops the link. isJgiExperiment(accession) tells the
+// JGI studies apart: they have no full data download (their payload's download
+// URL is Phytozome's page for the genome), so the Download dialog of a Paralogs
+// heatmap drawn from one leaves out "Full experiment data on Expression Atlas".
+const isJgiUrl = url => /^https?:\/\/([^/]+\.)?jgi\.doe\.gov\//i.test(url);
+const makeResolveUrl = isJgiExperiment => (kind, url, context) => {
   const genes = genesOf(context);
   const withGenes = params => {
     if (genes.length) params.set('geneQuery', JSON.stringify(genes.map(value => ({value}))));
@@ -54,6 +58,7 @@ const resolveUrl = (kind, url, context) => {
       if (context.experiment) return isEbiUrl(url) ? editSearch(url, withGenes) : undefined;
       return genes.length ? `${EBI_GXA}genes/${encodeURIComponent(genes[0])}` : undefined;
     case 'download':
+      if (isJgiExperiment(context.experiment) || isJgiUrl(url)) return null;
       return editSearch(url, params => params.delete('geneQuery'));
     default:
       return undefined;
@@ -64,8 +69,7 @@ const HEATMAP_OPTIONS = {
   showAnatomogram: true,
   isWidget: true,
   showControlMenu: true,
-  linkTarget: '_blank',
-  resolveUrl
+  linkTarget: '_blank'
 };
 
 const studyLabel = e => `${e.type}:${e.description || e._id}`;
@@ -180,6 +184,11 @@ const Detail = props => {
     const isJgiRow = makeIsJgiRow(allJgiStudies);
     return row => !isJgiRow(row);
   }, [allJgiKey]);
+  // A new resolveUrl does not redraw a heatmap: it asks the latest one for its links.
+  const resolveUrl = useMemo(() => {
+    const accessions = new Set(allJgiStudies.map(e => e._id));
+    return makeResolveUrl(accession => accessions.has(accession));
+  }, [allJgiKey]);
   // The EBI Studies heatmap waits for the studies list, which names the JGI
   // studies its filter drops: drawn before the list is in (a first visit; the
   // list is persisted), it would show the JGI rows and then redraw without
@@ -220,9 +229,11 @@ const Detail = props => {
         {activeTab === "paralogs" &&
           <ExpressionAtlasHeatmap key={`${atlasUrl} ${atlasExperiment} ${paralogQuery}`}
                                   {...HEATMAP_OPTIONS}
+                                  resolveUrl={resolveUrl}
                                   atlasUrl={atlasUrl}
                                   query={paralogsQuery}
-                                  experiment={atlasExperiment}/>
+                                  experiment={atlasExperiment}
+                                  downloadFileName={`${geneQuery}-paralogs-${atlasExperiment}`}/>
         }
       </Tab>
     }
@@ -233,10 +244,12 @@ const Detail = props => {
       {activeTab === "gene" && studiesSettled &&
         <ExpressionAtlasHeatmap key={`${atlasUrl} all ${geneQuery}`}
                                 {...HEATMAP_OPTIONS}
+                                resolveUrl={resolveUrl}
                                 atlasUrl={atlasUrl}
                                 query={allStudiesQuery}
                                 experiment={false}
-                                filterRows={filterRows}/>
+                                filterRows={filterRows}
+                                downloadFileName={`${geneQuery}-ebi-studies`}/>
       }
     </Tab>
     {jgiStudies.length === 0 && activeTab === "jgi" &&
@@ -263,6 +276,7 @@ const Detail = props => {
                                 rowFactor={jgiAxesOfStudy.rowFactor}
                                 columnFactor={jgiAxesOfStudy.columnFactor}
                                 onChangeFactors={setJgiAxes}
+                                downloadFileName={`${geneQuery}-${jgiExperiment}`}
                                 linkTarget="_blank"
                                 resolveUrl={resolveUrl}/>
         }
