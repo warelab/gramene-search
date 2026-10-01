@@ -11,7 +11,7 @@ import {
   LEVEL_COLOR, LEVEL_LABEL, LEVEL_ORDER, LEVEL_RANK, STRESS,
   tpmBackground, fmtTpm,
 } from '../exprAttrs/exprAttrCommon';
-import { ATTR_TABLE_LIMITS } from '../../bundles/attrTable';
+import { ATTR_TABLE_LIMITS, OFFERED_GROUPS, MAKER_FIELDS } from '../../bundles/attrTable';
 import './styles.css';
 
 const { MAX_GENES } = ATTR_TABLE_LIMITS;
@@ -37,6 +37,18 @@ const WIDTHS = {
   expr_n_organs_detected__attr_i: 90,
   expr_specific_to__attr_ss: 150, expr_enhanced_in__attr_ss: 150, expr_high_in__attr_ss: 150
 };
+
+// MAKER annotation metrics: AED and the QI fractions are 0-1 (2 decimals); the
+// other QIs are lengths or counts (integers).
+const MAKER_SET = new Set(MAKER_FIELDS);
+const fmtMaker = (f, v) => {
+  if (v == null || v === '' || !Number.isFinite(+v)) return '';
+  return f.endsWith('__attr_f') ? (+v).toFixed(2) : String(Math.round(+v));
+};
+const makerShortName = f => f.replace(/^MAKER__/, '').replace(/__attr_[a-z]$/, '');
+const makerTooltip = f => (f === 'MAKER__AED__attr_f'
+  ? 'MAKER Annotation Edit Distance: 0 = fully supported by evidence, 1 = no support'
+  : `MAKER quality index ${makerShortName(f)}`);
 
 const joinValues = p => (Array.isArray(p.value) ? p.value.map(v => String(v).replace(/_/g, ' ')).join(', ') : (p.value ?? ''));
 
@@ -120,10 +132,11 @@ const AttrTableViewCmp = props => {
     };
   }, [docs]);
 
-  // Only the Core identifiers + Expression attributes groups are offered.
+  // Only the groups the bundle fetches are offered (Core identifiers, Expression
+  // attributes, MAKER transcript metrics); the catalog drops groups a site lacks.
   const pickerCatalog = useMemo(() => {
     if (!fieldCatalog || !fieldCatalog.groups) return null;
-    return { ...fieldCatalog, groups: fieldCatalog.groups.filter(g => ['core', 'exprattrs'].includes(g.id)) };
+    return { ...fieldCatalog, groups: fieldCatalog.groups.filter(g => OFFERED_GROUPS.includes(g.id)) };
   }, [fieldCatalog]);
 
   const labelOf = f => ((fieldCatalogByName && fieldCatalogByName[f] && fieldCatalogByName[f].label) || f);
@@ -199,6 +212,15 @@ const AttrTableViewCmp = props => {
         return;
       }
 
+      if (MAKER_SET.has(f)) {
+        cols.push({
+          colId: f, field: f, headerName: labelOf(f), headerTooltip: makerTooltip(f), width: 110,
+          type: 'numericColumn',
+          valueFormatter: p => fmtMaker(f, p.value)
+        });
+        return;
+      }
+
       cols.push({
         colId: f, field: f, headerName: labelOf(f), headerTooltip: f, width: WIDTHS[f] || 150,
         pinned: (f === 'id' || f === 'name') ? 'left' : undefined,
@@ -242,6 +264,16 @@ const AttrTableViewCmp = props => {
       const v = data.expr_tau__attr_f;
       if (!Number.isFinite(+v)) return { title: labelOf(colId), items: [] };
       return { title: labelOf(colId), items: [mk(`≥ ${(+v).toFixed(3)}`, colId, `[${v} TO *]`, 'Tau', `tau ≥ ${(+v).toFixed(3)}`)] };
+    }
+    if (MAKER_SET.has(colId)) {
+      // AED: lower is better supported, so offer "at most"; the QI metrics "at least".
+      const v = data[colId];
+      if (!Number.isFinite(+v)) return { title: labelOf(colId), items: [] };
+      const shown = fmtMaker(colId, +v);
+      const short = makerShortName(colId);
+      return colId === 'MAKER__AED__attr_f'
+        ? { title: labelOf(colId), items: [mk(`≤ ${shown}`, colId, `[* TO ${v}]`, 'MAKER', `${short} ≤ ${shown}`)] }
+        : { title: labelOf(colId), items: [mk(`≥ ${shown}`, colId, `[${v} TO *]`, 'MAKER', `${short} ≥ ${shown}`)] };
     }
     // Generic (Expression class, and any core / added attribute).
     const label = labelOf(colId);

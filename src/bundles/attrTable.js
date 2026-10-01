@@ -7,16 +7,16 @@ import { EXPR_ATTR_FIELDS } from '../components/exprAttrs/exprAttrCommon';
 // Paging mirrors exprViz's doFetchExprVizData: a recursive fetchPage(offset)
 // with a request-id guard so a superseded fetch can never write stale rows.
 //
-// The offered columns are deliberately limited to two field-catalog groups —
-// Core identifiers and Expression attributes — and *all* of them are fetched up
-// front. That keeps the column picker a pure visibility control: toggling a
-// column is instant and never triggers a refetch.
+// The offered columns are deliberately limited to a few field-catalog groups —
+// Core identifiers, Expression attributes and MAKER transcript metrics — and
+// *all* of them are fetched up front. That keeps the column picker a pure
+// visibility control: toggling a column is instant and never triggers a refetch.
 
 const PAGE_SIZE = 1000;
 const MAX_GENES = 5000;
 
 // The catalog groups whose fields the column picker offers.
-const OFFERED_GROUPS = ['core', 'exprattrs'];
+const OFFERED_GROUPS = ['core', 'exprattrs', 'MAKER'];
 
 // The 'core' group's fields (bundles/../fieldCatalog.overlay.json).
 const CORE_FIELDS = [
@@ -24,9 +24,19 @@ const CORE_FIELDS = [
   'biotype', 'system_name', 'taxon_id', 'db_type'
 ];
 
+// The 'MAKER' group's fields: MAKER's annotation quality metrics (AED and the
+// quality index QI1-QI9). Only some releases have them (e.g. SorghumBase); Solr
+// returns nothing for them elsewhere, and the picker then hides the empty group.
+const MAKER_FIELDS = [
+  'MAKER__AED__attr_f',
+  'MAKER__QI1__attr_i', 'MAKER__QI2__attr_f', 'MAKER__QI3__attr_f',
+  'MAKER__QI4__attr_f', 'MAKER__QI5__attr_f', 'MAKER__QI6__attr_f',
+  'MAKER__QI7__attr_i', 'MAKER__QI8__attr_i', 'MAKER__QI9__attr_i'
+];
+
 // Always fetched, so visibility toggles never need the network. taxon_id is
 // needed by the genome filter even when its column is hidden.
-const FETCH_FIELDS = [...new Set([...CORE_FIELDS, ...EXPR_ATTR_FIELDS])];
+const FETCH_FIELDS = [...new Set([...CORE_FIELDS, ...EXPR_ATTR_FIELDS, ...MAKER_FIELDS])];
 
 // Default columns, in display order. The two stress fields are adjacent so the
 // view can merge them into a single "Activated/Repressed by condition" column.
@@ -200,5 +210,5 @@ const attrTable = {
 };
 
 export const ATTR_TABLE_LIMITS = { PAGE_SIZE, MAX_GENES };
-export { OFFERED_GROUPS, CORE_FIELDS, DEFAULT_VISIBLE };
+export { OFFERED_GROUPS, CORE_FIELDS, MAKER_FIELDS, DEFAULT_VISIBLE };
 export default attrTable;
