@@ -197,3 +197,10 @@
     align-items: flex-end;
     padding-bottom: 3px;
 }
+
+/* Summary-statistics rows pinned above the genes */
+.attrtable-aggrid .ag-row-pinned.attrtable-stats-header { background: #dde7f3; font-weight: 600; cursor: pointer; }
+.attrtable-aggrid .ag-row-pinned.attrtable-stats-row { background: #eef3f9; color: #234; }
+.attrtable-aggrid .ag-floating-top { border-bottom: 2px solid #9fb6d3; }
+.attrtable-stats-toggle { user-select: none; white-space: nowrap; }
+.attrtable-stats-label { font-weight: 600; }

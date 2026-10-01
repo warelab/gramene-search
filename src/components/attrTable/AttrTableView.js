@@ -50,6 +50,49 @@ const makerTooltip = f => (f === 'MAKER__AED__attr_f'
   ? 'MAKER Annotation Edit Distance: 0 = fully supported by evidence, 1 = no support'
   : `MAKER quality index ${makerShortName(f)}`);
 
+// Summary-statistics rows, pinned above the genes. The header row collapses the
+// rest; stats cover every loaded gene, for each visible column whose values are
+// all numbers (taxon_id is an identifier, not a measurement).
+const STAT_ROWS = [
+  { key: 'n', label: 'N' },
+  { key: 'min', label: 'Min' },
+  { key: 'max', label: 'Max' },
+  { key: 'median', label: 'Median' },
+  { key: 'mean', label: 'Mean' },
+  { key: 'sd', label: 'Std dev' }
+];
+const NOT_MEASUREMENTS = new Set(['taxon_id']);
+
+const numericFieldsOf = (rows, fields) => fields.filter(f => {
+  if (NOT_MEASUREMENTS.has(f)) return false;
+  let numbers = 0;
+  for (const r of rows) {
+    const v = r[f];
+    if (v == null || v === '') continue;
+    if (typeof v !== 'number' || !Number.isFinite(v)) return false;
+    numbers++;
+  }
+  return numbers > 0;
+});
+
+const statsOf = values => {
+  const n = values.length;
+  if (!n) return { n: 0 };
+  const sorted = values.slice().sort((a, b) => a - b);
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const median = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+  const sd = n > 1 ? Math.sqrt(values.reduce((a, v) => a + (v - mean) * (v - mean), 0) / (n - 1)) : null;
+  return { n, min: sorted[0], max: sorted[n - 1], median, mean, sd };
+};
+
+// Mean and std dev of a whole-number column still need decimals.
+const fmtDecimal = v => {
+  if (v == null || !Number.isFinite(v)) return '';
+  const a = Math.abs(v);
+  return a !== 0 && (a < 0.01 || a >= 1e6) ? v.toPrecision(3) : v.toFixed(2);
+};
+const isIntegerField = (f, rows) => f.endsWith('__attr_i') || rows.every(r => r[f] == null || Number.isInteger(r[f]));
+
 const joinValues = p => (Array.isArray(p.value) ? p.value.map(v => String(v).replace(/_/g, ' ')).join(', ') : (p.value ?? ''));
 
 const StressChip = ({ c, dir }) => (
@@ -108,6 +151,8 @@ const AttrTableViewCmp = props => {
   const [popover, setPopover] = useState(null);
   const popRef = useRef(null);
 
+  const [statsOpen, setStatsOpen] = useState(true);
+
   const { docs, total, truncated, status, error, visibleFields } = attrTable;
   const visibleSet = useMemo(() => new Set(visibleFields), [visibleFields]);
 
@@ -163,10 +208,11 @@ const AttrTableViewCmp = props => {
             headerTooltip: organLabel(o),
             width: 22,
             minWidth: 18,
-            valueGetter: p => (p.data && p.data._organ[o]) || '',
+            valueGetter: p => (p.data && p.data._organ && p.data._organ[o]) || '',
             valueFormatter: () => '',
             tooltipValueGetter: p => {
-              const lvl = p.data && p.data._organ[o];
+              if (p.node && p.node.rowPinned) return undefined;
+              const lvl = p.data && p.data._organ && p.data._organ[o];
               if (!lvl) return `${organLabel(o)}: not assayed`;
               const sp = p.data._specific.has(o) ? ' · specific' : (p.data._enhanced.has(o) ? ' · enhanced' : '');
               return `${organLabel(o)}: ${LEVEL_LABEL[lvl] || lvl}${sp}`;
@@ -232,6 +278,76 @@ const AttrTableViewCmp = props => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleFields, visibleSet, organs, tpmRange, fieldCatalogByName]);
 
+  // Visible columns whose values are all numbers get summary statistics.
+  const numericFields = useMemo(() => {
+    const fields = columnDefs.filter(c => c.field).map(c => c.field);
+    return new Set(numericFieldsOf(rows, fields));
+  }, [columnDefs, rows]);
+
+  const stats = useMemo(() => {
+    const out = {};
+    numericFields.forEach(f => {
+      out[f] = statsOf(rows.map(r => r[f]).filter(v => typeof v === 'number' && Number.isFinite(v)));
+    });
+    return out;
+  }, [numericFields, rows]);
+
+  const pinnedTopRows = useMemo(() => {
+    if (!numericFields.size || !rows.length) return [];
+    const header = { _stat: 'header' };
+    if (!statsOpen) return [header];
+    return [header, ...STAT_ROWS.map(({ key, label }) => {
+      const row = { _stat: key, _statLabel: label };
+      numericFields.forEach(f => { row[f] = stats[f][key]; });
+      return row;
+    })];
+  }, [numericFields, stats, statsOpen, rows.length]);
+
+  // The first column carries the stats rows' labels; numeric columns show their
+  // statistics, formatted like the column (N as a count, mean/sd with decimals).
+  const gridColumnDefs = useMemo(() => columnDefs.map((col, i) => {
+    const first = i === 0;
+    const numeric = !!col.field && numericFields.has(col.field);
+    if (!first && !numeric) return col;
+    const intField = numeric && isIntegerField(col.field, rows);
+    const statText = p => {
+      const v = p.value;
+      if (v == null || v === '') return '';
+      const k = p.data._stat;
+      if (k === 'n') return Number(v).toLocaleString();
+      if (k === 'mean' || k === 'sd' || (k === 'median' && intField && !Number.isInteger(v))) {
+        return col.field === 'expr_max_tpm__attr_f' ? fmtTpm(v) : fmtDecimal(v);
+      }
+      return col.valueFormatter ? col.valueFormatter({ ...p, value: v }) : String(v);
+    };
+    return {
+      ...col,
+      valueFormatter: p => {
+        if (!(p.node && p.node.rowPinned)) return col.valueFormatter ? col.valueFormatter(p) : p.value;
+        return numeric ? statText(p) : '';
+      },
+      cellStyle: p => (p.node && p.node.rowPinned ? null : (typeof col.cellStyle === 'function' ? col.cellStyle(p) : col.cellStyle)),
+      cellRenderer: p => {
+        if (p.node && p.node.rowPinned) {
+          const k = p.data._stat;
+          if (first && k === 'header') {
+            return (
+              <span className="attrtable-stats-toggle" title={statsOpen ? 'Hide summary statistics' : 'Show summary statistics'}>
+                {statsOpen ? '▾' : '▸'} Summary statistics ({rows.length.toLocaleString()} genes)
+              </span>
+            );
+          }
+          if (first) {
+            const value = numeric ? statText(p) : '';
+            return <span className="attrtable-stats-label">{p.data._statLabel}{value ? `: ${value}` : ''}</span>;
+          }
+          return k === 'header' ? '' : p.valueFormatted;
+        }
+        return col.cellRenderer ? React.createElement(col.cellRenderer, p) : (p.valueFormatted ?? p.value);
+      }
+    };
+  }), [columnDefs, numericFields, rows, statsOpen]);
+
   // Build the click-popover for a cell: a title (the column meaning) and one
   // filterable item per value. Each item carries the fq_field / fq_value the
   // "add filter" button hands to doAcceptGrameneSuggestion.
@@ -283,6 +399,11 @@ const AttrTableViewCmp = props => {
   };
 
   const onCellClicked = e => {
+    if (e.node && e.node.rowPinned) {
+      if (e.data && e.data._stat === 'header') setStatsOpen(v => !v);
+      setPopover(null);
+      return;
+    }
     const desc = buildCellPopover(e.column.getColId(), e.data);
     if (!desc || !desc.items.length) { setPopover(null); return; }
     const ev = e.event || {};
@@ -376,7 +497,9 @@ const AttrTableViewCmp = props => {
         <div className={`ag-theme-quartz attrtable-aggrid${organShown ? ' attrtable-tall-header' : ''}`}>
           <AgGridReact
             rowData={rows}
-            columnDefs={columnDefs}
+            columnDefs={gridColumnDefs}
+            pinnedTopRowData={pinnedTopRows}
+            getRowClass={p => (p.node.rowPinned ? (p.data._stat === 'header' ? 'attrtable-stats-header' : 'attrtable-stats-row') : undefined)}
             defaultColDef={DEFAULT_COL_DEF}
             animateRows={false}
             suppressFieldDotNotation={true}
