@@ -46,9 +46,10 @@ const fmtMaker = (f, v) => {
   return f.endsWith('__attr_f') ? (+v).toFixed(2) : String(Math.round(+v));
 };
 const makerShortName = f => f.replace(/^MAKER__/, '').replace(/__attr_[a-z]$/, '');
-const makerTooltip = f => (f === 'MAKER__AED__attr_f'
+// AED gets an explanation; the QIs their catalog label, e.g. "QI1: Length of the 5' UTR".
+const makerTooltip = (f, label) => (f === 'MAKER__AED__attr_f'
   ? 'MAKER Annotation Edit Distance: 0 = fully supported by evidence, 1 = no support'
-  : `MAKER quality index ${makerShortName(f)}`);
+  : label);
 
 // Summary-statistics rows, pinned above the genes. The header row collapses the
 // rest; stats cover every loaded gene, for each visible column whose values are
@@ -260,7 +261,7 @@ const AttrTableViewCmp = props => {
 
       if (MAKER_SET.has(f)) {
         cols.push({
-          colId: f, field: f, headerName: labelOf(f), headerTooltip: makerTooltip(f), width: 110,
+          colId: f, field: f, headerName: labelOf(f), headerTooltip: makerTooltip(f, labelOf(f)), width: 110,
           type: 'numericColumn',
           valueFormatter: p => fmtMaker(f, p.value)
         });
