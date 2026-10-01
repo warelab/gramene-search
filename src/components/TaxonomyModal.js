@@ -23,6 +23,7 @@ function findRoots(tax) {
 
 // Post-order: attach .leafIds (taxon_ids of maps in subtree) and .isLeaf
 function annotate(node, tax, maps) {
+  maps = maps || {};
   const leafIds = [];
   if (maps[node._id]) { node.isLeaf = true; leafIds.push(node._id); }
   (node.children || []).forEach(cid => {
@@ -34,9 +35,21 @@ function annotate(node, tax, maps) {
   node.leafIds = leafIds;
 }
 
+// The taxonomy's root nodes, annotated with the genomes (maps) under them. The
+// modal is mounted with the search status, so the taxonomy and the maps can
+// arrive in either order: missing maps count as no genomes, and the roots are
+// rebuilt when either changes.
+function buildRoots({ grameneMaps, grameneTaxonomy }) {
+  if (!grameneTaxonomy) return [];
+  const roots = findRoots(grameneTaxonomy);
+  roots.forEach(r => annotate(r, grameneTaxonomy, grameneMaps || {}));
+  return roots;
+}
+
 // Walk down the spine through single-child internals until a branch point,
 // leaf, or node that is itself a genome.
 function compressChain(node, tax, maps) {
+  maps = maps || {};
   const chain = [node];
   let cur = node;
   while (true) {
@@ -170,19 +183,11 @@ function computeOpenState(props) {
 class TaxonomyModal extends React.Component {
   constructor(props) {
     super(props);
-    const { grameneMaps, grameneTaxonomy } = props;
-
-    let roots = [];
-    if (grameneTaxonomy) {
-      roots = findRoots(grameneTaxonomy);
-      roots.forEach(r => annotate(r, grameneTaxonomy, grameneMaps));
-    }
-
     const { selected, expanded } = computeOpenState(props);
     this.state = {
       selected,
       expanded,
-      roots,
+      roots: buildRoots(props),
       query: '',
       highlightId: null,
       activeIdx: 0,
@@ -220,6 +225,12 @@ class TaxonomyModal extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
+    // Maps or taxonomy arrived (or changed): rebuild the tree and reseed the
+    // selection, which was empty if the modal mounted before the maps loaded.
+    if (prevProps.grameneMaps !== this.props.grameneMaps || prevProps.grameneTaxonomy !== this.props.grameneTaxonomy) {
+      const { selected, expanded } = computeOpenState(this.props);
+      this.setState({ roots: buildRoots(this.props), selected, expanded });
+    }
     // On each hidden→shown transition, reseed selection from current active
     // genomes and expand every ancestor so selected taxa are visible.
     const wasShown = prevProps.grameneGenomes && prevProps.grameneGenomes.show;
@@ -275,7 +286,7 @@ class TaxonomyModal extends React.Component {
 
   selectAll() {
     const s = new Set();
-    Object.values(this.props.grameneMaps).forEach(m => {
+    Object.values(this.props.grameneMaps || {}).forEach(m => {
       if (!m.hidden) s.add(m.taxon_id);
     });
     this.setState({ selected: s });
@@ -289,7 +300,7 @@ class TaxonomyModal extends React.Component {
     const active = {};
     this.state.selected.forEach(id => { active[id] = true; });
     if (Object.keys(active).length === 0) {
-      Object.values(this.props.grameneMaps).forEach(m => {
+      Object.values(this.props.grameneMaps || {}).forEach(m => {
         if (!m.hidden) active[m.taxon_id] = true;
       });
     }
@@ -314,7 +325,7 @@ class TaxonomyModal extends React.Component {
       .map(cid => grameneTaxonomy[cid])
       .filter(c => c && c.leafIds.length > 0);
     const hasKids = visibleKids.length > 0;
-    const terminalIsGenome = !!grameneMaps[terminal._id];
+    const terminalIsGenome = !!(grameneMaps && grameneMaps[terminal._id]);
 
     const isOpen = expanded.has(terminal._id);
 
