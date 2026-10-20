@@ -8,16 +8,25 @@ import taxonomy from "gramene-trees-client/src/taxonomy";
 import genetree from "gramene-trees-client/src/genetree";
 import {
   TBrowse,
-  computePivotState,
   createGenomeZone,
-  fromGrameneGenetree,
-  fromGrameneGeneStructures,
-  fromGrameneNeighborhood,
   labelsZone,
   msaZone,
   neighborhoodZone,
   treeZone,
 } from "tbrowse";
+import {
+  applyPivot,
+  buildInitialViewState,
+  computePivotState,
+  createDerivedPruneLayer,
+  createLoader,
+  defineSlot,
+  extendSource,
+  fetchGrameneExprAttrDocs,
+  grameneGeneTreeSource,
+  hostPropsFrom,
+  maximalExcludedClades,
+} from "tbrowse-core";
 import {Detail, Title, Description, Content, Explore, Links} from "./generic";
 import {exprAttrsZone, buildExprData} from "./exprAttrsZone";
 import {suggestionToFilters} from "../../utils";
@@ -31,28 +40,42 @@ const genomeZone = createGenomeZone({id: 'genome'});
 // `enable_tbrowse_genome_zone` (defaults to false) — see getTbrowseZones().
 const TBROWSE_BASE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone];
 
+// The expression-attributes zone's data, as a slot on tbrowse-core's Gramene
+// gene-tree source: one tree-scoped /search for the expr_*__attr_* fields
+// (fetchGrameneExprAttrDocs), shaped by buildExprData and delivered through
+// hostData.exprAttrs — the same lifecycle as the built-in neighborhood and
+// gene-structure slots. Enabled per site via the ctx flag the component
+// derives from `enable_tbrowse_expression_zone`.
+const exprAttrsSlot = defineSlot({
+  id: 'exprAttrs',
+  enabled: (ctx) => ctx.expression === true,
+  run: async ({ctx, fetch, signal, tree}) =>
+    buildExprData(await fetchGrameneExprAttrDocs(ctx.base, ctx.treeId, {fetch, signal}), tree),
+  toHostData: (v) => ({hostData: {exprAttrs: v}}),
+});
+const homologySource = extendSource(grameneGeneTreeSource, {
+  id: 'gramene-homology',
+  slots: [exprAttrsSlot],
+});
+// Host zone id → the slot(s) feeding it, so the TBrowse toolbar shows the
+// per-zone loading / error affordances (TBrowseProps.zoneStatus).
+const ZONE_SLOTS = {
+  neighborhood: ['neighborhood'],
+  genome: ['geneStructures'],
+  expression: ['exprAttrs'],
+};
+
 class Homology extends React.Component {
   constructor(props) {
     super(props);
-    // Async data caches stay in local state (per mount, per tree). The
+    // The tbrowse data — tree, MSA, domains and junctions adapted from the
+    // stored genetree doc, then the neighborhood / gene-structure / expression
+    // slots — is loaded by a tbrowse-core loader kept on the instance (one per
+    // mount); its snapshot is mirrored into state so renders follow it. The
     // user-controlled view state (viewer toggle, resize height, tbrowse
     // ViewState) is lifted into the uiViewState bundle, keyed by geneId.
-    //
-    // `*Status` fields track per-zone load lifecycle so the TBrowse
-    // toolbar can render loading/error affordances via its zoneStatus
-    // prop. They start `undefined` (no signal); flipped to 'loading'
-    // when the fetch kicks off and 'ready' / 'error' on settle.
-    this.state = {
-      neighborhood: null,
-      neighborhoodTreeId: null,
-      neighborhoodStatus: undefined,
-      geneStructures: null,
-      geneStructuresTreeId: null,
-      geneStructuresStatus: undefined,
-      exprAttrs: null,
-      exprAttrsTreeId: null,
-      exprAttrsStatus: undefined,
-    };
+    this.loader = createLoader(homologySource, {zoneSlots: ZONE_SLOTS});
+    this.state = {snap: this.loader.getSnapshot()};
     if (!props.geneDocs.hasOwnProperty(props.searchResult.id)) {
       props.requestGene(props.searchResult.id)
     }
@@ -98,97 +121,63 @@ class Homology extends React.Component {
   // When the user has limited the search to a subset of genomes
   // (grameneGenomes.active), prune the gene tree to genes from those genomes
   // — mirroring the taxon_id filter api.js applies to the search itself, and
-  // the genomesOfInterest TreeVis already honours. Returns the ids of the
-  // highest nodes whose entire subtree lies outside the active set (maximal
-  // excluded clades), rather than individual leaves: tbrowse then sheds one
-  // stub per clade instead of one per leaf, and its single-marker count is
-  // meaningful. The gene of interest is always kept so the tree never
-  // collapses to nothing. Empty active set means "no limit" → full tree.
+  // the genomesOfInterest TreeVis already honours. tbrowse-core's
+  // maximalExcludedClades returns the ids of the highest nodes whose entire
+  // subtree lies outside the active set (maximal excluded clades), rather
+  // than individual leaves: tbrowse then sheds one stub per clade instead of
+  // one per leaf, and its single-marker count is meaningful. The gene of
+  // interest is always kept so the tree never collapses to nothing. Empty
+  // active set means "no limit" → full tree.
   getGenomePrunedIds() {
     const active = (this.props.grameneGenomes && this.props.grameneGenomes.active) || {};
     const activeIds = Object.keys(active);
     if (activeIds.length === 0) return [];
-    if (!this._tbrowseData) return [];
+    const snap = this.state.snap;
+    if (!snap.tree) return [];
     const activeSet = new Set(activeIds.map(String));
     const keepGeneId = this.gene && this.gene._id;
-    const nodes = this._tbrowseData.tree.nodes;
-    const children = {};
-    Object.values(nodes).forEach(n => {
-      if (n.parentId != null) (children[n.parentId] = children[n.parentId] || []).push(n.id);
-    });
-    // hasKept(node): does the subtree contain a leaf we must keep (its taxon
-    // is active, or it's the gene of interest)? Memoised post-order walk.
-    const memo = {};
-    const hasKept = (id) => {
-      if (id in memo) return memo[id];
-      const n = nodes[id];
-      const v = n.isLeaf
-        ? ((n.taxonomyId != null && activeSet.has(String(n.taxonomyId))) || n.geneId === keepGeneId)
-        : (children[id] || []).some(hasKept);
-      memo[id] = v;
-      return v;
-    };
-    // A node is a maximal excluded clade when it keeps nothing but its parent
-    // does (or it's the root) — i.e. the highest fully-excluded node on its
-    // path. The root always keeps the gene of interest, so it is never pruned.
-    return Object.values(nodes)
-      .filter(n => !hasKept(n.id) && (n.parentId == null || hasKept(n.parentId)))
-      .map(n => n.id);
+    return maximalExcludedClades(snap.tree, (leaf) =>
+      (leaf.taxonomyId != null && activeSet.has(String(leaf.taxonomyId))) || leaf.geneId === keepGeneId);
   }
   // Seed the bundle with a pivot-computed initial tbrowse view state once the
-  // tree data is available and the user is actually looking at the tbrowse
-  // viewer. Called from lifecycle (not render) to avoid dispatching mid-render.
+  // loader has the tree and the user is actually looking at the tbrowse
+  // viewer, from lifecycle (not render) to avoid dispatching mid-render. The
+  // dispatch lands synchronously in the per-gene slice, so the slice check is
+  // the dedupe. buildInitialViewState is the same routine the chassis runs in
+  // uncontrolled mode (each zone's fr-share, initial visibility, default
+  // per-zone state); the pivot is computed for THIS gene — the loader is
+  // shared by every gene of the tree, so its own pivot may be another gene's.
   maybeSeedTbrowseViewState() {
     if (this.getViewer() !== 'tbrowse') return;
     if (this.getHomologySlice().tbrowse) return;
-    const id = this.getGeneId();
-    if (!this.props.geneDocs.hasOwnProperty(id)) return;
-    const gene = this.props.geneDocs[id];
-    if (!gene.homology) return;
-    const treeId = gene.homology.gene_tree.id;
-    const raw = this.props.grameneTrees[treeId];
-    if (!raw || !raw.taxon_id) return;
-    const adapted = fromGrameneGenetree([raw]);
-    const pivot = computePivotState(adapted.tree, gene._id);
-    this.setTbrowseViewState({
-      selectedNodeId: null,
-      collapsedNodeIds: pivot ? pivot.collapsedNodeIds : [],
-      prunedNodeIds: [],
-      swappedNodeIds: pivot ? pivot.swappedNodeIds : [],
-      compressedNodeIds: [],
-      nodeOfInterestId: pivot ? pivot.targetId : null,
-      // Use each zone's intended fr-share + initial visibility from its
-      // definition (tree:30 / labels:20 / msa:50 / neighborhood:30 /
-      // genome:32) instead of uniform 25 across the board. Gives the MSA
-      // a wider initial pane and the tree a narrower one.
-      //
-      // `defaultVisible ?? true` matches tbrowse's own buildInitialViewState
-      // logic — zones default to visible unless their definition opts out
-      // (e.g. neighborhood and genome opt out so they only appear once
-      // their async data lands; tbrowse's Layout auto-flips them on then).
-      zones: this.getTbrowseZones().map(z => ({
-        id: z.id,
-        width: z.defaultWidth,
-        visible: z.defaultVisible ?? true
-      })),
-      zoneStates: {},
-      search: null,
-    });
+    const snap = this.state.snap;
+    if (snap.status !== 'ready' || !snap.tree || !this.gene) return;
+    this.setTbrowseViewState(
+      applyPivot(buildInitialViewState(this.getTbrowseZones()), computePivotState(snap.tree, this.gene._id)),
+    );
   }
   componentDidMount() {
+    this._unsubscribe = this.loader.subscribe(() => this.setState({snap: this.loader.getSnapshot()}));
+    this.maybeStartLoader();
     this.maybeSeedTbrowseViewState();
-    this.maybeFetchTbrowseData();
   }
   componentDidUpdate() {
+    this.maybeStartLoader();
     this.maybeSeedTbrowseViewState();
-    this.maybeFetchTbrowseData();
   }
-  // Kick off the neighborhood + gene-structure fetches from lifecycle,
-  // not render. Each fetch internally dedupes on `_*FetchedFor === treeId`
-  // so calling on every commit is cheap. Gated on the user actually being
-  // on the tbrowse viewer + the tree data being loaded — otherwise we'd
-  // pay network cost for genes the user never looks at.
-  maybeFetchTbrowseData() {
+  componentWillUnmount() {
+    if (this._unsubscribe) this._unsubscribe();
+    this.loader.dispose();
+  }
+  // Start the loader (or restart it when the gene's tree changes) from
+  // lifecycle, not render. Gated on the user actually being on the tbrowse
+  // viewer + the tree doc being loaded — otherwise we'd pay network cost for
+  // genes the user never looks at. The stored genetree doc is handed over as
+  // `rawGenetree`, so the source makes no /genes or /genetrees request of its
+  // own (docs.js's taxon-name rewrite stays upstream); the neighborhood,
+  // gene-structure and expression slots are the only fetches, and the loader
+  // retries their transient failures with backoff.
+  maybeStartLoader() {
     if (this.getViewer() !== 'tbrowse') return;
     const id = this.getGeneId();
     if (!this.props.geneDocs.hasOwnProperty(id)) return;
@@ -197,137 +186,22 @@ class Homology extends React.Component {
     const treeId = gene.homology.gene_tree.id;
     const raw = this.props.grameneTrees[treeId];
     if (!raw || !raw.taxon_id) return;
-    // Lazily compute the adapted tbrowse data the same way renderTBrowse
-    // does, so fetchGeneStructures has the leaf ids without rerunning
-    // fromGrameneGenetree on every commit.
-    if (this._tbrowseTreeId !== treeId) {
-      this._tbrowseTreeId = treeId;
-      this._tbrowseData = fromGrameneGenetree([raw]);
-    }
-    this.fetchNeighborhood(treeId);
-    // Only pay for gene-structure data when the genome zone is actually enabled.
-    if (this.isGenomeZoneEnabled()) {
-      this.fetchGeneStructures(treeId, this._tbrowseData.tree);
-    }
-    // Same for the per-gene expression attributes zone.
-    if (this.isExpressionZoneEnabled()) {
-      this.fetchExprAttrs(treeId, this._tbrowseData.tree);
-    }
-  }
-  fetchNeighborhood(treeId) {
-    if (this._neighborhoodFetchedFor === treeId) return;
-    this._neighborhoodFetchedFor = treeId;
-    this.setState({neighborhoodStatus: 'loading'});
-    const api = this.props.grameneAPI;
-    const url = new URL(`${api}/search`);
-    url.searchParams.set('fl', 'id,name,gene_tree,gene_idx,region,start,end,strand,biotype,system_name,description');
-    url.searchParams.set('fq', `{!graph from=compara_neighbors_10 to=compara_idx_multi maxDepth=1}gene_tree:${treeId}`);
-    url.searchParams.set('rows', '100000');
-    url.searchParams.set('start', '0');
-    fetch(url.toString(), {headers: {Accept: 'application/json'}})
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(json => {
-        if (this._neighborhoodFetchedFor !== treeId) return;
-        this.setState({
-          neighborhood: fromGrameneNeighborhood(json),
-          neighborhoodTreeId: treeId,
-          neighborhoodStatus: 'ready',
-        });
-      })
-      .catch(err => {
-        console.warn('tbrowse neighborhood fetch failed:', err);
-        // Surface the failure via the zoneStatus prop. Reset the
-        // dedupe key so a re-mount or tree-change can retry.
-        if (this._neighborhoodFetchedFor === treeId) {
-          this.setState({neighborhoodStatus: 'error'});
-        }
-        this._neighborhoodFetchedFor = null;
-      });
-  }
-  fetchGeneStructures(treeId, tree) {
-    if (this._geneStructuresFetchedFor === treeId) return;
-    this._geneStructuresFetchedFor = treeId;
-    const ids = Object.values(tree.nodes)
-      .filter(n => n.isLeaf && n.geneId)
-      .map(n => n.geneId);
-    if (ids.length === 0) return;
-    this.setState({geneStructuresStatus: 'loading'});
-    const api = this.props.grameneAPI;
-    const BATCH_SIZE = 50;
-    const batches = [];
-    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-      batches.push(ids.slice(i, i + BATCH_SIZE));
-    }
-    const fetchBatch = (batch) => {
-      const url = new URL(`${api}/genes`);
-      url.searchParams.set('idList', batch.join(','));
-      url.searchParams.set('rows', '-1');
-      return fetch(url.toString(), {headers: {Accept: 'application/json'}})
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        });
-    };
-    Promise.all(batches.map(fetchBatch))
-      .then(results => {
-        if (this._geneStructuresFetchedFor !== treeId) return;
-        const combined = [].concat(...results.map(r => Array.isArray(r) ? r : []));
-        this.setState({
-          geneStructures: fromGrameneGeneStructures(combined),
-          geneStructuresTreeId: treeId,
-          geneStructuresStatus: 'ready',
-        });
-      })
-      .catch(err => {
-        console.warn('tbrowse gene-structures fetch failed:', err);
-        if (this._geneStructuresFetchedFor === treeId) {
-          this.setState({geneStructuresStatus: 'error'});
-        }
-        this._geneStructuresFetchedFor = null;
-      });
-  }
-  // Fetch the expression attributes (expr_*__attr_*) for this tree's genes in a
-  // single query: scope by gene_tree and the `expression_attributes` capability
-  // so only genes that actually have the data come back (rows high enough to
-  // cover the whole tree). Uses /search (not /genes, whose trimmed docs omit the
-  // attr fields) with an fl glob so the columns are discovered from the data
-  // rather than hard-coded. `tree` is still needed to map gene ids to leaf node
-  // ids (see buildExprByNode).
-  fetchExprAttrs(treeId, tree) {
-    if (this._exprAttrsFetchedFor === treeId) return;
-    this._exprAttrsFetchedFor = treeId;
-    this.setState({exprAttrsStatus: 'loading'});
-    const api = this.props.grameneAPI;
-    const url = new URL(`${api}/search`);
-    url.searchParams.set('q', '*:*');
-    url.searchParams.append('fq', `gene_tree:${treeId}`);
-    url.searchParams.append('fq', 'capabilities:expression_attributes');
-    url.searchParams.set('fl', 'id,expr_*__attr_*');
-    url.searchParams.set('rows', '10000');
-    fetch(url.toString(), {headers: {Accept: 'application/json'}})
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(json => {
-        if (this._exprAttrsFetchedFor !== treeId) return;
-        const docs = (json && json.response && Array.isArray(json.response.docs)) ? json.response.docs : [];
-        this.setState({
-          exprAttrs: buildExprData(docs, tree),
-          exprAttrsTreeId: treeId,
-          exprAttrsStatus: 'ready',
-        });
-      })
-      .catch(err => {
-        console.warn('tbrowse expression-attrs fetch failed:', err);
-        if (this._exprAttrsFetchedFor === treeId) {
-          this.setState({exprAttrsStatus: 'error'});
-        }
-        this._exprAttrsFetchedFor = null;
-      });
+    if (this._loaderStartedFor === treeId) return;
+    this._loaderStartedFor = treeId;
+    void this.loader.start({
+      base: this.props.grameneAPI,
+      treeId,
+      geneId: gene._id,
+      rawGenetree: raw,
+      // Only pay for gene-structure data when the genome zone is enabled; the
+      // request shape (50 ids per /genes call, no fl) is what this tab has
+      // always sent.
+      geneStructures: this.isGenomeZoneEnabled(),
+      geneStructureChunkSize: 50,
+      geneStructureFl: null,
+      // Same for the per-gene expression attributes zone.
+      expression: this.isExpressionZoneEnabled(),
+    });
   }
   startResize(e) {
     e.preventDefault();
@@ -377,74 +251,33 @@ class Homology extends React.Component {
     )
   }
   renderTBrowse() {
-    const treeId = this.gene.homology.gene_tree.id;
-    // Adapted tbrowse data is computed lazily in maybeFetchTbrowseData
-    // (called from lifecycle). If the user just flipped to tbrowse and
-    // the lifecycle hasn't fired yet, compute it once here without
-    // calling any fetches — those will fire from componentDidUpdate.
-    if (this._tbrowseTreeId !== treeId) {
-      this._tbrowseTreeId = treeId;
-      this._tbrowseData = fromGrameneGenetree([this.props.grameneTrees[treeId]]);
-    }
-    const neighborhood = this.state.neighborhoodTreeId === treeId ? this.state.neighborhood : undefined;
-    const geneStructures = this.state.geneStructuresTreeId === treeId ? this.state.geneStructures : undefined;
-    const exprAttrs = this.state.exprAttrsTreeId === treeId ? this.state.exprAttrs : undefined;
-    // Per-zone status for the TBrowse toolbar — pulses while a fetch
-    // is in flight, turns red on failure. Tracked per-tree so a
-    // tree-change resets any stale 'ready'/'error' from the prior gene.
-    const zoneStatus = {
-      neighborhood: this.state.neighborhoodTreeId === treeId
-        ? this.state.neighborhoodStatus
-        : (this.state.neighborhoodStatus === 'loading' ? 'loading' : undefined),
-      genome: this.state.geneStructuresTreeId === treeId
-        ? this.state.geneStructuresStatus
-        : (this.state.geneStructuresStatus === 'loading' ? 'loading' : undefined),
-      expression: this.state.exprAttrsTreeId === treeId
-        ? this.state.exprAttrsStatus
-        : (this.state.exprAttrsStatus === 'loading' ? 'loading' : undefined),
-    };
-    // Bundle-driven (controlled) view state. If we're rendering tbrowse before
-    // componentDidMount/Update has seeded the bundle slice, skip this turn and
-    // let the re-render with the seeded state do the work.
+    const snap = this.state.snap;
+    const hostProps = hostPropsFrom(snap);
+    // Nothing to draw until the loader has adapted the tree (one tick after
+    // start(), since the stored doc needs no fetch) and the bundle slice has
+    // been seeded by maybeSeedTbrowseViewState (lifecycle, not render).
     const tbrowseVS = this.getHomologySlice().tbrowse;
-    if (!tbrowseVS) return null;
+    if (!hostProps || !tbrowseVS) {
+      // Reserve the pane's height so the card doesn't jump when the tree lands.
+      return <div className="gene-genetree" style={{height: this.getHeight(), width: '100%'}} />;
+    }
     // Layer the genome-limit prune set on top of the user's own prunes for the
-    // controlled view state, but persist only the user's prunes (strip the
-    // genome-derived ones in onViewStateChange) so the bundle stays free of
-    // filter-derived state and re-applies cleanly when the filter changes.
-    const genomePrunedIds = this.getGenomePrunedIds();
-    const effectiveVS = genomePrunedIds.length
-      ? {...tbrowseVS, prunedNodeIds: _.union(tbrowseVS.prunedNodeIds || [], genomePrunedIds)}
-      : tbrowseVS;
-    const onViewStateChange = genomePrunedIds.length
-      ? (next => {
-          const genomeSet = new Set(genomePrunedIds);
-          this.setTbrowseViewState({
-            ...next,
-            prunedNodeIds: (next.prunedNodeIds || []).filter(id => !genomeSet.has(id)),
-          });
-        })
-      : (next => this.setTbrowseViewState(next));
+    // controlled view state, but persist only the user's prunes (the layer
+    // strips the genome-derived ones in onViewStateChange) so the bundle stays
+    // free of filter-derived state and re-applies cleanly when the filter
+    // changes.
+    const pruneLayer = createDerivedPruneLayer(this.getGenomePrunedIds());
     return (
       <>
         <div className="gene-genetree" style={{height: this.getHeight(), width: '100%'}}>
           <TBrowse
-            tree={this._tbrowseData.tree}
-            taxonomy={this._tbrowseData.taxonomy}
-            msa={this._tbrowseData.msa}
-            geneMetadata={this._tbrowseData.geneMetadata}
-            proteinDomains={this._tbrowseData.proteinDomains}
-            exonJunctions={this._tbrowseData.exonJunctions}
-            neighborhood={neighborhood}
-            geneStructures={geneStructures}
-            hostData={exprAttrs ? {exprAttrs} : undefined}
+            {...hostProps}
             zones={this.getTbrowseZones()}
             nodeOfInterest={this.gene._id}
-            viewState={effectiveVS}
-            onViewStateChange={onViewStateChange}
+            viewState={pruneLayer.effective(tbrowseVS)}
+            onViewStateChange={(next) => this.setTbrowseViewState(pruneLayer.onChange(next))}
             densityControls={true}
             defaultOpenSections={{ zones: true, search: true }}
-            zoneStatus={zoneStatus}
           />
         </div>
         {this.renderResizeHandle()}

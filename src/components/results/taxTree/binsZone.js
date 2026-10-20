@@ -20,7 +20,8 @@
 // hovers/selections stay anchored to the genome as you pan and zoom.
 
 import React, { useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
-import { EditableZoneName } from 'tbrowse';
+import { EditableZoneName, rowHighlightBackground } from 'tbrowse';
+import { rowFlags, rowsTotalHeight } from 'tbrowse-core';
 
 // ── colour model (ported from gramene-search-vis util/colors.js) ──────────
 // schemeCategory10, kept as RGB triples so we need no d3 dependency here.
@@ -420,13 +421,6 @@ const BinsHeader = ({ data, zoneState, setZoneState }) => {
 // show as bands above/below the strip on hover/select.
 const ROW_PAD_Y = 2;
 
-function rowHighlight(isSelected, isExactHover, isInHoveredSubtree) {
-  if (isSelected) return 'var(--tbrowse-row-select-bg)';
-  if (isExactHover) return 'var(--tbrowse-row-hover-bg)';
-  if (isInHoveredSubtree) return 'var(--tbrowse-row-subtree-bg)';
-  return 'transparent';
-}
-
 const BinsBody = (props) => {
   const {
     visibleRows, rowRange, width, data, zoneState,
@@ -447,9 +441,7 @@ const BinsBody = (props) => {
   const transform = snap.transform || DEFAULT_TRANSFORM;
   const mode = (zoneState && zoneState.mode) || 'select';
 
-  const totalHeight = visibleRows.length
-    ? visibleRows[visibleRows.length - 1].y + visibleRows[visibleRows.length - 1].height
-    : 0;
+  const totalHeight = rowsTotalHeight(visibleRows);
   const bins = data.hostData && data.hostData.bins;
   const rows = visibleRows.slice(rowRange.startIndex, rowRange.endIndex);
   const w = Math.max(1, Math.floor(width));
@@ -669,10 +661,8 @@ const BinsBody = (props) => {
             left: 0,
             right: 0,
             height: r.height,
-            background: rowHighlight(
-              selectedNodeId === r.nodeId,
-              hoveredNodeId === r.nodeId,
-              !!(hoveredSubtreeIds && hoveredSubtreeIds.has(r.nodeId)),
+            background: rowHighlightBackground(
+              rowFlags(r, { hoveredNodeId, hoveredSubtreeIds, selectedNodeId }),
             ),
             cursor: rowCursor,
             opacity: r.opacity ?? 1,

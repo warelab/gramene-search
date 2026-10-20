@@ -1,3 +1,4 @@
+import { stripPrunesForSnapshot } from 'tbrowse-core';
 // Serializer/deserializer for shareable gene-search views.
 //
 // `selectViewSnapshot` produces a versioned JSON-safe blob from the current
@@ -322,7 +323,7 @@ function buildSnapshot(state) {
       snap.taxTree = {
         collapseEmpties: tv.collapseEmpties !== false,
         comparaOnly: tv.comparaOnly !== false,
-        ...(hasVS ? { viewState: { ...tv.viewState, prunedNodeIds: [] } } : {}),
+        ...(hasVS ? { viewState: stripPrunesForSnapshot(tv.viewState) } : {}),
       };
     }
   }

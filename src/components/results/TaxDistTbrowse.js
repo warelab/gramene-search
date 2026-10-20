@@ -1,11 +1,14 @@
 import React, { useMemo, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
 import { connect } from 'redux-bundler-react';
 import { TBrowse, treeZone, labelsZone } from 'tbrowse';
+import {
+  buildInitialViewState, countsFromFacet, leavesFailing, pixelWidthsToFr,
+} from 'tbrowse-core';
 import { toTbrowseTree } from './taxTree/toTbrowseTree';
 import {
   binsZone, extractGenomeData, createBinsUiStore, selectedBinIdxs, totalSelectedGenes,
 } from './taxTree/binsZone';
-import { countsZone, computeGeneCounts } from './taxTree/countsZone';
+import { countsZone } from './taxTree/countsZone';
 
 // tbrowse-based reimplementation of the Taxonomic-distribution view: the
 // species tree becomes a tbrowse tree (cladogram, tips aligned) and the
@@ -32,33 +35,25 @@ function binIdxsToSolr(idxs) {
   return parts.join(' OR ');
 }
 
+// The initial controlled ViewState: tbrowse-core's buildInitialViewState over
+// this view's zone list with the view's own fr-shares, and — passed through
+// `overrides` so they replace the seeded defaults verbatim — the per-zone states
+// exactly as this view has always persisted them. The tree zone tolerates a
+// partial state (reads with `?? default`); the labels zone reads `visibleFields`
+// directly, so it must be present. Drive the tree as a cladogram (taxonomy has
+// no branch lengths) and show the genome/species name in the labels column.
 function baseViewState() {
-  return {
-    selectedNodeId: null,
-    collapsedNodeIds: [],
-    prunedNodeIds: [],
-    swappedNodeIds: [],
-    compressedNodeIds: [],
-    nodeOfInterestId: null,
-    zones: [
-      { id: 'tree', width: 30, visible: true },
-      { id: 'labels', width: 22, visible: true },
-      { id: 'counts', width: 10, visible: true },
-      { id: 'bins', width: 60, visible: true },
-    ],
-    // Controlled mode supplies zoneStates wholesale, so each must carry the
-    // fields its zone reads. The tree zone tolerates a partial state (reads
-    // with `?? default`); the labels zone reads `visibleFields` directly, so
-    // it must be present. Drive the tree as a cladogram (taxonomy has no
-    // branch lengths) and show the genome/species name in the labels column.
-    zoneStates: {
-      tree: { layoutMode: 'cladogram', showLeafExtensions: false },
-      labels: { visibleFields: ['taxonomy.commonName'] },
-      counts: {},
-      bins: {},
+  return buildInitialViewState(ZONES, {
+    widths: { tree: 30, labels: 22, counts: 10, bins: 60 },
+    overrides: {
+      zoneStates: {
+        tree: { layoutMode: 'cladogram', showLeafExtensions: false },
+        labels: { visibleFields: ['taxonomy.commonName'] },
+        counts: {},
+        bins: {},
+      },
     },
-    search: null,
-  };
+  });
 }
 
 // The set of taxa to SHOW, mirroring the legacy TaxDist.js logic.
@@ -135,7 +130,7 @@ const TaxDistTbrowse = (props) => {
       && props.grameneSearch.facet_counts.facet_fields.taxon_id;
     return {
       bins: extractGenomeData(grameneTaxDist),
-      geneCounts: adapter ? computeGeneCounts(adapter.tree, facet) : null,
+      geneCounts: adapter ? countsFromFacet(adapter.tree, facet, 'nodeId') : null,
       binsUI: binsUiRef.current,
       onApplyBinsFilter,
     };
@@ -162,13 +157,15 @@ const TaxDistTbrowse = (props) => {
       comparaOnly,
       showCompara,
     );
-    return adapter.leafTaxonIds.filter((id) => !selected[id]);
+    return leavesFailing(adapter.tree, (leaf) => Boolean(selected[String(leaf.taxonomyId)]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adapter, collapseEmpties, comparaOnly, showCompara,
     props.grameneSearch, props.grameneGenomes, props.grameneMaps]);
 
   // Effective (controlled) view state = user interactions + control-driven
-  // pruning. Memoised so the reference is stable across unrelated renders.
+  // pruning. The derived set REPLACES prunedNodeIds (this view has no user
+  // prunes of its own; the snapshot strips the field for the same reason).
+  // Memoised so the reference is stable across unrelated renders.
   const effectiveViewState = useMemo(
     () => ({ ...viewState, prunedNodeIds }),
     [viewState, prunedNodeIds],
@@ -187,17 +184,12 @@ const TaxDistTbrowse = (props) => {
     const el = wrapperRef.current;
     if (!el || el.clientWidth <= 0 || window.innerWidth < 800) return;
     sizedRef.current = true;
-    const TARGET = { tree: 270, labels: 200, counts: 64 };
-    const used = TARGET.tree + TARGET.labels + TARGET.counts;
-    const binsW = Math.max(160, el.clientWidth - used);
+    const widths = pixelWidthsToFr({ tree: 270, labels: 200, counts: 64 }, el.clientWidth, 'bins', 160);
     const base = baseViewState();
     setTaxTreeView({
       viewState: {
         ...base,
-        zones: base.zones.map((z) => ({
-          ...z,
-          width: z.id === 'bins' ? binsW : (TARGET[z.id] ?? z.width),
-        })),
+        zones: base.zones.map((z) => ({ ...z, width: widths[z.id] ?? z.width })),
       },
     });
   }, [adapter, storedViewState, setTaxTreeView]);

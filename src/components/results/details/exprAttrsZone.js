@@ -10,7 +10,8 @@
 // receive their async data. Color/legend conventions follow exprViz/HeatmapPlot.
 
 import React from 'react';
-import { EditableZoneName } from 'tbrowse';
+import { EditableZoneName, rowsWithFlags } from 'tbrowse';
+import { geneIdByLeafNodeId, joinByLeaf, rowsTotalHeight } from 'tbrowse-core';
 import {
   abbrOrgan as abbr, organLabel,
   LEVEL_ORDER, LEVEL_COLOR, LEVEL_LABEL,
@@ -32,28 +33,23 @@ const STRESS_MIN = 120;
  * @param {{nodes:object}} tree - adapted tbrowse tree
  */
 export function buildExprData(docs, tree) {
-  const nodeOf = {};
-  const nodeGene = {}; // leaf nodeId -> gene id, for every leaf (hover readout)
-  if (tree && tree.nodes) {
-    Object.values(tree.nodes).forEach((n) => {
-      if (n.isLeaf && n.geneId) { nodeOf[n.geneId] = n.id; nodeGene[n.id] = n.geneId; }
-    });
-  }
+  const hasTree = Boolean(tree && tree.nodes);
+  const nodeGene = hasTree ? geneIdByLeafNodeId(tree) : {}; // leaf nodeId -> gene id (hover readout)
+  const byGeneId = {};
+  (docs || []).forEach((d) => {
+    if (d && d.id) byGeneId[d.id] = extractExprAttrs(d);
+  });
+  // Docs whose gene is not a leaf of this tree are dropped (joinByLeaf's `unmatched`).
+  const byNode = hasTree ? joinByLeaf(tree, byGeneId).byNode : {};
   const organSet = new Set();
-  const byNode = {};
   let tpmMin = Infinity;
   let tpmMax = -Infinity;
-  (docs || []).forEach((d) => {
-    if (!d || !d.id) return;
-    const nodeId = nodeOf[d.id];
-    if (!nodeId) return;
-    const attrs = extractExprAttrs(d);
+  Object.values(byNode).forEach((attrs) => {
     Object.keys(attrs.organLevels).forEach((o) => organSet.add(o));
     if (attrs.maxTpm !== null) {
       if (attrs.maxTpm < tpmMin) tpmMin = attrs.maxTpm;
       if (attrs.maxTpm > tpmMax) tpmMax = attrs.maxTpm;
     }
-    byNode[nodeId] = attrs;
   });
   return {
     organs: orderOrgans(organSet),
@@ -61,15 +57,6 @@ export function buildExprData(docs, tree) {
     nodeGene,
     maxTpm: { min: tpmMin === Infinity ? 0 : tpmMin, max: tpmMax === -Infinity ? 0 : tpmMax },
   };
-}
-
-// Shared row-highlight background, matching the other zones so hovering any zone
-// lights up the same row across all of them.
-function rowHighlight(isSelected, isExactHover, isInHoveredSubtree) {
-  if (isSelected) return 'var(--tbrowse-row-select-bg)';
-  if (isExactHover) return 'var(--tbrowse-row-hover-bg)';
-  if (isInHoveredSubtree) return 'var(--tbrowse-row-subtree-bg)';
-  return 'transparent';
 }
 
 const gridBorder = '1px solid var(--tbrowse-grid-line, rgba(0,0,0,0.06))';
@@ -166,20 +153,13 @@ const ExprBody = ({
   const byNode = ea.byNode || {};
   const tpmRange = ea.maxTpm || { min: 0, max: 0 };
   const sW = stressWidth(width, organs.length);
-  const totalHeight = visibleRows.length
-    ? visibleRows[visibleRows.length - 1].y + visibleRows[visibleRows.length - 1].height
-    : 0;
-  const rows = visibleRows.slice(rowRange.startIndex, rowRange.endIndex);
+  const totalHeight = rowsTotalHeight(visibleRows);
+  const rows = rowsWithFlags(visibleRows, rowRange, { hoveredNodeId, hoveredSubtreeIds, selectedNodeId });
 
   return (
     <div style={{ position: 'relative', width, height: totalHeight, overflow: 'hidden' }}>
-      {rows.map((r) => {
+      {rows.map(({ row: r, background }) => {
         const gene = byNode[r.nodeId];
-        const background = rowHighlight(
-          selectedNodeId === r.nodeId,
-          hoveredNodeId === r.nodeId,
-          !!(hoveredSubtreeIds && hoveredSubtreeIds.has(r.nodeId)),
-        );
         const tpmFrac = gene ? tpmFraction(gene.maxTpm, tpmRange) : null;
         return (
           <div
