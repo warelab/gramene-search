@@ -23,6 +23,7 @@ import {
   defineSlot,
   extendSource,
   fetchGrameneExprAttrDocs,
+  grameneGeneTreeRef,
   grameneGeneTreeSource,
   hostPropsFrom,
   maximalExcludedClades,
@@ -45,12 +46,17 @@ const TBROWSE_BASE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone];
 // (fetchGrameneExprAttrDocs), shaped by buildExprData and delivered through
 // hostData.exprAttrs — the same lifecycle as the built-in neighborhood and
 // gene-structure slots. Enabled per site via the ctx flag the component
-// derives from `enable_tbrowse_expression_zone`.
+// derives from `enable_tbrowse_expression_zone`. Scoped by root.meta, which
+// carries the Solr field holding the tree id: gene_tree, or a clade tree set
+// such as wheat.
 const exprAttrsSlot = defineSlot({
   id: 'exprAttrs',
   enabled: (ctx) => ctx.expression === true,
-  run: async ({ctx, fetch, signal, tree}) =>
-    buildExprData(await fetchGrameneExprAttrDocs(ctx.base, ctx.treeId, {fetch, signal}), tree),
+  run: async ({ctx, fetch, signal, tree, root}) =>
+    buildExprData(
+      await fetchGrameneExprAttrDocs(ctx.base, root.meta.treeId, {treeField: root.meta.treeField, fetch, signal}),
+      tree,
+    ),
   toHostData: (v) => ({hostData: {exprAttrs: v}}),
 });
 const homologySource = extendSource(grameneGeneTreeSource, {
@@ -182,8 +188,11 @@ class Homology extends React.Component {
     const id = this.getGeneId();
     if (!this.props.geneDocs.hasOwnProperty(id)) return;
     const gene = this.props.geneDocs[id];
-    if (!gene.homology) return;
-    const treeId = gene.homology.gene_tree.id;
+    // gene_tree, or a clade tree set (homology.wheat, homology.oat, …); none
+    // for genes with homologues but no tree.
+    const ref = grameneGeneTreeRef(gene.homology);
+    if (!ref) return;
+    const treeId = ref.id;
     const raw = this.props.grameneTrees[treeId];
     if (!raw || !raw.taxon_id) return;
     if (this._loaderStartedFor === treeId) return;
@@ -191,6 +200,7 @@ class Homology extends React.Component {
     void this.loader.start({
       base: this.props.grameneAPI,
       treeId,
+      treeField: ref.field,
       geneId: gene._id,
       rawGenetree: raw,
       // Only pay for gene-structure data when the genome zone is enabled; the
@@ -314,7 +324,7 @@ class Homology extends React.Component {
   filterAllHomologs() {
     this.props.doReplaceGrameneFilters(suggestionToFilters({
       category: 'Gene Tree',
-      fq_field: 'gene_tree',
+      fq_field: this.treeRef.field,
       fq_value: this.tree._id,
       name: `Homologs of ${this.gene.name}`
     }))
@@ -376,12 +386,12 @@ class Homology extends React.Component {
     }
   }
   explorations() {
-    let x = [{
+    let x = this.tree ? [{
       name: 'Homologs',
       category: 'Gene Tree',
       count: this.tree.geneCount,
       handleClick: this.filterAllHomologs.bind(this)
-    }];
+    }] : [];
     if (this.orthologs) {
       x.push({
         name: 'Orthologs',
@@ -429,7 +439,25 @@ class Homology extends React.Component {
       return <Spinner/>
     }
     this.gene = this.props.geneDocs[id];
-    const treeId = this.gene.homology.gene_tree.id;
+    this.treeRef = grameneGeneTreeRef(this.gene.homology);
+    if (!this.treeRef) {
+      // Homologues but no tree (some pan-genome assemblies): offer the
+      // ortholog/paralog searches instead of a phylogram.
+      this.tree = undefined;
+      this.orthologs = this.orthologList();
+      this.paralogs = this.paralogList();
+      const explorations = this.explorations();
+      return (
+        <Detail>
+          <Description key="description">
+            No gene tree is available for this gene.
+          </Description>
+          {explorations.length > 0 && <Explore key="explore" explorations={explorations}/>}
+          <Links key="links" links={this.links()}/>
+        </Detail>
+      )
+    }
+    const treeId = this.treeRef.id;
     if (! this.props.grameneTrees.hasOwnProperty(treeId)) {
       this.props.doRequestGrameneTree(treeId);
     }
