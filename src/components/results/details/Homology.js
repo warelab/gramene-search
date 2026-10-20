@@ -221,7 +221,11 @@ class Homology extends React.Component {
     const api = this.props.grameneAPI;
     const url = new URL(`${api}/search`);
     url.searchParams.set('fl', 'id,name,gene_tree,gene_idx,region,start,end,strand,biotype,system_name,description');
-    url.searchParams.set('fq', `{!graph from=compara_neighbors_10 to=compara_idx_multi maxDepth=1}gene_tree:${treeId}`);
+    // cache=false: as a cached fq the graph query caches its seed inside its own
+    // filterCache computeIfAbsent, and Solr's FastLRUCache throws "Recursive
+    // update" (HTTP 500) whenever the two keys collide — for some trees, until
+    // the seed happens to be cached by another request.
+    url.searchParams.set('fq', `{!graph from=compara_neighbors_10 to=compara_idx_multi maxDepth=1 cache=false}gene_tree:${treeId}`);
     url.searchParams.set('rows', '100000');
     url.searchParams.set('start', '0');
     fetch(url.toString(), {headers: {Accept: 'application/json'}})
