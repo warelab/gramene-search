@@ -31,6 +31,21 @@ const genomeZone = createGenomeZone({id: 'genome'});
 // `enable_tbrowse_genome_zone` (defaults to false) — see getTbrowseZones().
 const TBROWSE_BASE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone];
 
+// A gene's tree is either the main Compara tree (homology.gene_tree) or, for
+// genomes in a clade-specific tree set, homology.<tree_set> — e.g. wheat genes
+// carry homology.wheat = {id: 'EplWheatGT_…'}. Solr indexes the tree id under
+// the same name (gene_tree, wheat, oat, …), so `field` is also the fq field.
+// Null when the gene has homologues but no tree at all.
+const NOT_TREE_KEYS = ['homologous_genes', 'supertree'];
+function geneTreeRef(gene) {
+  const h = gene && gene.homology;
+  if (!h) return null;
+  if (h.gene_tree && h.gene_tree.id) return {field: 'gene_tree', id: h.gene_tree.id};
+  const key = Object.keys(h).find(k =>
+    !NOT_TREE_KEYS.includes(k) && h[k] && typeof h[k] === 'object' && typeof h[k].id === 'string');
+  return key ? {field: key, id: h[key].id} : null;
+}
+
 class Homology extends React.Component {
   constructor(props) {
     super(props);
@@ -144,8 +159,9 @@ class Homology extends React.Component {
     const id = this.getGeneId();
     if (!this.props.geneDocs.hasOwnProperty(id)) return;
     const gene = this.props.geneDocs[id];
-    if (!gene.homology) return;
-    const treeId = gene.homology.gene_tree.id;
+    const ref = geneTreeRef(gene);
+    if (!ref) return;
+    const treeId = ref.id;
     const raw = this.props.grameneTrees[treeId];
     if (!raw || !raw.taxon_id) return;
     const adapted = fromGrameneGenetree([raw]);
@@ -193,8 +209,9 @@ class Homology extends React.Component {
     const id = this.getGeneId();
     if (!this.props.geneDocs.hasOwnProperty(id)) return;
     const gene = this.props.geneDocs[id];
-    if (!gene.homology) return;
-    const treeId = gene.homology.gene_tree.id;
+    const ref = geneTreeRef(gene);
+    if (!ref) return;
+    const treeId = ref.id;
     const raw = this.props.grameneTrees[treeId];
     if (!raw || !raw.taxon_id) return;
     // Lazily compute the adapted tbrowse data the same way renderTBrowse
@@ -204,28 +221,29 @@ class Homology extends React.Component {
       this._tbrowseTreeId = treeId;
       this._tbrowseData = fromGrameneGenetree([raw]);
     }
-    this.fetchNeighborhood(treeId);
+    this.fetchNeighborhood(treeId, ref.field);
     // Only pay for gene-structure data when the genome zone is actually enabled.
     if (this.isGenomeZoneEnabled()) {
       this.fetchGeneStructures(treeId, this._tbrowseData.tree);
     }
     // Same for the per-gene expression attributes zone.
     if (this.isExpressionZoneEnabled()) {
-      this.fetchExprAttrs(treeId, this._tbrowseData.tree);
+      this.fetchExprAttrs(treeId, this._tbrowseData.tree, ref.field);
     }
   }
-  fetchNeighborhood(treeId) {
+  fetchNeighborhood(treeId, field = 'gene_tree') {
     if (this._neighborhoodFetchedFor === treeId) return;
     this._neighborhoodFetchedFor = treeId;
     this.setState({neighborhoodStatus: 'loading'});
     const api = this.props.grameneAPI;
     const url = new URL(`${api}/search`);
-    url.searchParams.set('fl', 'id,name,gene_tree,gene_idx,region,start,end,strand,biotype,system_name,description');
+    const fl = 'id,name,gene_tree,gene_idx,region,start,end,strand,biotype,system_name,description';
+    url.searchParams.set('fl', field === 'gene_tree' ? fl : `${fl},${field}`);
     // cache=false: as a cached fq the graph query caches its seed inside its own
     // filterCache computeIfAbsent, and Solr's FastLRUCache throws "Recursive
     // update" (HTTP 500) whenever the two keys collide — for some trees, until
     // the seed happens to be cached by another request.
-    url.searchParams.set('fq', `{!graph from=compara_neighbors_10 to=compara_idx_multi maxDepth=1 cache=false}gene_tree:${treeId}`);
+    url.searchParams.set('fq', `{!graph from=compara_neighbors_10 to=compara_idx_multi maxDepth=1 cache=false}${field}:${treeId}`);
     url.searchParams.set('rows', '100000');
     url.searchParams.set('start', '0');
     fetch(url.toString(), {headers: {Accept: 'application/json'}})
@@ -235,6 +253,11 @@ class Homology extends React.Component {
       })
       .then(json => {
         if (this._neighborhoodFetchedFor !== treeId) return;
+        // The neighborhood zone colours genes by family from doc.gene_tree; in
+        // a clade tree set the family id lives under the set's own field.
+        if (field !== 'gene_tree' && json && json.response && Array.isArray(json.response.docs)) {
+          json.response.docs.forEach(d => { if (d[field] && !d.gene_tree) d.gene_tree = d[field]; });
+        }
         this.setState({
           neighborhood: fromGrameneNeighborhood(json),
           neighborhoodTreeId: treeId,
@@ -294,20 +317,20 @@ class Homology extends React.Component {
       });
   }
   // Fetch the expression attributes (expr_*__attr_*) for this tree's genes in a
-  // single query: scope by gene_tree and the `expression_attributes` capability
+  // single query: scope by the tree's field and the `expression_attributes` capability
   // so only genes that actually have the data come back (rows high enough to
   // cover the whole tree). Uses /search (not /genes, whose trimmed docs omit the
   // attr fields) with an fl glob so the columns are discovered from the data
   // rather than hard-coded. `tree` is still needed to map gene ids to leaf node
   // ids (see buildExprByNode).
-  fetchExprAttrs(treeId, tree) {
+  fetchExprAttrs(treeId, tree, field = 'gene_tree') {
     if (this._exprAttrsFetchedFor === treeId) return;
     this._exprAttrsFetchedFor = treeId;
     this.setState({exprAttrsStatus: 'loading'});
     const api = this.props.grameneAPI;
     const url = new URL(`${api}/search`);
     url.searchParams.set('q', '*:*');
-    url.searchParams.append('fq', `gene_tree:${treeId}`);
+    url.searchParams.append('fq', `${field}:${treeId}`);
     url.searchParams.append('fq', 'capabilities:expression_attributes');
     url.searchParams.set('fl', 'id,expr_*__attr_*');
     url.searchParams.set('rows', '10000');
@@ -381,7 +404,7 @@ class Homology extends React.Component {
     )
   }
   renderTBrowse() {
-    const treeId = this.gene.homology.gene_tree.id;
+    const treeId = this.treeRef.id;
     // Adapted tbrowse data is computed lazily in maybeFetchTbrowseData
     // (called from lifecycle). If the user just flipped to tbrowse and
     // the lifecycle hasn't fired yet, compute it once here without
@@ -485,7 +508,7 @@ class Homology extends React.Component {
   filterAllHomologs() {
     this.props.doReplaceGrameneFilters(suggestionToFilters({
       category: 'Gene Tree',
-      fq_field: 'gene_tree',
+      fq_field: this.treeRef.field,
       fq_value: this.tree._id,
       name: `Homologs of ${this.gene.name}`
     }))
@@ -547,12 +570,12 @@ class Homology extends React.Component {
     }
   }
   explorations() {
-    let x = [{
+    let x = this.tree ? [{
       name: 'Homologs',
       category: 'Gene Tree',
       count: this.tree.geneCount,
       handleClick: this.filterAllHomologs.bind(this)
-    }];
+    }] : [];
     if (this.orthologs) {
       x.push({
         name: 'Orthologs',
@@ -600,7 +623,25 @@ class Homology extends React.Component {
       return <Spinner/>
     }
     this.gene = this.props.geneDocs[id];
-    const treeId = this.gene.homology.gene_tree.id;
+    this.treeRef = geneTreeRef(this.gene);
+    if (!this.treeRef) {
+      // Homologues but no tree (some pan-genome assemblies): offer the
+      // ortholog/paralog searches instead of a phylogram.
+      this.tree = undefined;
+      this.orthologs = this.orthologList();
+      this.paralogs = this.paralogList();
+      const explorations = this.explorations();
+      return (
+        <Detail>
+          <Description key="description">
+            No gene tree is available for this gene.
+          </Description>
+          {explorations.length > 0 && <Explore key="explore" explorations={explorations}/>}
+          <Links key="links" links={this.links()}/>
+        </Detail>
+      )
+    }
+    const treeId = this.treeRef.id;
     if (! this.props.grameneTrees.hasOwnProperty(treeId)) {
       this.props.doRequestGrameneTree(treeId);
     }
