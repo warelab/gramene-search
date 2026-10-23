@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react'
 import {connect} from "redux-bundler-react";
-import {Tabs, Tab, Form} from 'react-bootstrap';
+import {Tabs, Tab, Form, Button} from 'react-bootstrap';
 import {ExpressionAtlasHeatmap, ExpressionFactorGrid} from 'gramene-atlas-heatmap';
 import BAR, {haveBAR} from "./BAR";
 
@@ -178,16 +178,6 @@ const Detail = props => {
     const notEbiBaseline = new Set(studies.filter(e => isJgiStudy(e) || isDifferential(e)).map(e => e._id));
     return geneStudyIds.some(id => !notEbiBaseline.has(id));
   }, [studies, geneStudyIds]);
-  // Without a baseline study the EBI Studies heatmap has nothing to draw (its
-  // request fails rather than coming back empty), so the tab says so and
-  // points at the differential EBI studies the gene does appear in -- e.g.
-  // Medicago truncatula, whose studies are all differential.
-  const ebiDifferential = useMemo(() => {
-    if (!geneStudyIds || !studies) return [];
-    const mine = new Set(geneStudyIds);
-    return studies.filter(e => mine.has(e._id) && isDifferential(e) && !isJgiStudy(e))
-      .sort((a, b) => (studyLabel(a) < studyLabel(b) ? -1 : 1));
-  }, [studies, geneStudyIds]);
   const allJgiKey = JSON.stringify(allJgiStudies.map(e => [e._id, e.name]));
   const filterRows = useMemo(() => {
     if (allJgiStudies.length === 0) return undefined;
@@ -251,19 +241,17 @@ const Detail = props => {
       {activeTab === "gene" && !studiesSettled &&
         <div className="text-muted small" role="status">Loading expression studies…</div>
       }
+      {/* Without a baseline study the heatmap has nothing to draw (its request
+          fails rather than coming back empty), so say so -- e.g. Medicago
+          truncatula, whose studies are all differential -- and point at the
+          Paralogs tab, which draws differential experiments too. */}
       {activeTab === "gene" && studiesSettled && !hasEbiBaseline &&
         <div className="text-muted small" role="status">
           {gene.name || gene._id} is not in any baseline expression study, so there is no heatmap here.
-          {ebiDifferential.length > 0 && <>
-            {' '}It has results in {ebiDifferential.length === 1 ? 'a differential study' : `${ebiDifferential.length} differential studies`} at Expression Atlas:
-            <ul className="mt-1 mb-0">
-              {ebiDifferential.map(e =>
-                <li key={e._id}>
-                  <a href={`${EBI_GXA}experiments/${encodeURIComponent(e._id)}/Results?geneQuery=${encodeURIComponent(JSON.stringify([{value: geneQuery}]))}`}
-                     target="_blank" rel="noopener noreferrer">{e.description || e._id}</a> ({e._id})
-                </li>
-              )}
-            </ul>
+          {paralogQuery && atlasExperiment && <>
+            {' '}To explore the differential expression of this gene and its paralogs, use the{' '}
+            <Button variant="link" size="sm" className="p-0 align-baseline"
+                    onClick={() => setExpression({activeTab: 'paralogs'})}>Paralogs tab</Button>.
           </>}
         </div>
       }
