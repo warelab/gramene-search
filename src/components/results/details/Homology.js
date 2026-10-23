@@ -177,6 +177,28 @@ class Homology extends React.Component {
     return maximalExcludedClades(snap.tree, (leaf) =>
       (leaf.taxonomyId != null && activeSet.has(String(leaf.taxonomyId))) || leaf.geneId === keepGeneId);
   }
+  // The Expression zone's "expressed only" toggle (zoneStates.expression
+  // .expressedOnly): while it is on and the zone is visible, prune the largest
+  // branches with no leaf carrying expression attributes. The gene of interest
+  // stays, as with the genome prunes, so the root is never pruned.
+  getExpressionPrunedIds(vs, hostProps) {
+    const zs = vs && vs.zoneStates && vs.zoneStates.expression;
+    if (!zs || !zs.expressedOnly) return [];
+    if (!(vs.zones || []).some(z => z.id === 'expression' && z.visible)) return [];
+    const ea = hostProps && hostProps.hostData && hostProps.hostData.exprAttrs;
+    if (!ea || !ea.byNode || !hostProps.tree) return [];
+    const keepGeneId = this.gene && this.gene._id;
+    return maximalExcludedClades(hostProps.tree, (leaf) =>
+      ea.byNode.hasOwnProperty(leaf.id) || leaf.geneId === keepGeneId);
+  }
+  // Turning "expressed only" on also expands every branch, so the expressed
+  // genes left after pruning are all in view. Done here, in the same update
+  // as the toggle, rather than by a second viewer action that would race it.
+  expandOnExpressedOnly(prev, next) {
+    const was = !!(prev && prev.zoneStates && prev.zoneStates.expression && prev.zoneStates.expression.expressedOnly);
+    const is = !!(next && next.zoneStates && next.zoneStates.expression && next.zoneStates.expression.expressedOnly);
+    return !was && is ? {...next, collapsedNodeIds: []} : next;
+  }
   // Seed the bundle with a pivot-computed initial tbrowse view state once the
   // loader has the tree and the user is actually looking at the tbrowse
   // viewer, from lifecycle (not render) to avoid dispatching mid-render. The
@@ -316,12 +338,14 @@ class Homology extends React.Component {
         </div>
       );
     }
-    // Layer the genome-limit prune set on top of the user's own prunes for the
-    // controlled view state, but persist only the user's prunes (the layer
-    // strips the genome-derived ones in onViewStateChange) so the bundle stays
-    // free of filter-derived state and re-applies cleanly when the filter
-    // changes.
-    const pruneLayer = createDerivedPruneLayer(this.getGenomePrunedIds());
+    // Layer the genome-limit and "expressed only" prune sets on top of the
+    // user's own prunes for the controlled view state, but persist only the
+    // user's prunes (the layer strips the derived ones in onViewStateChange) so
+    // the bundle stays free of derived state and re-applies cleanly when the
+    // filter or toggle changes.
+    const pruneLayer = createDerivedPruneLayer([
+      ...new Set([...this.getGenomePrunedIds(), ...this.getExpressionPrunedIds(tbrowseVS, hostProps)]),
+    ]);
     return (
       <>
         <div className="gene-genetree" style={{height: this.getHeight(), width: '100%'}}>
@@ -330,7 +354,8 @@ class Homology extends React.Component {
             zones={this.getTbrowseZones()}
             nodeOfInterest={this.gene._id}
             viewState={pruneLayer.effective(tbrowseVS)}
-            onViewStateChange={(next) => this.setTbrowseViewState(pruneLayer.onChange(next))}
+            onViewStateChange={(next) =>
+              this.setTbrowseViewState(this.expandOnExpressedOnly(tbrowseVS, pruneLayer.onChange(next)))}
             densityControls={true}
             defaultOpenSections={{ zones: true, search: true }}
           />

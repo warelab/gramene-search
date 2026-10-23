@@ -63,6 +63,19 @@ const gridBorder = '1px solid var(--tbrowse-grid-line, rgba(0,0,0,0.06))';
 const stressWidth = (width, organCount) =>
   Math.max(STRESS_MIN, width - organCount * ORGAN_CELL_W - MAXTPM_W);
 
+// "Expressed only" toggle. Homology applies it: while on (and the zone is
+// visible) it prunes every branch with no gene that has expression
+// attributes, and turning it on expands the branches that remain.
+const ExpressedOnlyToggle = ({ on, onChange }) => (
+  <label
+    title="Prune branches without expression data and expand the rest"
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap', margin: 0 }}
+  >
+    <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} style={{ margin: 0 }} />
+    expressed only
+  </label>
+);
+
 const ExprHeader = ({ zoneState, setZoneState, width, data, hoveredNodeId }) => {
   const ea = (data.hostData && data.hostData.exprAttrs) || {};
   const organs = ea.organs || [];
@@ -76,6 +89,10 @@ const ExprHeader = ({ zoneState, setZoneState, width, data, hoveredNodeId }) => 
           defaultName="Expression"
           customName={zoneState?.name}
           onChange={(next) => setZoneState((s) => ({ ...(s ?? {}), name: next }))}
+        />
+        <ExpressedOnlyToggle
+          on={!!zoneState?.expressedOnly}
+          onChange={(on) => setZoneState((s) => ({ ...(s ?? {}), expressedOnly: on }))}
         />
         {/* ordinal level legend: pale → dark = low → high */}
         <span style={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 9, opacity: 0.85 }} title="expression level">
