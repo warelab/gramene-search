@@ -7,6 +7,9 @@
 //   - expandedDetail: which detail tab is open in the gene-list card
 //   - fullscreen: whether the expanded detail is full-screened
 //   - homology.viewer: 'treevis' | 'tbrowse'
+//   - homology.tree: which of the gene's trees is shown — the homology field
+//     holding it ('gene_tree', or a tree set such as 'wheat'); unset = the
+//     first (gene_tree when the gene has one)
 //   - homology.height: drag-resize height of the homology detail pane
 //   - homology.tbrowse: the tbrowse ViewState (collapsedNodeIds, prunedNodeIds,
 //     swappedNodeIds, compressedNodeIds, nodeOfInterestId, zones, zoneStates,
@@ -128,6 +131,12 @@ const uiViewState = {
         // payload: { geneId, viewer }
         return setHomology(state, payload.geneId, { viewer: payload.viewer });
 
+      case 'UI_HOMOLOGY_TREE_SET':
+        // payload: { geneId, tree }. The tbrowse ViewState belongs to one tree
+        // (its node ids), so a switch drops it and Homology re-seeds the new
+        // tree pivoted on the gene.
+        return setHomology(state, payload.geneId, { tree: payload.tree, tbrowse: undefined });
+
       case 'UI_HOMOLOGY_HEIGHT_SET':
         // payload: { geneId, height }
         return setHomology(state, payload.geneId, { height: payload.height });
@@ -171,6 +180,9 @@ const uiViewState = {
   },
   doSetHomologyViewer: ({ geneId, viewer }) => ({ dispatch }) => {
     dispatch({ type: 'UI_HOMOLOGY_VIEWER_SET', payload: { geneId, viewer } });
+  },
+  doSetHomologyTree: ({ geneId, tree }) => ({ dispatch }) => {
+    dispatch({ type: 'UI_HOMOLOGY_TREE_SET', payload: { geneId, tree } });
   },
   doSetHomologyHeight: ({ geneId, height }) => ({ dispatch }) => {
     dispatch({ type: 'UI_HOMOLOGY_HEIGHT_SET', payload: { geneId, height } });
