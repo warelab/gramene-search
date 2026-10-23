@@ -30,7 +30,7 @@
 //     { geneId,
 //       expandedDetail: string|null,
 //       fullscreen: boolean,
-//       homology: { viewer, height, tbrowse: <ViewState> } | undefined,
+//       homology: { viewer, tree, height, tbrowse: <ViewState> } | undefined,
 //       sequences: { tab, tid, upstream, downstream } | undefined,
 //       expression: { activeTab, atlasExperiment, jgiExperiment,
 //                     jgiAxes: { [jgiExperiment]: { rowFactor, columnFactor } },
@@ -90,6 +90,7 @@ const isMeaningfulGene = (entry) => {
   if (entry.fullscreen) return true;
   if (entry.homology && (
     entry.homology.viewer !== undefined ||
+    entry.homology.tree !== undefined ||
     entry.homology.height !== undefined ||
     entry.homology.tbrowse !== undefined
   )) return true;

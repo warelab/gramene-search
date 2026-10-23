@@ -31,20 +31,33 @@ const genomeZone = createGenomeZone({id: 'genome'});
 // `enable_tbrowse_genome_zone` (defaults to false) — see getTbrowseZones().
 const TBROWSE_BASE_ZONES = [treeZone, labelsZone, msaZone, neighborhoodZone];
 
-// A gene's tree is either the main Compara tree (homology.gene_tree) or, for
-// genomes in a clade-specific tree set, homology.<tree_set> — e.g. wheat genes
-// carry homology.wheat = {id: 'EplWheatGT_…'}. Solr indexes the tree id under
-// the same name (gene_tree, wheat, oat, …), so `field` is also the fq field.
-// Null when the gene has homologues but no tree at all.
+// A gene's trees: the main Compara tree (homology.gene_tree) and/or trees in
+// clade-specific tree sets, homology.<tree_set> — e.g. a wheat gene may carry
+// gene_tree, homology.wheat = {id: 'EplWheatGT_…'} and homology.barley. Solr
+// indexes each tree id under the same name (gene_tree, wheat, barley, …), so
+// `field` is also the fq field. gene_tree comes first; empty when the gene
+// has homologues but no tree at all.
 const NOT_TREE_KEYS = ['homologous_genes', 'supertree'];
-function geneTreeRef(gene) {
+function geneTreeRefs(gene) {
   const h = gene && gene.homology;
-  if (!h) return null;
-  if (h.gene_tree && h.gene_tree.id) return {field: 'gene_tree', id: h.gene_tree.id};
-  const key = Object.keys(h).find(k =>
-    !NOT_TREE_KEYS.includes(k) && h[k] && typeof h[k] === 'object' && typeof h[k].id === 'string');
-  return key ? {field: key, id: h[key].id} : null;
+  if (!h) return [];
+  const isTree = k => !NOT_TREE_KEYS.includes(k) && h[k] && typeof h[k] === 'object' && typeof h[k].id === 'string';
+  const keys = Object.keys(h).filter(isTree);
+  keys.sort((a, b) => (a === 'gene_tree' ? -1 : b === 'gene_tree' ? 1 : 0));
+  return keys.map(field => ({field, id: h[field].id, rootTaxonName: h[field].root_taxon_name}));
 }
+
+// The tree to show: the one picked in the switcher (`field`), else the first.
+function geneTreeRef(gene, field) {
+  const refs = geneTreeRefs(gene);
+  return refs.find(r => r.field === field) || refs[0] || null;
+}
+
+// Switcher label: the tree set and the clade the tree is rooted at.
+const treeLabel = ref => {
+  const set = ref.field === 'gene_tree' ? 'Compara' : ref.field.charAt(0).toUpperCase() + ref.field.slice(1);
+  return ref.rootTaxonName ? `${set} · ${ref.rootTaxonName}` : set;
+};
 
 class Homology extends React.Component {
   constructor(props) {
@@ -80,6 +93,8 @@ class Homology extends React.Component {
     return (slice && slice.homology) || {};
   }
   getViewer() { return this.getHomologySlice().viewer || 'tbrowse'; }
+  // The gene's selected tree (see the tree switcher in renderViewerToggle).
+  selectedTreeRef(gene) { return geneTreeRef(gene, this.getHomologySlice().tree); }
   // The genome (gene-structure) zone is opt-in per site via
   // `enable_tbrowse_genome_zone` (defaults to false).
   isGenomeZoneEnabled() {
@@ -100,6 +115,9 @@ class Homology extends React.Component {
   getHeight() {
     const h = this.getHomologySlice().height;
     return typeof h === 'number' ? h : 600;
+  }
+  setTree(field) {
+    this.props.doSetHomologyTree({geneId: this.getGeneId(), tree: field});
   }
   setViewer(viewer) {
     this.props.doSetHomologyViewer({geneId: this.getGeneId(), viewer});
@@ -159,7 +177,7 @@ class Homology extends React.Component {
     const id = this.getGeneId();
     if (!this.props.geneDocs.hasOwnProperty(id)) return;
     const gene = this.props.geneDocs[id];
-    const ref = geneTreeRef(gene);
+    const ref = this.selectedTreeRef(gene);
     if (!ref) return;
     const treeId = ref.id;
     const raw = this.props.grameneTrees[treeId];
@@ -209,7 +227,7 @@ class Homology extends React.Component {
     const id = this.getGeneId();
     if (!this.props.geneDocs.hasOwnProperty(id)) return;
     const gene = this.props.geneDocs[id];
-    const ref = geneTreeRef(gene);
+    const ref = this.selectedTreeRef(gene);
     if (!ref) return;
     const treeId = ref.id;
     const raw = this.props.grameneTrees[treeId];
@@ -498,10 +516,38 @@ class Homology extends React.Component {
         {label}
       </button>
     );
+    // A second row when the gene sits in more than one tree (e.g. a wheat
+    // gene in the Compara, wheat and barley trees).
+    const refs = geneTreeRefs(this.gene);
+    const treeBtn = ref => (
+      <button
+        key={ref.field}
+        type="button"
+        title={ref.id}
+        onClick={() => this.setTree(ref.field)}
+        style={{
+          padding: '4px 10px',
+          marginRight: 4,
+          fontSize: 12,
+          border: '1px solid #ccc',
+          background: this.treeRef.field === ref.field ? '#2878dc' : '#fff',
+          color: this.treeRef.field === ref.field ? '#fff' : '#222',
+          cursor: 'pointer',
+          borderRadius: 3,
+        }}>
+        {treeLabel(ref)}
+      </button>
+    );
     return (
       <div style={{margin: '8px 0'}}>
-        {btn('tbrowse', 'TBrowse')}
-        {btn('treevis', 'TreeVis')}
+        <div>
+          {btn('tbrowse', 'TBrowse')}
+          {btn('treevis', 'TreeVis')}
+        </div>
+        {refs.length > 1 && <div className="homology-tree-switcher" style={{marginTop: 6}}>
+          <span style={{fontSize: 12, marginRight: 6}}>Gene tree:</span>
+          {refs.map(treeBtn)}
+        </div>}
       </div>
     );
   }
@@ -623,7 +669,10 @@ class Homology extends React.Component {
       return <Spinner/>
     }
     this.gene = this.props.geneDocs[id];
-    this.treeRef = geneTreeRef(this.gene);
+    this.treeRef = this.selectedTreeRef(this.gene);
+    // Recomputed below only once the selected tree has loaded, so a switch to
+    // a tree still in flight never draws the previous one.
+    this.tree = undefined;
     if (!this.treeRef) {
       // Homologues but no tree (some pan-genome assemblies): offer the
       // ortholog/paralog searches instead of a phylogram.
@@ -659,10 +708,12 @@ class Homology extends React.Component {
         <Description key="description">
           This phylogram shows the relationships between this gene and others similar to it, as determined by Ensembl Compara.
         </Description>
-        {this.tree && <Content key="content">
+        <Content key="content">
           {this.renderViewerToggle()}
-          {this.getViewer() === 'tbrowse' ? this.renderTBrowse() : this.renderTreeVis()}
-        </Content>}
+          {!this.tree
+            ? <Spinner/>
+            : this.getViewer() === 'tbrowse' ? this.renderTBrowse() : this.renderTreeVis()}
+        </Content>
         {this.tree && <Explore key="explore" explorations={this.explorations()}/>}
         <Links key="links" links={this.links()}/>
       </Detail>
@@ -680,6 +731,7 @@ export default connect(
   'selectUiViewState',
   'doRequestGrameneTree',
   'doSetHomologyViewer',
+  'doSetHomologyTree',
   'doSetHomologyHeight',
   'doSetHomologyTbrowseViewState',
   'doAcceptGrameneSuggestion',
