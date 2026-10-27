@@ -10,6 +10,15 @@ import bins from "gramene-bins-client/src/bins";
 import taxonomy from "gramene-trees-client/src/taxonomy";
 import {build} from "gramene-taxonomy-with-genomes";
 
+// The API the gene Expression tab takes its studies from: configuration
+// expressionApi when set, for a site whose own index has no expression studies
+// or attributes but shares its genes (by id) with one that does, as Gramene
+// Maize (maize_v5) does with Gramene's current release.
+const expressionApi = store => {
+  const cfg = store.selectConfiguration();
+  return ((cfg && cfg.expressionApi) || store.selectGrameneAPI()).replace(/\/$/, '');
+};
+
 const facets = [
   "{!facet.limit='300' facet.mincount='1' key='taxon_id'}taxon_id",
   // "{!facet.limit='100' facet.mincount='1' key='genetree'}gene_tree",
@@ -246,7 +255,7 @@ const expressionStudies = createAsyncResourceBundle( {
   persist: true,
   staleAfter: 24 * 60 * 60 * 1000,
   getPromise: ({store}) => {
-    return fetch(`${store.selectGrameneAPI()}/experiments?rows=-1`)
+    return fetch(`${expressionApi(store)}/experiments?rows=-1`)
       .then(res => res.json())
       .then(res => _.groupBy(res, 'taxon_id'))
   }
@@ -597,8 +606,10 @@ const grameneParalogs = {
 // e.g. ['E-MTAB-3839', 'JGI-SB-2']), keyed by gene id. The search results do
 // not carry the field (it is not among /search's default fields), so the
 // Expression tab asks for it gene by gene. Each entry is {pending: true} while
-// the request is out, then {studies: [...]} ([] for a gene expressed in no
-// study), or {studies: null} when the request failed (asked again next time).
+// the request is out, then {studies: [...]}, or {studies: null} when the
+// request failed (asked again next time) or the gene's doc lacks the field:
+// older indexes (e.g. maize_v5) never carry it, so its absence can't be read
+// as "in no study". A site with an expressionApi asks that instead.
 const grameneGeneStudies = {
   name: 'grameneGeneStudies',
   getReducer: () => (state = {}, {type, payload}) => {
@@ -618,14 +629,14 @@ const grameneGeneStudies = {
     if (known && (known.pending || known.studies)) return;
     dispatch({type: 'GRAMENE_GENE_STUDIES_REQUESTED', payload: geneId});
     const q = encodeURIComponent(`id:"${geneId}"`);
-    fetch(`${store.selectGrameneAPI()}/search?q=${q}&fl=id,expressed_in_gxa_attr_ss&rows=1`)
+    fetch(`${expressionApi(store)}/search?q=${q}&fl=id,expressed_in_gxa_attr_ss&rows=1`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
       .then(res => {
         const doc = res.response.docs.find(d => d.id === geneId);
-        const studies = (doc && doc.expressed_in_gxa_attr_ss) || [];
+        const studies = (doc && doc.expressed_in_gxa_attr_ss) || null;
         dispatch({type: 'GRAMENE_GENE_STUDIES_RECEIVED', payload: {geneId, studies}});
       })
       .catch(() => dispatch({type: 'GRAMENE_GENE_STUDIES_FAILED', payload: geneId}));

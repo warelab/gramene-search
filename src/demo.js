@@ -153,6 +153,9 @@ const panSites = [
     // Expression tab heatmaps query this gramene-swagger /gxa/ instance, e.g.
     // ATLAS_URL=https://data.sorghumbase.org/sorghum_v11/gxa/ (unset: the auth_testing default).
     atlasUrl: process.env.ATLAS_URL,
+    // EXPRESSION_API=https://data.gramene.org/v70 gives the gene Expression tab
+    // its studies from another index, as Gramene Maize does on maize_v5.
+    expressionApi: process.env.EXPRESSION_API,
     ga: 'G-L5KXDCCZ16',
     alertText: 'Click the search icon in the menu bar or type /',
     showViews: true,
