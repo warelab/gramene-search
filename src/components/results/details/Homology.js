@@ -21,11 +21,13 @@ import {
   createDerivedPruneLayer,
   createLoader,
   defineSlot,
+  ensureZones,
   extendSource,
   fetchGrameneExprAttrDocs,
   grameneGeneTreeSource,
   hostPropsFrom,
   maximalExcludedClades,
+  softResetForNewTree,
 } from "tbrowse-core";
 import {Detail, Title, Description, Content, Explore, Links} from "./generic";
 import {exprAttrsZone, buildExprData} from "./exprAttrsZone";
@@ -98,6 +100,30 @@ const ZONE_SLOTS = {
   expression: ['exprAttrs'],
 };
 
+// Per-zone settings that point into one tree's rows or alignment columns
+// (row flips, per-gap / per-intron overrides, the MSA viewport and expanded
+// mask runs, the genome pan), reset when a tree switch carries the rest of
+// the zone settings over.
+const TREE_SCOPED_ZONE_FIELDS = {
+  flippedNodeIds: [],
+  gapOverrideKeys: [],
+  intronOverrideKeys: [],
+  viewportStart: 0,
+  viewportEnd: 0,
+  panPx: 0,
+};
+function carryViewState(vs) {
+  const soft = softResetForNewTree(vs);
+  const zoneStates = _.mapValues(soft.zoneStates || {}, zs => {
+    if (!_.isPlainObject(zs)) return zs;
+    const next = {...zs};
+    Object.keys(TREE_SCOPED_ZONE_FIELDS).forEach(k => { if (k in next) next[k] = TREE_SCOPED_ZONE_FIELDS[k]; });
+    if (next.mask && next.mask.expandedRuns) next.mask = {...next.mask, expandedRuns: []};
+    return next;
+  });
+  return {...soft, zoneStates};
+}
+
 class Homology extends React.Component {
   constructor(props) {
     super(props);
@@ -145,6 +171,7 @@ class Homology extends React.Component {
     return typeof h === 'number' ? h : 600;
   }
   setTree(field) {
+    if (this.treeRef && this.treeRef.field === field) return;
     this.props.doSetHomologyTree({geneId: this.getGeneId(), tree: field});
   }
   setViewer(viewer) {
@@ -207,6 +234,8 @@ class Homology extends React.Component {
   // uncontrolled mode (each zone's fr-share, initial visibility, default
   // per-zone state); the pivot is computed for THIS gene — the loader is
   // shared by every gene of the tree, so its own pivot may be another gene's.
+  // After a tree switch the seed starts from the previous tree's state instead,
+  // minus its node ids, so the zones and display settings stay as they were.
   maybeSeedTbrowseViewState() {
     if (this.getViewer() !== 'tbrowse') return;
     if (this.getHomologySlice().tbrowse) return;
@@ -216,9 +245,10 @@ class Homology extends React.Component {
     const snap = this.loader.getSnapshot();
     const ref = this.selectedTreeRef(this.gene);
     if (!ref || snap.status !== 'ready' || !snap.tree || !snap.root || snap.root.meta.treeId !== ref.id) return;
-    this.setTbrowseViewState(
-      applyPivot(buildInitialViewState(this.getTbrowseZones()), computePivotState(snap.tree, this.gene._id)),
-    );
+    const zones = this.getTbrowseZones();
+    const carry = this.getHomologySlice().tbrowseCarry;
+    const base = carry ? ensureZones(carryViewState(carry), zones) : buildInitialViewState(zones);
+    this.setTbrowseViewState(applyPivot(base, computePivotState(snap.tree, this.gene._id)));
   }
   componentDidMount() {
     this._unsubscribe = this.loader.subscribe(() => this.setState({snap: this.loader.getSnapshot()}));

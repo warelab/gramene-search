@@ -14,6 +14,9 @@
 //   - homology.tbrowse: the tbrowse ViewState (collapsedNodeIds, prunedNodeIds,
 //     swappedNodeIds, compressedNodeIds, nodeOfInterestId, zones, zoneStates,
 //     search, selectedNodeId). Tbrowse is driven in controlled mode from this.
+//   - homology.tbrowseCarry: the previous tree's ViewState, held across a tree
+//     switch until the new tree is seeded from its configuration (zones, zone
+//     settings, row height, font size)
 //   - sequences: the Sequences detail's internal state — tab ('dna'|'rna'|'pep'),
 //     tid (selected transcript id), upstream/downstream (flanking bp). Driven in
 //     controlled mode from this so a saved view restores the chosen sub-tab and
@@ -131,11 +134,18 @@ const uiViewState = {
         // payload: { geneId, viewer }
         return setHomology(state, payload.geneId, { viewer: payload.viewer });
 
-      case 'UI_HOMOLOGY_TREE_SET':
-        // payload: { geneId, tree }. The tbrowse ViewState belongs to one tree
-        // (its node ids), so a switch drops it and Homology re-seeds the new
-        // tree pivoted on the gene.
-        return setHomology(state, payload.geneId, { tree: payload.tree, tbrowse: undefined });
+      case 'UI_HOMOLOGY_TREE_SET': {
+        // payload: { geneId, tree }. The tbrowse ViewState's node ids belong to
+        // one tree, so a switch drops it and Homology re-seeds the new tree
+        // pivoted on the gene, keeping the old state's configuration (carried
+        // until then; a switch before the seed keeps the earlier carry).
+        const prev = state.byGene[payload.geneId]?.homology || {};
+        return setHomology(state, payload.geneId, {
+          tree: payload.tree,
+          tbrowse: undefined,
+          tbrowseCarry: prev.tbrowse || prev.tbrowseCarry,
+        });
+      }
 
       case 'UI_HOMOLOGY_HEIGHT_SET':
         // payload: { geneId, height }
@@ -143,7 +153,7 @@ const uiViewState = {
 
       case 'UI_HOMOLOGY_TBROWSE_SET':
         // payload: { geneId, tbrowse }  -- a full ViewState object
-        return setHomology(state, payload.geneId, { tbrowse: payload.tbrowse });
+        return setHomology(state, payload.geneId, { tbrowse: payload.tbrowse, tbrowseCarry: undefined });
 
       case 'UI_SEQUENCES_SET':
         // payload: { geneId, patch }  -- merges into the sequences slice
