@@ -154,22 +154,40 @@ class Location extends React.Component {
     function jgiify(id) {
       return id.replace('SORBI_3','Sobic.').replace(/\.v[0-9]\.[0-9]$/,'');
     }
+    // gene.taxon_id is SYNTHETIC -- NCBI taxid * 1000 + n, so A. thaliana is 3702001 and rice
+    // japonica 39947001, never 3702 or 39947. Comparing it to a bare NCBI taxid can never be true,
+    // which is why the TAIR, ThaleMine and RAP-DB links below had never once appeared on a gene
+    // page. annotations.taxonomy.ancestors holds REAL NCBI ids, which is why the Phytozome link
+    // above it has always worked; guarded because a gene with no taxonomy annotation would
+    // otherwise throw and take the whole Location tab down with it.
+    function descendsFrom(g, ncbiTaxId) {
+      const anc = g.annotations && g.annotations.taxonomy && g.annotations.taxonomy.ancestors;
+      return Array.isArray(anc) && anc.includes(ncbiTaxId);
+    }
     var gene = this.gene;
     let links = [
       {name: 'Ensembl Browser', url: `${this.props.config.ensemblURL}/${gene.system_name}/Gene/Summary?g=${gene._id}`}
     ];
-    if (gene.annotations.taxonomy.ancestors.includes(4557))
+    if (descendsFrom(gene, 4557))
       links.push({name: 'Phytozome', url: `https://phytozome-next.jgi.doe.gov/report/gene/Sbicolor_v5_1/${jgiify(gene._id)}`})
-    if (gene.taxon_id === 3702)
+    // 3702 selects arabidopsis_thaliana alone: halleri (63677) and lyrata (81972) are also hosted
+    // and neither has 3702 in its lineage.
+    if (descendsFrom(gene, 3702))
       links.push(
-        {name: 'tair', url: `https://www.arabidopsis.org/servlets/TairObject?name=${gene._id}&type=locus`},
+        {name: 'tair', url: `https://www.arabidopsis.org/results?mainType=general&category=genes&searchText=${gene._id}`},
         {name: 'ThaleMine', url: `https://bar.utoronto.ca/thalemine/keywordSearchResults.do?searchTerm=${gene._id}&searchSubmit=search`}
       );
-    if (gene.taxon_id === 39947)
-      links.push({name: 'RAP-DB', url: `https://rapdb.dna.affrc.go.jp/locus/?name=${gene._id}`});
+    // RAP-DB is gated on the ID SHAPE, not the lineage, and deliberately so. Its /locus/ route
+    // takes a RAP locus id, and only the IRGSP-1.0 reference carries those (Os01g0100100). Of the
+    // 17 O. sativa genomes hosted, azucena and ARC 10497 also descend from 39947 -- they are
+    // Japonica-group cultivars -- but their ids are OsAzu_01g0000010 and OsARC_01g0000010, so a
+    // lineage gate would hand RAP-DB identifiers it cannot resolve.
+    const isRapLocus = /^Os\d{2}g\d{7}$/;
+    if (isRapLocus.test(gene._id))
+      links.push({name: 'RAP-DB', url: `https://rapdb.dna.naro.go.jp/locus/?name=${gene._id}`});
     const isMaize = new RegExp(/^Zm[0-9]+/);
     if (isMaize.test(gene._id))
-      links.push({name: 'MaizeGDB', url: `http://www.maizegdb.org/gene_center/gene/${gene._id}`});
+      links.push({name: 'MaizeGDB', url: `https://www.maizegdb.org/gene_center/gene/${gene._id}`});
     return links;
   }
 
