@@ -45,6 +45,11 @@ table.xrefs td:nth-child(3) {
 .result-gene {
     padding: 0.2em;
     border: 5px solid white;
+    /* Summary widths, shared with the detail tab row so it ends where the
+       summary does (the title block, or the ortholog/TAIR box beside it). */
+    --gene-title-max: 1036px;
+    --gene-side-box: 380px;
+    --gene-side-gap: 1rem;
 }
 .result-gene:hover {
     border-color: antiquewhite;
@@ -185,6 +190,10 @@ table.xrefs td:nth-child(3) {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
+    max-width: var(--gene-title-max);
+}
+.result-gene:has(.model-ortholog, .closest-ortholog, .gene-summary-tair) .gene-detail-tabs {
+    max-width: calc(var(--gene-title-max) + var(--gene-side-gap) + var(--gene-side-box));
 }
 /* Tab items: 4-per-row by default, overrides Bootstrap col-md-1 (8.33%) */
 .gene-detail-tabs > div {
@@ -270,18 +279,18 @@ table.xrefs td:nth-child(3) {
 }
 .result-gene-title-body {
     flex: 1 1 auto;
-    max-width: 1036px;
+    max-width: var(--gene-title-max);
     width: 100%;
 }
 .model-ortholog, .closest-ortholog, .gene-summary-tair {
     cursor: pointer;
     flex: 0 0 auto;
-    max-width: 380px;
-    width: 380px;
+    max-width: var(--gene-side-box);
+    width: var(--gene-side-box);
     font-size: smaller;
     margin-top: 10px;
     padding: 0.25rem 0.5rem 0.5rem;
-    margin-left: 1rem;
+    margin-left: var(--gene-side-gap);
     border: 1px solid darkorange;
 }
 
