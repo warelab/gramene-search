@@ -50,7 +50,7 @@
     "flat-to-nested": "^1.1.1",
     "gramene-atlas-heatmap": "^6.3.0",
     "gramene-bins-client": "^2.3.3",
-    "gramene-dbxrefs": "^3.0.18",
+    "gramene-dbxrefs": "^3.0.19",
     "gramene-genetree-vis": "^4.2.11",
     "gramene-mdview": "^2.0.8",
     "gramene-primers": "^0.11.0",
@@ -74,7 +74,7 @@
     "react-switch": "^7.0.0",
     "redux-bundler": "21.0.0",
     "redux-bundler-react": "^1.2.0",
-    "tbrowse": "^2.13.0",
+    "tbrowse": "^2.14.0",
     "tbrowse-core": "^1.0.0"
   },
   "prettier": {

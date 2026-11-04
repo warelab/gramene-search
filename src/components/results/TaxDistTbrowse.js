@@ -123,6 +123,36 @@ const TaxDistTbrowse = (props) => {
     binsUiRef.current.clear();
   }, [doAcceptGrameneSuggestion]);
 
+  // Node-tooltip "Filter on" button: restrict the search to the clicked
+  // taxon (taxonomy__ancestors covers every genome beneath it). Node ids are
+  // the taxDist model ids (NCBI taxon ids, the Solr doc's _id), so look the
+  // model up for its name and rank.
+  const modelById = useMemo(() => {
+    const byId = {};
+    const walk = (n) => {
+      if (!n || !n.model) return;
+      byId[String(n.model.id)] = n.model;
+      (n.children || []).forEach(walk);
+    };
+    walk(grameneTaxDist);
+    return byId;
+  }, [grameneTaxDist]);
+  const nodeActions = useCallback((treeNode) => {
+    const node = modelById[treeNode.id];
+    if (!node || !doAcceptGrameneSuggestion) return [];
+    const name = `${node.name} (${node.rank})`;
+    return [{
+      label: 'Add search filter',
+      title: `Filter results to ${name}`,
+      onClick: () => doAcceptGrameneSuggestion({
+        category: 'Taxonomy',
+        fq_field: 'taxonomy__ancestors',
+        fq_value: `${node.id}`,
+        name,
+      }),
+    }];
+  }, [modelById, doAcceptGrameneSuggestion]);
+
   const hostData = useMemo(() => {
     const facet = props.grameneSearch
       && props.grameneSearch.facet_counts
@@ -242,6 +272,7 @@ const TaxDistTbrowse = (props) => {
           autoHeight={true}
           defaultOpenSections={{ search: true, zones: true }}
           headerActions={headerActions}
+          nodeActions={nodeActions}
           viewState={effectiveViewState}
           onViewStateChange={(next) => setTaxTreeView({ viewState: next })}
         />
