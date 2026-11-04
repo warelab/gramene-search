@@ -50,7 +50,7 @@
     "flat-to-nested": "^1.1.1",
     "gramene-atlas-heatmap": "^6.3.0",
     "gramene-bins-client": "^2.3.3",
-    "gramene-dbxrefs": "^3.0.15",
+    "gramene-dbxrefs": "^3.0.18",
     "gramene-genetree-vis": "^4.2.11",
     "gramene-mdview": "^2.0.8",
     "gramene-primers": "^0.11.0",
